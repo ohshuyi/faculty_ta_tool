@@ -8,7 +8,7 @@ on:
 
 env:
   APPLICATION_PUBLISH_PROFILE: ${{ secrets.APP_PUBLISH_PROFILE }}
-  WEBAPP_NAME: "my-next-app"
+  WEBAPP_NAME: "tafaculty1"
 
 jobs:
   build:
