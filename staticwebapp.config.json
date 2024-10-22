@@ -1,8 +1,11 @@
 {
-"routes": [
+  "routes": [
     {
       "route": "/api/*",
       "rewrite": "/api"
+    },
+    {
+      "route": "src/app/api"
     }
   ]
 }
