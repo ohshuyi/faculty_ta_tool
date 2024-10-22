@@ -23,6 +23,8 @@ jobs:
           node-version: "18.x"
 
       - name: npm install, build, and test
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }} # Use the secret
         run: |
           npm install
           npm run build
