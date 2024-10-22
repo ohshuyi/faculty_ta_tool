@@ -10,7 +10,7 @@ export default function Home() {
       try { // test
         const response = await fetch("/api/users");
         const result = await response.json();
-        // Set the first result to state if it exists
+        // Set the first result to fsfsstate if it exists
         if (result.length > 0) {
           setData(result[0]);
         }
