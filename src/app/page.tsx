@@ -7,7 +7,7 @@ export default function Home() {
   useEffect(() => {
     // Fetch data from the API
     const fetchData = async () => {
-      try {
+      try { // test
         const response = await fetch("/api/users");
         const result = await response.json();
         // Set the first result to state if it exists
