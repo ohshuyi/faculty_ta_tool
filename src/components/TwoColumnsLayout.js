@@ -14,7 +14,7 @@ const TwoColumnLayout = ({ items, renderContent }) => {
   const onSelect = ({ key }) => {
     setSelectedKey(key);
   };
-
+//
   return (
     <Layout style={{ height: "100vh" }}>
       {/* Left Section - Scrollable List */}
