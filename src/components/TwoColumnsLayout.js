@@ -1,38 +1,69 @@
 "use client";
 import React, { useState } from "react";
-import { Layout, Menu, theme } from "antd";
+import { Layout, Menu, Input, Button, theme } from "antd";
+import { PlusOutlined } from '@ant-design/icons';  // For the add ticket button
 
 const { Sider, Content } = Layout;
+const { Search } = Input;
 
-const TwoColumnLayout = ({ items, renderContent }) => {
-  const [selectedKey, setSelectedKey] = useState(items[0].key); // Set initial selection
+const TwoColumnLayout = ({ items, renderContent, onAddTicket }) => {
+  const [selectedKey, setSelectedKey] = useState(items[0]?.key); // Handle if items are empty
+  const [filteredItems, setFilteredItems] = useState(items); // Items filtered based on search
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  // Function to handle selection from the left sidebar
+  // Function to handle item selection from the left sidebar
   const onSelect = ({ key }) => {
     setSelectedKey(key);
   };
-//
+
+  // Function to handle the search
+  const onSearch = (value) => {
+    const filtered = items.filter((item) =>
+      item.title.toLowerCase().includes(value.toLowerCase())
+    );
+    setFilteredItems(filtered);
+  };
+
   return (
     <Layout style={{ height: "100vh" }}>
       {/* Left Section - Scrollable List */}
       <Sider
-        width={250}
+        width={300} // Increased the width for more space
         style={{
           background: "#fff",
-          position: "sticky", // Change from fixed to sticky
-          top: 0,             // Sticks to the top when scrolling
+          position: "sticky", // Keeps it at the top when scrolling
+          top: 0,             // Sticky behavior
           height: "100vh",    // Full viewport height
           overflow: "auto",   // Allows the sider to be scrollable
+          padding: "16px",    // Add some padding
         }}
       >
+        {/* Search Bar */}
+        <Search
+          placeholder="Search tickets"
+          onSearch={onSearch}
+          style={{ marginBottom: 16 }}
+        />
+
+        {/* Add New Ticket Button */}
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          block
+          style={{ marginBottom: 16 }}
+          onClick={onAddTicket} // Action to add a new ticket
+        >
+          Add New Ticket
+        </Button>
+
+        {/* Ticket List */}
         <Menu
           mode="inline"
-          defaultSelectedKeys={[items[0].key]}
+          defaultSelectedKeys={[items[0]?.key]} // Prevent error if items is empty
           onClick={onSelect}
-          items={items.map((item) => ({
+          items={filteredItems.map((item) => ({
             key: item.key,
             label: item.title,
           }))}
@@ -49,7 +80,7 @@ const TwoColumnLayout = ({ items, renderContent }) => {
             borderRadius: borderRadiusLG,
           }}
         >
-          {renderContent(selectedKey)} {/* Render dynamic content based on the selected key */}
+          {renderContent(selectedKey)} {/* Render dynamic content based on selected key */}
         </Content>
       </Layout>
     </Layout>

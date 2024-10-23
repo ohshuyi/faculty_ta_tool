@@ -12,7 +12,7 @@ const tasks = [
 
 export default function TaskPage() {
   // Function to render the content dynamically based on the selected task key
-  const renderTaskContent = (key) => {
+  const renderTaskContent = (key: string) => {
     const task = tasks.find((task) => task.key === key);
     return (
       <>
