@@ -7,6 +7,7 @@ const { Sider, Content } = Layout;
 const { Search } = Input;
 
 const TwoColumnLayout = ({ items, renderContent, onAddTicket, userRole }) => {  // Receive userRole prop
+  console.log(onAddTicket)
   console.log("User Role in Layout:", userRole); // Check if the role is passed correctly
   const [selectedKey, setSelectedKey] = useState(items[0]?.key); // Handle if items are empty
   const [filteredItems, setFilteredItems] = useState(items); // Items filtered based on search

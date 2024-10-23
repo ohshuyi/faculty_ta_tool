@@ -1,6 +1,17 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Button, Select, message, Row, Col } from "antd";
+import {
+  Modal,
+  Form,
+  Input,
+  Button,
+  Select,
+  message,
+  Row,
+  Col,
+  Upload,
+} from "antd";
+import { UploadOutlined } from "@ant-design/icons";
 import { useSession } from "next-auth/react";
 
 const { TextArea } = Input;
@@ -8,15 +19,16 @@ const { Option } = Select;
 
 const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
   const [loading, setLoading] = useState(false);
-  const [professors, setProfessors] = useState([]); // State to store list of professors
-  const { data: session } = useSession(); // Get session data to identify the logged-in TA
-
+  const [professors, setProfessors] = useState([]);
+  const { data: session } = useSession();
+  const [file, setFile] = useState(null); // State to store the uploaded file
+  console.log(isVisible);
   // Fetch professors when the modal is visible
   useEffect(() => {
     if (isVisible) {
       async function fetchProfessors() {
         try {
-          const response = await fetch("/api/professors"); // API to fetch professors
+          const response = await fetch("/api/professors");
           const data = await response.json();
           setProfessors(data);
         } catch (error) {
@@ -27,21 +39,34 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
     }
   }, [isVisible]);
 
+  // Function to handle file selection
+  const handleFileChange = ({ fileList }) => {
+    setFile(fileList[0]); // Take the first file from the list
+  };
+
   // Function to handle form submission
   const onFinish = async (values) => {
     setLoading(true);
 
     try {
-      // Make the POST request to add a new ticket
+      const formData = new FormData();
+      formData.append("ticketNumber", values.ticketNumber);
+      formData.append("ticketDescription", values.ticketDescription);
+      formData.append("courseGroupType", values.courseGroupType);
+      formData.append("category", values.category);
+      formData.append("student", values.student);
+      formData.append("details", values.details);
+      formData.append("priority", values.priority);
+      formData.append("professorId", values.professorId);
+      formData.append("taId", session.user.id);
+
+      if (file) {
+        formData.append("file", file.originFileObj); // Add the selected file to the form data
+      }
+
       const response = await fetch("/api/tickets", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...values,
-          taId: session.user.id, // Add the TA's ID from the session
-        }),
+        body: formData,
       });
 
       if (response.ok) {
@@ -52,7 +77,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
         message.error("Failed to add ticket");
       }
     } catch (error) {
-      console.log(error);
+      console.error(error);
       message.error("An error occurred. Please try again.");
     } finally {
       setLoading(false);
@@ -61,38 +86,43 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
 
   return (
     <Modal
-      visible={isVisible}
+      visible={isVisible} // Ensure this prop is controlling the modal's visibility
       title="Add New Ticket"
       onCancel={onClose}
-      footer={null} // Hides the default footer buttons
+      footer={null}
     >
       <Form layout="vertical" onFinish={onFinish}>
         <Row gutter={16}>
-          {/* Left Column */}
           <Col span={12}>
-            {/* Ticket Number Field */}
             <Form.Item
               label="Ticket Number"
               name="ticketNumber"
-              rules={[{ required: true, message: "Please input the ticket number!" }]}
+              rules={[
+                { required: true, message: "Please input the ticket number!" },
+              ]}
             >
               <Input placeholder="Enter ticket number" />
             </Form.Item>
 
-            {/* Ticket Description Field */}
             <Form.Item
               label="Ticket Description"
               name="ticketDescription"
-              rules={[{ required: true, message: "Please input the ticket description!" }]}
+              rules={[
+                {
+                  required: true,
+                  message: "Please input the ticket description!",
+                },
+              ]}
             >
               <TextArea rows={4} placeholder="Enter ticket description" />
             </Form.Item>
 
-            {/* Course Group Field */}
             <Form.Item
               label="Course Group"
               name="courseGroupType"
-              rules={[{ required: true, message: "Please select a course group!" }]}
+              rules={[
+                { required: true, message: "Please select a course group!" },
+              ]}
             >
               <Select placeholder="Select a course group">
                 <Option value="Math 101">Math 101</Option>
@@ -101,7 +131,6 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
               </Select>
             </Form.Item>
 
-            {/* Category Field */}
             <Form.Item
               label="Category"
               name="category"
@@ -117,26 +146,21 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
             </Form.Item>
           </Col>
 
-          {/* Right Column */}
           <Col span={12}>
-            {/* Student Field */}
             <Form.Item
               label="Student"
               name="student"
-              rules={[{ required: true, message: "Please input the student name!" }]}
+              rules={[
+                { required: true, message: "Please input the student name!" },
+              ]}
             >
               <Input placeholder="Enter student name" />
             </Form.Item>
 
-            {/* Details Field */}
-            <Form.Item
-              label="Details"
-              name="details"
-            >
+            <Form.Item label="Details" name="details">
               <TextArea rows={4} placeholder="Enter additional details" />
             </Form.Item>
 
-            {/* Priority Field */}
             <Form.Item
               label="Priority"
               name="priority"
@@ -149,11 +173,12 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
               </Select>
             </Form.Item>
 
-            {/* Professor Field */}
             <Form.Item
               label="Professor"
               name="professorId"
-              rules={[{ required: true, message: "Please select a professor!" }]}
+              rules={[
+                { required: true, message: "Please select a professor!" },
+              ]}
             >
               <Select placeholder="Select a professor">
                 {professors.map((professor) => (
@@ -166,7 +191,13 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           </Col>
         </Row>
 
-        {/* Submit Button */}
+        {/* File Upload Field */}
+        <Form.Item label="Medical Certificate (Optional)">
+          <Upload beforeUpload={() => false} onChange={handleFileChange}>
+            <Button icon={<UploadOutlined />}>Select File</Button>
+          </Upload>
+        </Form.Item>
+
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading} block>
             Submit

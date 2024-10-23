@@ -25,7 +25,16 @@ model Ticket {
   professor        User     @relation("ProfessorTickets", fields: [professorId], references: [id])
   professorId      Int
 
-  comments         Comment[] // Relation to comments
+  comments         Comment[]  // Relation to comments
+  files            File[]     // Relation to files uploaded by TA
+}
+
+model File {
+  id        Int      @id @default(autoincrement())
+  url       String   // The URL where the file is stored
+  fileName  String   // The original file name
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId  Int
 }
 
 model User {

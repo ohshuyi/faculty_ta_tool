@@ -5,7 +5,7 @@ export interface Ticket {
     category: string;
     student: string;
     details: string;
-    prof: string;
+    professor: string;
     ta: string;
     priority: "low" | "medium" | "high";
     comments: { author: string, content: string }[];

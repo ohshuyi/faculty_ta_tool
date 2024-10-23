@@ -13,10 +13,11 @@ import {
   message,
   Divider,
 } from "antd";
+import { FileOutlined } from "@ant-design/icons"; // Import the file icon
 import { useSession } from "next-auth/react";
 import AppLayout from "@/components/Layout";
 import TwoColumnsLayout from "@/components/TwoColumnsLayout";
-import AddTicketModal from "@/components/AddTicketModal"; 
+import AddTicketModal from "@/components/AddTicketModal";
 import { Ticket } from "@/lib/types";
 import TextArea from "antd/es/input/TextArea";
 
@@ -33,10 +34,10 @@ export default function TicketPage() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null); // Ensure initial null value
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isCloseModalVisible, setIsCloseModalVisible] = useState(false);
-  const [comments, setComments] = useState([]); 
+  const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
+  console.log(tickets)
   const fetchTickets = async () => {
     setLoading(true);
     try {
@@ -63,7 +64,9 @@ export default function TicketPage() {
 
   const handleCommentSubmit = async () => {
     if (!newComment || !selectedTicket) {
-      message.warning("Please enter a comment and ensure a ticket is selected.");
+      message.warning(
+        "Please enter a comment and ensure a ticket is selected."
+      );
       return;
     }
 
@@ -85,7 +88,7 @@ export default function TicketPage() {
 
       if (response.ok) {
         message.success("Comment added successfully.");
-        setNewComment(""); 
+        setNewComment("");
         fetchComments(selectedTicket.ticketNumber);
       } else {
         message.error("Failed to add comment.");
@@ -124,7 +127,9 @@ export default function TicketPage() {
             marginBottom: "16px",
           }}
         >
-          <h2 style={{ fontWeight: "bold" }}>Ticket Details: {ticket.ticketNumber}</h2>
+          <h2 style={{ fontWeight: "bold" }}>
+            Ticket Details: {ticket.ticketNumber}
+          </h2>
 
           {session?.user?.role === "PROFESSOR" && (
             <Button
@@ -160,13 +165,38 @@ export default function TicketPage() {
             {getPriorityTag(ticket.priority)}
           </Descriptions.Item>
         </Descriptions>
+        {/* Display Files Section */}
+        {ticket.files?.length > 0 && (
+          <>
+            <Divider />
+            <h3>Attached Files</h3>
+            <List
+              dataSource={ticket.files}
+              renderItem={(file) => (
+                <List.Item>
+                  <a href={file.url} target="_blank" rel="noopener noreferrer">
+                    <Button
+                      type="link"
+                      icon={<FileOutlined />}
+                      style={{ display: "flex", alignItems: "center" }}
+                    >
+                      {file.fileName}
+                    </Button>
+                  </a>
+                </List.Item>
+              )}
+            />
+          </>
+        )}
 
         <Divider />
 
-        <h3 style={{
-          fontSize: "20px", 
-          fontWeight: "bold", 
-        }}>
+        <h3
+          style={{
+            fontSize: "20px",
+            fontWeight: "bold",
+          }}
+        >
           Comments
         </h3>
         <List
@@ -174,8 +204,8 @@ export default function TicketPage() {
           renderItem={(comment) => (
             <List.Item>
               <div>
-                {comment.author }: {}
-                 {comment.content}
+                {comment.author}: {}
+                {comment.content}
               </div>
             </List.Item>
           )}
@@ -267,7 +297,9 @@ export default function TicketPage() {
             title: ticket.ticketDescription,
           }))}
           renderContent={(key) => {
-            const ticket = tickets.find((ticket) => ticket.ticketNumber === key);
+            const ticket = tickets.find(
+              (ticket) => ticket.ticketNumber === key
+            );
             if (ticket) {
               setSelectedTicket(ticket);
               return renderTicketDetails(ticket);
