@@ -43,7 +43,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const userEmail = session.user?.email; // Assuming you get the email from the session
+    const userEmail = session.user?.email;
 
     // Find the user by email
     const user = await prisma.user.findUnique({
@@ -54,16 +54,25 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Fetch tickets where the user is the TA (assignedTATickets)
+    // Define the condition based on role
+    let whereCondition = {};
+    if (user.role === "TA") {
+      whereCondition = { taId: user.id };
+    } else if (user.role === "PROFESSOR") {
+      whereCondition = { professorId: user.id };
+    } else {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Fetch tickets based on the condition (for both TA and Professor)
     const tickets = await prisma.ticket.findMany({
-      where: { taId: user.id }, // Only fetch tickets where the user is the TA
+      where: whereCondition,
       include: {
         ta: true,
         professor: true,
         comments: true,
       },
     });
-    console.log("Tickets:", tickets);
 
     return NextResponse.json(tickets);
   } catch (error) {

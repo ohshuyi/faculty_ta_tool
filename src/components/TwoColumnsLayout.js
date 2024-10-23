@@ -6,7 +6,8 @@ import { PlusOutlined } from '@ant-design/icons';  // For the add ticket button
 const { Sider, Content } = Layout;
 const { Search } = Input;
 
-const TwoColumnLayout = ({ items, renderContent, onAddTicket }) => {
+const TwoColumnLayout = ({ items, renderContent, onAddTicket, userRole }) => {  // Receive userRole prop
+  console.log("User Role in Layout:", userRole); // Check if the role is passed correctly
   const [selectedKey, setSelectedKey] = useState(items[0]?.key); // Handle if items are empty
   const [filteredItems, setFilteredItems] = useState(items); // Items filtered based on search
   const {
@@ -47,16 +48,18 @@ const TwoColumnLayout = ({ items, renderContent, onAddTicket }) => {
           style={{ marginBottom: 16 }}
         />
 
-        {/* Add New Ticket Button */}
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          block
-          style={{ marginBottom: 16 }}
-          onClick={onAddTicket} // Action to add a new ticket
-        >
-          Add New Ticket
-        </Button>
+        {/* Add New Ticket Button - Only visible if userRole is TA */}
+        {userRole === 'TA' && (  // Check user role
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            block
+            style={{ marginBottom: 16 }}
+            onClick={onAddTicket} // Action to add a new ticket
+          >
+            Add New Ticket
+          </Button>
+        )}
 
         {/* Ticket List */}
         <Menu
