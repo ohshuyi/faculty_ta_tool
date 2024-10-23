@@ -21,12 +21,17 @@ export async function DELETE(
       );
     }
 
+    // Delete the associated comments first by ticketId
+    await prisma.comment.deleteMany({
+      where: { ticketId: ticket.id },
+    });
+
     // Delete the associated files first by ticketId
     await prisma.file.deleteMany({
       where: { ticketId: ticket.id },
     });
 
-    // Delete the ticket from the database
+    // Now delete the ticket
     await prisma.ticket.delete({
       where: { id: ticket.id },
     });
