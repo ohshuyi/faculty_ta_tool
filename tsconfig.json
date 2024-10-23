@@ -34,7 +34,7 @@
     ".next/types/**/*.ts",
     "next-env.d.ts",
     "build/types/**/*.ts"
-, "next.config.js", "src/app/api/users/auth/[...nextauth]/route.tjs"  ],
+, "next.config.js", "src/app/api/users/auth/[...nextauth]/route.tjs", "src/components/Navbar.js"  ],
   "exclude": [
     "node_modules"
   ]

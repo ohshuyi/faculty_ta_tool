@@ -1,0 +1,96 @@
+import { Ticket } from "@/lib/types";
+
+export const tickets: Ticket[] = [
+  {
+    ticketNumber: "T-1001",
+    ticketDescription: "Issue with assignment submission",
+    courseGroupType: "Math 101",
+    category: "Assignment",
+    student: "John Doe",
+    details: "Unable to submit assignment #3.",
+    prof: "Dr. Smith",
+    ta: "TA John",
+    priority: "high",
+    comments: [
+      { author: "TA John", content: "Please try submitting again." },
+      { author: "Student", content: "I did, still having issues." },
+    ],
+  },
+  {
+    ticketNumber: "T-1002",
+    ticketDescription: "Lab material not accessible",
+    courseGroupType: "Physics 202",
+    category: "Lab",
+    student: "Jane Doe",
+    details: "Can't access the lab materials on the portal.",
+    prof: "Dr. Brown",
+    ta: "TA Jane",
+    priority: "medium",
+    comments: [
+      { author: "TA Jane", content: "Material access should be fixed now." },
+    ],
+  },
+  {
+    ticketNumber: "T-1003",
+    ticketDescription: "Wrong grade on quiz",
+    courseGroupType: "Biology 101",
+    category: "Grading",
+    student: "Alice Smith",
+    details: "I think there's a mistake in my quiz grade.",
+    prof: "Dr. Taylor",
+    ta: "TA Mike",
+    priority: "low",
+    comments: [
+      { author: "Prof. Taylor", content: "Please visit during office hours." },
+    ],
+  },
+  {
+    ticketNumber: "T-1004",
+    ticketDescription: "Problem with group project",
+    courseGroupType: "Computer Science 303",
+    category: "Project",
+    student: "Bob Johnson",
+    details: "My group members are not contributing to the project.",
+    prof: "Dr. Lee",
+    ta: "TA Mark",
+    priority: "high",
+    comments: [
+      { author: "Prof. Lee", content: "Please schedule a meeting with me." },
+      { author: "Student", content: "Thank you, I will." },
+    ],
+  },
+  {
+    ticketNumber: "T-1005",
+    ticketDescription: "Clarification on assignment instructions",
+    courseGroupType: "Economics 201",
+    category: "Assignment",
+    student: "Charlie Davis",
+    details: "The instructions for assignment #2 are unclear.",
+    prof: "Dr. Green",
+    ta: "TA Anna",
+    priority: "medium",
+    comments: [
+      {
+        author: "TA Anna",
+        content: "Please check the updated instructions on the portal.",
+      },
+      { author: "Student", content: "Got it, thanks!" },
+    ],
+  },
+  {
+    ticketNumber: "T-1006",
+    ticketDescription: "Extension request for final project",
+    courseGroupType: "Chemistry 305",
+    category: "Project",
+    student: "Dana White",
+    details:
+      "I need an extension for the final project due to personal reasons.",
+    prof: "Dr. Wilson",
+    ta: "TA Emily",
+    priority: "high",
+    comments: [
+      { author: "Prof. Wilson", content: "We can discuss this after class." },
+      { author: "Student", content: "Thank you, I'll stay after class." },
+    ],
+  },
+];

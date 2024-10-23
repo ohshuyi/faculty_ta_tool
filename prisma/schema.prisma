@@ -7,9 +7,49 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Ticket {
+  id               Int      @id @default(autoincrement())
+  ticketNumber     String   @unique
+  ticketDescription String
+  courseGroupType  String
+  category         String
+  student          String
+  details          String
+  priority         String   // Could be ENUM
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  ta               User     @relation("TATickets", fields: [taId], references: [id])
+  taId             Int
+
+  professor        User     @relation("ProfessorTickets", fields: [professorId], references: [id])
+  professorId      Int
+
+  comments         Comment[] // Relation to comments
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
+  role      Role     @default(USER) // Role can be 'TA', 'PROFESSOR', 'STUDENT', etc.
   createdAt DateTime @default(now())
+
+  assignedTATickets       Ticket[] @relation("TATickets")       // Tickets where the user is a TA
+  assignedProfessorTickets Ticket[] @relation("ProfessorTickets") // Tickets where the user is a Professor
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  author    String
+  content   String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId  Int
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  USER
+  TA
+  PROFESSOR
 }
