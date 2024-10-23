@@ -1,32 +1,35 @@
 "use client";
 import React from "react";
 import { Layout, Menu, theme } from "antd";
+import Link from "next/link"; // Import Next.js Link component
 
 const { Header, Content, Footer } = Layout;
 
 const items = [
   {
-    label: "Dashboard",
-    href: "/dashboard",
+    label: <Link href="/dashboard">Dashboard</Link>, // Wrap with Link
+    key: "dashboard", // Provide a unique key
   },
   {
-    label: "Task",
-    href: "/task",
+    label: <Link href="/task">Task</Link>,
+    key: "task",
   },
   {
-    label: "Tickets",
-    href: "/services",
+    label: <Link href="/ticket">Tickets</Link>,
+    key: "ticket",
   },
   {
-    label: "Contact",
-    href: "/contact",
+    label: <Link href="/history">History</Link>,
+    key: "history",
+  },
+  {
+    label: <Link href="/contact">Contact</Link>,
+    key: "contact",
   },
 ];
 
 const AppLayout = ({ children }) => {
-  const {
-    token: { colorBgContainer, borderRadiusLG },
-  } = theme.useToken();
+
 
   return (
     <Layout>
@@ -41,9 +44,9 @@ const AppLayout = ({ children }) => {
         <Menu
           theme="dark"
           mode="horizontal"
-          defaultSelectedKeys={["2"]}
+         
           items={items}
-          style={{ flex: 1, display: "flex", justifyContent: "flex-end" }} // Added flex layout to Menu
+          style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
         />
       </Header>
 

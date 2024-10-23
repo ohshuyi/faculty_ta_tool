@@ -37,21 +37,29 @@ export default function TicketPage() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  console.log(tickets)
-  const fetchTickets = async () => {
+  console.log(tickets);
+  const fetchTickets = async (status = "open") => {
     setLoading(true);
     try {
-      const response = await fetch("/api/tickets");
+      // Append the status parameter to the fetch URL
+      const response = await fetch(`/api/tickets?status=${status}`);
       const data = await response.json();
-      setTickets(data);
-      setSelectedTicket(data[0]); // Default to the first ticket
+      
+      if (data.length > 0) {
+        setTickets(data);
+        setSelectedTicket(data[0]); // Default to the first ticket
+      } else {
+        setTickets([]);
+        setSelectedTicket(null);
+      }
+  
       setLoading(false);
     } catch (error) {
       console.error("Error fetching tickets:", error);
       setLoading(false);
     }
   };
-
+  
   const fetchComments = async (ticketNumber: string) => {
     try {
       const response = await fetch(`/api/tickets/${ticketNumber}/comments`);
@@ -164,6 +172,13 @@ export default function TicketPage() {
           <Descriptions.Item label="Priority">
             {getPriorityTag(ticket.priority)}
           </Descriptions.Item>
+          <Descriptions.Item label="Status">
+            {ticket.status === "completed" ? (
+              <Tag color="green">COMPLETED</Tag>
+            ) : (
+              <Tag color="blue">OPEN</Tag>
+            )}
+          </Descriptions.Item>
         </Descriptions>
         {/* Display Files Section */}
         {ticket.files?.length > 0 && (
@@ -245,18 +260,19 @@ export default function TicketPage() {
   const handleCloseTicket = async (ticketNumber: string) => {
     try {
       const response = await fetch(`/api/tickets/${ticketNumber}`, {
-        method: "DELETE",
+        method: "PATCH",
       });
 
       if (response.ok) {
-        console.log("Ticket closed successfully");
+        message.success("Ticket marked as completed");
         setIsCloseModalVisible(false);
-        fetchTickets();
+        fetchTickets(); // Refresh tickets after the update
       } else {
-        console.error("Failed to close the ticket");
+        message.error("Failed to close the ticket");
       }
     } catch (error) {
       console.error("Error closing the ticket:", error);
+      message.error("An error occurred. Please try again.");
     }
   };
 

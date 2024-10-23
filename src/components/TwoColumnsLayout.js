@@ -1,14 +1,12 @@
 "use client";
 import React, { useState } from "react";
 import { Layout, Menu, Input, Button, theme } from "antd";
-import { PlusOutlined } from '@ant-design/icons';  // For the add ticket button
+import { PlusOutlined } from '@ant-design/icons';
 
 const { Sider, Content } = Layout;
 const { Search } = Input;
 
-const TwoColumnLayout = ({ items, renderContent, onAddTicket, userRole }) => {  // Receive userRole prop
-  console.log(onAddTicket)
-  console.log("User Role in Layout:", userRole); // Check if the role is passed correctly
+const TwoColumnsLayout = ({ items, renderContent, onAddTicket, userRole, showAddButton = true }) => {
   const [selectedKey, setSelectedKey] = useState(items[0]?.key); // Handle if items are empty
   const [filteredItems, setFilteredItems] = useState(items); // Items filtered based on search
   const {
@@ -26,46 +24,53 @@ const TwoColumnLayout = ({ items, renderContent, onAddTicket, userRole }) => {  
       item.title.toLowerCase().includes(value.toLowerCase())
     );
     setFilteredItems(filtered);
+
+    // Automatically set the selected key to the first filtered result if available
+    if (filtered.length > 0) {
+      setSelectedKey(filtered[0].key);
+    } else {
+      setSelectedKey(null); // Reset selectedKey if no items match the search
+    }
   };
 
   return (
     <Layout style={{ height: "100vh" }}>
       {/* Left Section - Scrollable List */}
       <Sider
-        width={300} // Increased the width for more space
+        width={300}
         style={{
           background: "#fff",
           position: "sticky", // Keeps it at the top when scrolling
-          top: 0,             // Sticky behavior
-          height: "100vh",    // Full viewport height
-          overflow: "auto",   // Allows the sider to be scrollable
-          padding: "16px",    // Add some padding
+          top: 0,
+          height: "100vh",
+          overflow: "auto",
+          padding: "16px",
         }}
       >
         {/* Search Bar */}
         <Search
-          placeholder="Search tickets"
+          placeholder="Search"
           onSearch={onSearch}
           style={{ marginBottom: 16 }}
         />
 
-        {/* Add New Ticket Button - Only visible if userRole is TA */}
-        {userRole === 'TA' && (  // Check user role
+        {/* Conditionally render the Add New Ticket Button */}
+        {showAddButton && userRole === 'TA' && (
           <Button
             type="primary"
             icon={<PlusOutlined />}
             block
             style={{ marginBottom: 16 }}
-            onClick={onAddTicket} // Action to add a new ticket
+            onClick={onAddTicket}
           >
             Add New Ticket
           </Button>
         )}
 
-        {/* Ticket List */}
+        {/* List of items (tickets/tasks) */}
         <Menu
           mode="inline"
-          defaultSelectedKeys={[items[0]?.key]} // Prevent error if items is empty
+          selectedKeys={selectedKey ? [selectedKey] : []}
           onClick={onSelect}
           items={filteredItems.map((item) => ({
             key: item.key,
@@ -84,11 +89,11 @@ const TwoColumnLayout = ({ items, renderContent, onAddTicket, userRole }) => {  
             borderRadius: borderRadiusLG,
           }}
         >
-          {renderContent(selectedKey)} {/* Render dynamic content based on selected key */}
+          {selectedKey ? renderContent(selectedKey) : <p>Select an item to view details</p>}
         </Content>
       </Layout>
     </Layout>
   );
 };
 
-export default TwoColumnLayout;
+export default TwoColumnsLayout;

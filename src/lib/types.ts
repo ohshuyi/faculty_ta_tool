@@ -1,4 +1,5 @@
 export interface Ticket {
+    files: any;
     ticketNumber: string;
     ticketDescription: string;
     courseGroupType: string;

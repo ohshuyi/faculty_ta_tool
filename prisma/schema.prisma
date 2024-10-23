@@ -15,7 +15,8 @@ model Ticket {
   category         String
   student          String
   details          String
-  priority         String   // Could be ENUM
+  priority         String
+  status           String   @default("open")  // New status field
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -25,10 +26,9 @@ model Ticket {
   professor        User     @relation("ProfessorTickets", fields: [professorId], references: [id])
   professorId      Int
 
-  comments         Comment[]  // Relation to comments
-  files            File[]     // Relation to files uploaded by TA
+  comments         Comment[]
+  files            File[]
 }
-
 model File {
   id        Int      @id @default(autoincrement())
   url       String   // The URL where the file is stored

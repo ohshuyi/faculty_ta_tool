@@ -80,14 +80,16 @@ export async function POST(req) {
         taId: data.taId,
         createdAt: new Date(),
         updatedAt: new Date(),
-        files: {
-          create: [
-            {
-              url: fileUrl, // Store the SAS URL
-              fileName: file ? file.name : null,
-            },
-          ],
-        },
+        ...(fileUrl && {
+          files: {
+            create: [
+              {
+                url: fileUrl, // Store the SAS URL
+                fileName: file.name,
+              },
+            ],
+          },
+        }), // Conditionally include files only if fileUrl is present
       },
     });
 
@@ -98,36 +100,8 @@ export async function POST(req) {
   }
 }
 
-// export async function POST(req: Request) {
-//   try {
-//     // Parse the incoming request body
-//     const data = await req.json();
 
-//     // Create a new ticket using Prisma
-//     const newTicket = await prisma.ticket.create({
-//       data: {
-//         ticketNumber: data.ticketNumber,
-//         ticketDescription: data.ticketDescription,
-//         courseGroupType: data.courseGroupType,
-//         category: data.category,
-//         student: data.student,
-//         details: data.details || "", // Optional field
-//         priority: data.priority,
-//         professorId: data.professorId, // Professor selected in the form
-//         taId: data.taId, // TA assigned (you might want to get this from session or the logged-in user)
-//         createdAt: new Date(),
-//         updatedAt: new Date(),
-//       },
-//     });
-
-//     // Return a success response
-//     return NextResponse.json(newTicket, { status: 201 });
-//   } catch (error) {
-//     console.error("Error creating ticket:", error);
-//     return NextResponse.json({ error: "Failed to create ticket" }, { status: 500 });
-//   }
-// }
-
+// GET method to retrieve tickets for the logged-in user (where they are the TA or Professor)
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
 
@@ -137,6 +111,10 @@ export async function GET(req: Request) {
 
   try {
     const userEmail = session.user?.email;
+    
+    // Parse query parameters for status (default to 'open')
+    const url = new URL(req.url);
+    const status = url.searchParams.get("status") || "open";
 
     // Find the user by email
     const user = await prisma.user.findUnique({
@@ -147,17 +125,20 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Define the condition based on role
-    let whereCondition = {};
+    // Define the condition based on the user's role
+    let whereCondition = {
+      status, // Include the status condition
+    };
+
     if (user.role === "TA") {
-      whereCondition = { taId: user.id };
+      whereCondition.taId = user.id;
     } else if (user.role === "PROFESSOR") {
-      whereCondition = { professorId: user.id };
+      whereCondition.professorId = user.id;
     } else {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Fetch tickets based on the condition (for both TA and Professor)
+    // Fetch tickets based on the role and status
     const tickets = await prisma.ticket.findMany({
       where: whereCondition,
       include: {
