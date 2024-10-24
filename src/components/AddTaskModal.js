@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Modal, Form, Input, Button, Select, DatePicker, message, Upload, Row, Col } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useSession } from "next-auth/react";
+import { addEventToCalendar } from "@/lib/calendar"; // Import the Microsoft Graph calendar helper
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -51,13 +52,38 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
         formData.append("file", file.originFileObj); // Add the selected file to the form data
       }
 
+      // Submit the task to your backend API
       const response = await fetch("/api/tasks", {
         method: "POST",
         body: formData,
       });
-
       if (response.ok) {
+        console.log("Raw response:", response); // Log the raw response
+        // If task is successfully created
         message.success("Task created successfully");
+
+        // // Fetch the newly created task details from the response
+        // const newTask = await response.json();
+        // console.log("New Task:", newTask); // Log the newTask object
+        // // Prepare event details for the TA's calendar
+        // const eventDetails = {
+        //   taskName: newTask.name,
+        //   details: newTask.details,
+        //   dueDate: newTask.dueDate, // The task's due date
+        //   taEmail: newTask.ta.email, // TA's email address from the task
+        //   taName: newTask.ta.name, // TA's name from the task
+        // };
+        // console.log("hit")
+        // // Add the task to the TA's Outlook calendar using Microsoft Graph API
+        // const accessToken = session.accessToken; // Get the professor's access token from session
+        // console.log("Access Token:" + accessToken);
+        // if (accessToken) {
+        //   await addEventToCalendar(accessToken, eventDetails);
+        //   message.success("Task added to TA's Outlook calendar.");
+        // } else {
+        //   message.error("Unable to retrieve access token.");
+        // }
+
         onClose(); // Close the modal after success
         onTaskAdded(); // Re-fetch tasks after adding a new one
       } else {

@@ -62,7 +62,7 @@ export async function POST(req) {
     // Explicitly set the status (e.g., "open")
     const status = "open"; // You can make this dynamic if needed
 
-    // Create the task in Prisma
+    // Create the task in Prisma, including the TA relation
     const newTask = await prisma.task.create({
       data: {
         name,
@@ -84,9 +84,39 @@ export async function POST(req) {
           },
         }), // Conditionally include files if fileUrl exists
       },
+      include: {
+        ta: true, // Include TA information in the response
+        professor: true, // Include Professor information if needed
+        files: true, // Include uploaded files if any
+      },
     });
 
-    return NextResponse.json(newTask, { status: 201 });
+    // Construct the response structure
+    const responseTask = {
+      id: newTask.id,
+      name: newTask.name,
+      courseGroupType: newTask.courseGroupType,
+      dueDate: newTask.dueDate,
+      details: newTask.details,
+      status: newTask.status,
+      professor: {
+        id: newTask.professor.id,
+        name: newTask.professor.name,
+        email: newTask.professor.email,
+      },
+      ta: {
+        id: newTask.ta.id,
+        name: newTask.ta.name,
+        email: newTask.ta.email,
+      },
+      files: newTask.files.map((file) => ({
+        id: file.id,
+        url: file.url,
+        fileName: file.fileName,
+      })),
+    };
+
+    return NextResponse.json(responseTask, { status: 201 });
   } catch (error) {
     console.error("Error creating task:", error);
     return NextResponse.json(

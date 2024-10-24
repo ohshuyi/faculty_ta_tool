@@ -41,7 +41,7 @@ export default function TaskPage() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
+  console.log('Access Token from Session:', session?.accessToken)
   // Fetch tasks from the API
   const fetchTasks = async (status = "open") => {
     setLoading(true);

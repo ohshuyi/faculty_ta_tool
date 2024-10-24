@@ -14,7 +14,12 @@ export const authOptions = {
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-
+  authorization: {
+    params: {
+      scope: 'openid profile email offline_access Calendars.ReadWrite',
+      prompt: 'consent', // Force re-consent
+    },
+  },
   callbacks: {
     async signIn({ user }) {
       try {
@@ -48,24 +53,36 @@ export const authOptions = {
     },
 
     async session({ session, token }) {
+  
+
+      if (token?.accessToken) {
+        session.accessToken = token.accessToken; // Assign accessToken from token to session
+      }
+    
       const dbUser = await prisma.user.findUnique({
         where: { email: session.user.email },
       });
-
+    
       if (dbUser) {
         session.user.id = dbUser.id;
         session.user.role = dbUser.role;
       }
-
+    
       return session;
     },
 
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      // This should happen only on initial sign-in
+      if (account) {
+        token.accessToken = account.access_token; // Store access token in token
+      }
+    
       if (user) {
         token.id = user.id;
         token.role = user.role;
       }
+    
       return token;
-    },
+    }
   },
 };
