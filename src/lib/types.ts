@@ -1,4 +1,5 @@
 export interface Ticket {
+    status: string;
     files: any;
     ticketNumber: string;
     ticketDescription: string;

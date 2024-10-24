@@ -6,7 +6,7 @@ import { PlusOutlined } from '@ant-design/icons';
 const { Sider, Content } = Layout;
 const { Search } = Input;
 
-const TwoColumnsLayout = ({ items, renderContent, onAddTicket, userRole, showAddButton = true }) => {
+const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton = true, type }) => {
   const [selectedKey, setSelectedKey] = useState(items[0]?.key); // Handle if items are empty
   const [filteredItems, setFilteredItems] = useState(items); // Items filtered based on search
   const {
@@ -33,6 +33,16 @@ const TwoColumnsLayout = ({ items, renderContent, onAddTicket, userRole, showAdd
     }
   };
 
+  // Logic for determining if the Add button should be shown
+  const shouldShowAddButton = () => {
+    if (type === 'task' && userRole === 'PROFESSOR') {
+      return true; // Professors can add tasks
+    } else if (type === 'ticket' && userRole === 'TA') {
+      return true; // TAs can add tickets
+    }
+    return false;
+  };
+
   return (
     <Layout style={{ height: "100vh" }}>
       {/* Left Section - Scrollable List */}
@@ -54,20 +64,20 @@ const TwoColumnsLayout = ({ items, renderContent, onAddTicket, userRole, showAdd
           style={{ marginBottom: 16 }}
         />
 
-        {/* Conditionally render the Add New Ticket Button */}
-        {showAddButton && userRole === 'TA' && (
+        {/* Conditionally render the Add button based on role and type */}
+        {showAddButton && shouldShowAddButton() && (
           <Button
             type="primary"
             icon={<PlusOutlined />}
             block
             style={{ marginBottom: 16 }}
-            onClick={onAddTicket}
+            onClick={onAdd}
           >
-            Add New Ticket
+            Add New {type === 'task' ? 'Task' : 'Ticket'}
           </Button>
         )}
 
-        {/* List of items (tickets/tasks) */}
+        {/* List of items (tasks/tickets) */}
         <Menu
           mode="inline"
           selectedKeys={selectedKey ? [selectedKey] : []}

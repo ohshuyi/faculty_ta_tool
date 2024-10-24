@@ -321,7 +321,8 @@ export default function TicketPage() {
               return renderTicketDetails(ticket);
             }
           }}
-          onAddTicket={showModal}
+          onAdd={showModal}
+          type={"ticket"}
           userRole={session?.user?.role}
         />
       )}

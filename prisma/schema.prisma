@@ -7,6 +7,22 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Task {
+  id             Int      @id @default(autoincrement())
+  name           String   @default("Untitled Task") // Provide a default value
+  courseGroupType String
+  dueDate        DateTime
+  details        String
+  status         String
+  professor      User     @relation("ProfessorTasks", fields: [professorId], references: [id])
+  professorId    Int
+  ta             User     @relation("TATasks", fields: [taId], references: [id])
+  taId           Int
+  createdAt      DateTime @default(now()) // Automatically set the creation date
+  files          File[]   // Relation to uploaded files
+  comments       Comment[] // Relation to comments
+}
+
 model Ticket {
   id               Int      @id @default(autoincrement())
   ticketNumber     String   @unique
@@ -29,13 +45,17 @@ model Ticket {
   comments         Comment[]
   files            File[]
 }
+
 model File {
   id        Int      @id @default(autoincrement())
-  url       String   // The URL where the file is stored
-  fileName  String   // The original file name
-  ticket    Ticket   @relation(fields: [ticketId], references: [id])
-  ticketId  Int
+  url       String
+  fileName  String
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
+  ticketId  Int?     // Optional foreign key for ticket
+  task      Task?    @relation(fields: [taskId], references: [id])
+  taskId    Int?     // Optional foreign key for task
 }
+
 
 model User {
   id        Int      @id @default(autoincrement())
@@ -44,16 +64,24 @@ model User {
   role      Role     @default(USER) // Role can be 'TA', 'PROFESSOR', 'STUDENT', etc.
   createdAt DateTime @default(now())
 
-  assignedTATickets       Ticket[] @relation("TATickets")       // Tickets where the user is a TA
-  assignedProfessorTickets Ticket[] @relation("ProfessorTickets") // Tickets where the user is a Professor
+  // Existing relations
+  assignedTATickets       Ticket[] @relation("TATickets")
+  assignedProfessorTickets Ticket[] @relation("ProfessorTickets")
+
+  // New relations for tasks
+  assignedTATasks         Task[]   @relation("TATasks")        // Tasks where the user is a TA
+  assignedProfessorTasks  Task[]   @relation("ProfessorTasks") // Tasks where the user is a Professor
 }
+
 
 model Comment {
   id        Int      @id @default(autoincrement())
   author    String
   content   String
-  ticket    Ticket   @relation(fields: [ticketId], references: [id])
-  ticketId  Int
+  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
+  ticketId  Int?     // Optional foreign key for ticket
+  task      Task?    @relation(fields: [taskId], references: [id])
+  taskId    Int?     // Optional foreign key for task
   createdAt DateTime @default(now())
 }
 
