@@ -90,7 +90,7 @@ export async function POST(req) {
     });
 
     // Construct the response structure
-    const responseTask = {
+    const responseTask = { //
       id: newTask.id,
       name: newTask.name,
       dueDate: newTask.dueDate,
