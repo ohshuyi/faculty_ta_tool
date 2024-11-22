@@ -1,38 +1,61 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, Button, Select, DatePicker, message, Upload, Row, Col } from "antd";
+import {
+  Modal,
+  Form,
+  Input,
+  Button,
+  Select,
+  message,
+  Row,
+  Col,
+  Upload,
+  DatePicker,
+} from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useSession } from "next-auth/react";
-import { addEventToCalendar } from "@/lib/calendar"; // Import the Microsoft Graph calendar helper
 
 const { TextArea } = Input;
 const { Option } = Select;
 
 const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   const [loading, setLoading] = useState(false);
-  const [tas, setTAs] = useState([]); // For TAs dropdown
+  const [tas, setTAs] = useState([]);
+  const [classes, setClasses] = useState([]); // State for classes (course groups)
   const { data: session } = useSession();
-  const [file, setFile] = useState(null); // State to store the uploaded file
+  const [file, setFile] = useState(null);
 
-  // Fetch TAs when the modal is visible
+  // Fetch TAs and Classes when the modal is visible
   useEffect(() => {
     if (isVisible) {
       async function fetchTAs() {
         try {
-          const response = await fetch("/api/tas"); // Ensure the API endpoint is correct
+          const response = await fetch("/api/tas");
           const data = await response.json();
           setTAs(data);
         } catch (error) {
           console.error("Error fetching TAs:", error);
         }
       }
+
+      async function fetchClasses() {
+        try {
+          const response = await fetch("/api/classes"); // Replace with your API endpoint
+          const data = await response.json();
+          setClasses(data);
+        } catch (error) {
+          console.error("Error fetching classes:", error);
+        }
+      }
+
       fetchTAs();
+      fetchClasses();
     }
   }, [isVisible]);
 
   // Handle file selection
   const handleFileChange = ({ fileList }) => {
-    setFile(fileList[0]); // Take the first file from the list
+    setFile(fileList[0]);
   };
 
   // Handle form submission
@@ -41,51 +64,26 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
 
     try {
       const formData = new FormData();
-      formData.append("name", values.name); // New name field for the task
-      formData.append("courseGroupType", values.courseGroupType);
+      formData.append("name", values.name);
+      formData.append("courseGroupType", values.courseGroupType); // Selected course group
       formData.append("dueDate", values.dueDate.format("YYYY-MM-DD"));
       formData.append("details", values.details);
-      formData.append("professorId", session.user.id); // Assuming professor is logged in
-      formData.append("taId", values.taId); // Selected TA
+      formData.append("professorId", session.user.id);
+      formData.append("taId", values.taId);
 
       if (file) {
-        formData.append("file", file.originFileObj); // Add the selected file to the form data
+        formData.append("file", file.originFileObj);
       }
 
-      // Submit the task to your backend API
       const response = await fetch("/api/tasks", {
         method: "POST",
         body: formData,
       });
+
       if (response.ok) {
-        console.log("Raw response:", response); // Log the raw response
-        // If task is successfully created
         message.success("Task created successfully");
-
-        // // Fetch the newly created task details from the response
-        // const newTask = await response.json();
-        // console.log("New Task:", newTask); // Log the newTask object
-        // // Prepare event details for the TA's calendar
-        // const eventDetails = {
-        //   taskName: newTask.name,
-        //   details: newTask.details,
-        //   dueDate: newTask.dueDate, // The task's due date
-        //   taEmail: newTask.ta.email, // TA's email address from the task
-        //   taName: newTask.ta.name, // TA's name from the task
-        // };
-        // console.log("hit")
-        // // Add the task to the TA's Outlook calendar using Microsoft Graph API
-        // const accessToken = session.accessToken; // Get the professor's access token from session
-        // console.log("Access Token:" + accessToken);
-        // if (accessToken) {
-        //   await addEventToCalendar(accessToken, eventDetails);
-        //   message.success("Task added to TA's Outlook calendar.");
-        // } else {
-        //   message.error("Unable to retrieve access token.");
-        // }
-
-        onClose(); // Close the modal after success
-        onTaskAdded(); // Re-fetch tasks after adding a new one
+        onClose();
+        onTaskAdded();
       } else {
         message.error("Failed to create task");
       }
@@ -99,7 +97,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
 
   return (
     <Modal
-      visible={isVisible} // Ensure this prop is controlling the modal's visibility
+      visible={isVisible}
       title="Add New Task"
       onCancel={onClose}
       footer={null}
@@ -108,7 +106,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              label="Task Name" // Add the name field
+              label="Task Name"
               name="name"
               rules={[{ required: true, message: "Please input the task name!" }]}
             >
@@ -120,7 +118,13 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
               name="courseGroupType"
               rules={[{ required: true, message: "Please select a course group!" }]}
             >
-              <Input placeholder="Enter course group type" />
+              <Select placeholder="Select a course group" loading={classes.length === 0}>
+                {classes.map((cls) => (
+                  <Option key={cls.id} value={cls.courseCode}>
+                    {`${cls.courseCode} - ${cls.courseName} (${cls.groupCode}, ${cls.groupType})`}
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
 
             <Form.Item

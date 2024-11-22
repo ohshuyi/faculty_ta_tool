@@ -7,7 +7,6 @@ import AppLayout from "@/components/Layout";
 
 const { TabPane } = Tabs;
 
-// Function to get the status tag (for the task)
 const getStatusTag = (status) => {
   return (
     <Tag color={status === "completed" ? "green" : "blue"}>
@@ -25,14 +24,13 @@ const HistoryPage = () => {
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
 
-  // Fetch completed tasks
   const fetchCompletedTasks = async () => {
     setLoadingTasks(true);
     try {
       const response = await fetch("/api/tasks?status=completed");
       const data = await response.json();
       setTasks(data);
-      setSelectedTask(data[0] || null); // Default to the first task
+      setSelectedTask(data[0] || null);
       setLoadingTasks(false);
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -40,14 +38,13 @@ const HistoryPage = () => {
     }
   };
 
-  // Fetch completed tickets
   const fetchCompletedTickets = async () => {
     setLoadingTickets(true);
     try {
       const response = await fetch("/api/tickets?status=completed");
       const data = await response.json();
       setTickets(data);
-      setSelectedTicket(data[0] || null); // Default to the first ticket
+      setSelectedTicket(data[0] || null);
       setLoadingTickets(false);
     } catch (error) {
       console.error("Error fetching tickets:", error);
@@ -55,7 +52,6 @@ const HistoryPage = () => {
     }
   };
 
-  // Fetch tasks and tickets when session is authenticated
   useEffect(() => {
     if (sessionStatus === "authenticated") {
       fetchCompletedTasks();
@@ -76,16 +72,16 @@ const HistoryPage = () => {
             ) : (
               <TwoColumnsLayout
                 items={tasks.map((task) => ({
-                  key: task.id.toString(), // Ensure key is a string
+                  key: task.id.toString(),
                   title: task.name,
                 }))}
                 renderContent={(key) => {
-                  const task = tasks.find((t) => t.id.toString() === key); // Ensure you're comparing strings
+                  const task = tasks.find((t) => t.id.toString() === key);
                   if (!task) return <Alert message="Task not found" type="error" />;
                   return (
                     <Descriptions bordered>
                       <Descriptions.Item label="Course Group">
-                        {task.courseGroupType}
+                        {task.courseGroupType?.name || "N/A"} {/* Access name */}
                       </Descriptions.Item>
                       <Descriptions.Item label="Due Date">
                         {new Date(task.dueDate).toLocaleDateString()}
@@ -94,10 +90,10 @@ const HistoryPage = () => {
                         {task.details}
                       </Descriptions.Item>
                       <Descriptions.Item label="Professor">
-                        {task.professor.name}
+                        {task.professor?.name || "N/A"} {/* Access name */}
                       </Descriptions.Item>
                       <Descriptions.Item label="TA">
-                        {task.ta.name}
+                        {task.ta?.name || "N/A"} {/* Access name */}
                       </Descriptions.Item>
                       <Descriptions.Item label="Status">
                         {getStatusTag(task.status)}
@@ -106,7 +102,7 @@ const HistoryPage = () => {
                   );
                 }}
                 userRole={session?.user?.role}
-                showAddButton={false} // Hide the Add New Task button for history
+                showAddButton={false}
               />
             )}
           </TabPane>
@@ -120,13 +116,11 @@ const HistoryPage = () => {
             ) : (
               <TwoColumnsLayout
                 items={tickets.map((ticket) => ({
-                  key: ticket.ticketNumber.toString(), // Ensure key is a string
+                  key: ticket.id.toString(),
                   title: ticket.ticketDescription,
                 }))}
                 renderContent={(key) => {
-                  const ticket = tickets.find(
-                    (t) => t.ticketNumber.toString() === key
-                  ); // Ensure you're comparing strings
+                  const ticket = tickets.find((t) => t.id.toString() === key);
                   if (!ticket) return <Alert message="Ticket not found" type="error" />;
                   return (
                     <Descriptions bordered>
@@ -134,25 +128,22 @@ const HistoryPage = () => {
                         {ticket.ticketDescription}
                       </Descriptions.Item>
                       <Descriptions.Item label="Course Group">
-                        {ticket.courseGroupType}
+                        {ticket.courseGroupType?.name || "N/A"} {/* Access name */}
                       </Descriptions.Item>
                       <Descriptions.Item label="Category">
-                        {ticket.category}
+                        {ticket.category || "N/A"}
                       </Descriptions.Item>
                       <Descriptions.Item label="Student">
-                        {ticket.student}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="Details">
-                        {ticket.details}
+                        {ticket.student?.name || "N/A"} {/* Access name */}
                       </Descriptions.Item>
                       <Descriptions.Item label="Professor">
-                        {ticket.professor.name}
+                        {ticket.professor?.name || "N/A"} {/* Access name */}
                       </Descriptions.Item>
                     </Descriptions>
                   );
                 }}
                 userRole={session?.user?.role}
-                showAddButton={false} // Hide the Add New Ticket button for history
+                showAddButton={false}
               />
             )}
           </TabPane>

@@ -13,7 +13,7 @@ import {
   message,
   Divider,
 } from "antd";
-import { FileOutlined } from "@ant-design/icons"; // Import the file icon
+import { FileOutlined } from "@ant-design/icons"; 
 import { useSession } from "next-auth/react";
 import AppLayout from "@/components/Layout";
 import TwoColumnsLayout from "@/components/TwoColumnsLayout";
@@ -31,23 +31,22 @@ export default function TicketPage() {
   const { data: session, status } = useSession();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null); // Ensure initial null value
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isCloseModalVisible, setIsCloseModalVisible] = useState(false);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  console.log(tickets);
+
   const fetchTickets = async (status = "open") => {
     setLoading(true);
     try {
-      // Append the status parameter to the fetch URL
       const response = await fetch(`/api/tickets?status=${status}`);
       const data = await response.json();
       
       if (data.length > 0) {
         setTickets(data);
-        setSelectedTicket(data[0]); // Default to the first ticket
+        setSelectedTicket(data[0]);
       } else {
         setTickets([]);
         setSelectedTicket(null);
@@ -60,9 +59,10 @@ export default function TicketPage() {
     }
   };
   
-  const fetchComments = async (ticketNumber: string) => {
+  const fetchComments = async (ticketId: number) => {
+    setComments([]); // Clear comments before fetching new ones
     try {
-      const response = await fetch(`/api/tickets/${ticketNumber}/comments`);
+      const response = await fetch(`/api/tickets/${ticketId}/comments`);
       const data = await response.json();
       setComments(data);
     } catch (error) {
@@ -81,7 +81,7 @@ export default function TicketPage() {
     setSubmitting(true);
     try {
       const response = await fetch(
-        `/api/tickets/${selectedTicket.ticketNumber}/comments`,
+        `/api/tickets/${selectedTicket.id}/comments`,
         {
           method: "POST",
           headers: {
@@ -97,7 +97,7 @@ export default function TicketPage() {
       if (response.ok) {
         message.success("Comment added successfully.");
         setNewComment("");
-        fetchComments(selectedTicket.ticketNumber);
+        fetchComments(selectedTicket.id);
       } else {
         message.error("Failed to add comment.");
       }
@@ -117,156 +117,143 @@ export default function TicketPage() {
     }
   }, [status]);
 
-  // Use useEffect to fetch comments when selectedTicket changes
   useEffect(() => {
-    if (selectedTicket?.ticketNumber) {
-      fetchComments(selectedTicket.ticketNumber);
+    if (selectedTicket?.id) {
+      fetchComments(selectedTicket.id);
     }
   }, [selectedTicket]);
 
-  const renderTicketDetails = (ticket: Ticket) => {
-    return (
-      <>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "16px",
-          }}
-        >
-          <h2 style={{ fontWeight: "bold" }}>
-            Ticket Details: {ticket.ticketNumber}
-          </h2>
+  const renderTicketDetails = (ticket: Ticket) => (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "16px",
+        }}
+      >
+        <h2 style={{ fontWeight: "bold" }}>
+          Ticket Details: {ticket.id}
+        </h2>
 
-          {session?.user?.role === "PROFESSOR" && (
-            <Button
-              type="primary"
-              danger
-              onClick={() => setIsCloseModalVisible(true)}
-            >
-              Close Ticket
-            </Button>
-          )}
-        </div>
-        <Descriptions bordered>
-          <Descriptions.Item label="Description">
-            {ticket.ticketDescription}
-          </Descriptions.Item>
-          <Descriptions.Item label="Course Group">
-            {ticket.courseGroupType}
-          </Descriptions.Item>
-          <Descriptions.Item label="Category">
-            {ticket.category}
-          </Descriptions.Item>
-          <Descriptions.Item label="Student">
-            {ticket.student}
-          </Descriptions.Item>
-          <Descriptions.Item label="Details">
-            {ticket.details}
-          </Descriptions.Item>
-          <Descriptions.Item label="Professor">
-            {ticket.professor.name}
-          </Descriptions.Item>
-          <Descriptions.Item label="TA">{ticket.ta.name}</Descriptions.Item>
-          <Descriptions.Item label="Priority">
-            {getPriorityTag(ticket.priority)}
-          </Descriptions.Item>
-          <Descriptions.Item label="Status">
-            {ticket.status === "completed" ? (
-              <Tag color="green">COMPLETED</Tag>
-            ) : (
-              <Tag color="blue">OPEN</Tag>
-            )}
-          </Descriptions.Item>
-        </Descriptions>
-        {/* Display Files Section */}
-        {ticket.files?.length > 0 && (
-          <>
-            <Divider />
-            <h3>Attached Files</h3>
-            <List
-              dataSource={ticket.files}
-              renderItem={(file) => (
-                <List.Item>
-                  <a href={file.url} target="_blank" rel="noopener noreferrer">
-                    <Button
-                      type="link"
-                      icon={<FileOutlined />}
-                      style={{ display: "flex", alignItems: "center" }}
-                    >
-                      {file.fileName}
-                    </Button>
-                  </a>
-                </List.Item>
-              )}
-            />
-          </>
+        {session?.user?.role === "PROFESSOR" && (
+          <Button
+            type="primary"
+            danger
+            onClick={() => setIsCloseModalVisible(true)}
+          >
+            Close Ticket
+          </Button>
         )}
-
-        <Divider />
-
-        <h3
-          style={{
-            fontSize: "20px",
-            fontWeight: "bold",
-          }}
-        >
-          Comments
-        </h3>
-        <List
-          dataSource={comments}
-          renderItem={(comment) => (
-            <List.Item>
-              <div>
-                {comment.author}: {}
-                {comment.content}
-              </div>
-            </List.Item>
+      </div>
+      <Descriptions bordered>
+        <Descriptions.Item label="Description">
+          {ticket.ticketDescription || "N/A"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Course Group">
+          {ticket.courseGroup?.courseCode || "N/A"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Category">
+          {ticket.category || "N/A"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Student">
+          {ticket.student?.name || "N/A"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Professor">
+          {ticket.professor?.name || "N/A"}
+        </Descriptions.Item>
+        <Descriptions.Item label="TA">
+          {ticket.ta?.name || "N/A"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Priority">
+          {getPriorityTag(ticket.priority)}
+        </Descriptions.Item>
+        <Descriptions.Item label="Status">
+          {ticket.status === "completed" ? (
+            <Tag color="green">COMPLETED</Tag>
+          ) : (
+            <Tag color="blue">OPEN</Tag>
           )}
-        />
+        </Descriptions.Item>
+      </Descriptions>
 
-        <h3>Add a Comment</h3>
-        <Form onFinish={handleCommentSubmit}>
-          <Form.Item>
-            <TextArea
-              rows={4}
-              placeholder="Write your comment here..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-            />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={submitting}>
-              Add Comment
-            </Button>
-          </Form.Item>
-        </Form>
+      {ticket.files?.length > 0 && (
+        <>
+          <Divider />
+          <h3>Attached Files</h3>
+          <List
+            dataSource={ticket.files}
+            renderItem={(file) => (
+              <List.Item>
+                <a href={file.url} target="_blank" rel="noopener noreferrer">
+                  <Button
+                    type="link"
+                    icon={<FileOutlined />}
+                    style={{ display: "flex", alignItems: "center" }}
+                  >
+                    {file.fileName}
+                  </Button>
+                </a>
+              </List.Item>
+            )}
+          />
+        </>
+      )}
 
-        <Modal
-          title="Confirm Close Ticket"
-          visible={isCloseModalVisible}
-          onOk={() => handleCloseTicket(ticket.ticketNumber)}
-          onCancel={() => setIsCloseModalVisible(false)}
-          okText="Close Ticket"
-          cancelText="Cancel"
-        >
-          <p>Are you sure you want to close this ticket?</p>
-        </Modal>
-      </>
-    );
-  };
+      <Divider />
+      <h3 style={{ fontSize: "20px", fontWeight: "bold" }}>Comments</h3>
+      <List
+        dataSource={comments}
+        renderItem={(comment) => (
+          <List.Item>
+            <div>
+              {comment.author}: {comment.content}
+            </div>
+          </List.Item>
+        )}
+      />
 
-  const handleCloseTicket = async (ticketNumber: string) => {
+      <h3>Add a Comment</h3>
+      <Form onFinish={handleCommentSubmit}>
+        <Form.Item>
+          <TextArea
+            rows={4}
+            placeholder="Write your comment here..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+          />
+        </Form.Item>
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={submitting}>
+            Add Comment
+          </Button>
+        </Form.Item>
+      </Form>
+
+      <Modal
+        title="Confirm Close Ticket"
+        visible={isCloseModalVisible}
+        onOk={() => handleCloseTicket(ticket.id)}
+        onCancel={() => setIsCloseModalVisible(false)}
+        okText="Close Ticket"
+        cancelText="Cancel"
+      >
+        <p>Are you sure you want to close this ticket?</p>
+      </Modal>
+    </>
+  );
+
+  const handleCloseTicket = async (id: string) => {
     try {
-      const response = await fetch(`/api/tickets/${ticketNumber}`, {
+      const response = await fetch(`/api/tickets/${id}`, {
         method: "PATCH",
       });
 
       if (response.ok) {
         message.success("Ticket marked as completed");
         setIsCloseModalVisible(false);
-        fetchTickets(); // Refresh tickets after the update
+        fetchTickets();
       } else {
         message.error("Failed to close the ticket");
       }
@@ -309,13 +296,11 @@ export default function TicketPage() {
       ) : (
         <TwoColumnsLayout
           items={tickets.map((ticket) => ({
-            key: ticket.ticketNumber,
+            key: ticket.id,
             title: ticket.ticketDescription,
           }))}
           renderContent={(key) => {
-            const ticket = tickets.find(
-              (ticket) => ticket.ticketNumber === key
-            );
+            const ticket = tickets.find((ticket) => ticket.id == key);
             if (ticket) {
               setSelectedTicket(ticket);
               return renderTicketDetails(ticket);

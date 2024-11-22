@@ -22,7 +22,6 @@ export async function POST(req) {
 
     // Extract task details from formData
     const name = formData.get("name");
-    const courseGroupType = formData.get("courseGroupType");
     const dueDate = formData.get("dueDate");
     const details = formData.get("details");
     const professorId = parseInt(formData.get("professorId"), 10);
@@ -66,7 +65,6 @@ export async function POST(req) {
     const newTask = await prisma.task.create({
       data: {
         name,
-        courseGroupType,
         dueDate: new Date(dueDate), // Ensure the dueDate is stored as a Date object
         details,
         status, // Include the status field
@@ -95,7 +93,6 @@ export async function POST(req) {
     const responseTask = {
       id: newTask.id,
       name: newTask.name,
-      courseGroupType: newTask.courseGroupType,
       dueDate: newTask.dueDate,
       details: newTask.details,
       status: newTask.status,

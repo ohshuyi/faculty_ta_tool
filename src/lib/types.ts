@@ -1,7 +1,7 @@
 export interface Ticket {
     status: string;
     files: any;
-    ticketNumber: string;
+    id: number;
     ticketDescription: string;
     courseGroupType: string;
     category: string;

@@ -20,10 +20,12 @@ const { Option } = Select;
 const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
   const [loading, setLoading] = useState(false);
   const [professors, setProfessors] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [students, setStudents] = useState([]); // State for students data
   const { data: session } = useSession();
-  const [file, setFile] = useState(null); // State to store the uploaded file
-  console.log(isVisible);
-  // Fetch professors when the modal is visible
+  const [file, setFile] = useState(null);
+
+  // Fetch professors, classes, and students when the modal is visible
   useEffect(() => {
     if (isVisible) {
       async function fetchProfessors() {
@@ -35,33 +37,54 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           console.error("Error fetching professors:", error);
         }
       }
+
+      async function fetchClasses() {
+        try {
+          const response = await fetch("/api/classes");
+          const data = await response.json();
+          setClasses(data);
+        } catch (error) {
+          console.error("Error fetching classes:", error);
+        }
+      }
+
+      async function fetchStudents() {
+        try {
+          const response = await fetch("/api/students");
+          const data = await response.json();
+          setStudents(data);
+        } catch (error) {
+          console.error("Error fetching students:", error);
+        }
+      }
+
       fetchProfessors();
+      fetchClasses();
+      fetchStudents();
     }
   }, [isVisible]);
 
-  // Function to handle file selection
+  // Handle file selection
   const handleFileChange = ({ fileList }) => {
-    setFile(fileList[0]); // Take the first file from the list
+    setFile(fileList[0]);
   };
 
-  // Function to handle form submission
+  // Handle form submission
   const onFinish = async (values) => {
     setLoading(true);
 
     try {
       const formData = new FormData();
-      formData.append("ticketNumber", values.ticketNumber);
       formData.append("ticketDescription", values.ticketDescription);
-      formData.append("courseGroupType", values.courseGroupType);
+      formData.append("courseGroupType", values.courseGroupType); // Use courseGroupType instead of classId
       formData.append("category", values.category);
-      formData.append("student", values.student);
-      formData.append("details", values.details);
+      formData.append("studentId", values.studentId); 
       formData.append("priority", values.priority);
       formData.append("professorId", values.professorId);
       formData.append("taId", session.user.id);
 
       if (file) {
-        formData.append("file", file.originFileObj); // Add the selected file to the form data
+        formData.append("file", file.originFileObj);
       }
 
       const response = await fetch("/api/tickets", {
@@ -71,8 +94,8 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
 
       if (response.ok) {
         message.success("Ticket added successfully");
-        onClose(); // Close the modal after success
-        onTicketAdded(); // Re-fetch tickets after adding a new one
+        onClose();
+        onTicketAdded();
       } else {
         message.error("Failed to add ticket");
       }
@@ -86,7 +109,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
 
   return (
     <Modal
-      visible={isVisible} // Ensure this prop is controlling the modal's visibility
+      visible={isVisible}
       title="Add New Ticket"
       onCancel={onClose}
       footer={null}
@@ -94,16 +117,6 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       <Form layout="vertical" onFinish={onFinish}>
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item
-              label="Ticket Number"
-              name="ticketNumber"
-              rules={[
-                { required: true, message: "Please input the ticket number!" },
-              ]}
-            >
-              <Input placeholder="Enter ticket number" />
-            </Form.Item>
-
             <Form.Item
               label="Ticket Description"
               name="ticketDescription"
@@ -125,9 +138,11 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
               ]}
             >
               <Select placeholder="Select a course group">
-                <Option value="Math 101">Math 101</Option>
-                <Option value="Physics 202">Physics 202</Option>
-                <Option value="Chemistry 103">Chemistry 103</Option>
+                {classes.map((cls) => (
+                  <Option key={cls.id} value={cls.courseCode}>
+                    {`${cls.courseCode} - ${cls.courseName} (${cls.groupCode}, ${cls.groupType})`}
+                  </Option>
+                ))}
               </Select>
             </Form.Item>
 
@@ -149,18 +164,19 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           <Col span={12}>
             <Form.Item
               label="Student"
-              name="student"
+              name="studentId"
               rules={[
-                { required: true, message: "Please input the student name!" },
+                { required: true, message: "Please select a student!" },
               ]}
             >
-              <Input placeholder="Enter student name" />
+              <Select placeholder="Select a student">
+                {students.map((student) => (
+                  <Option key={student.id} value={student.id}>
+                    {student.name}
+                  </Option>
+                ))}
+              </Select>
             </Form.Item>
-
-            <Form.Item label="Details" name="details">
-              <TextArea rows={4} placeholder="Enter additional details" />
-            </Form.Item>
-
             <Form.Item
               label="Priority"
               name="priority"

@@ -53,14 +53,14 @@ import { NextResponse } from "next/server";
 // PATCH method to update the status of a ticket
 export async function PATCH(
   req: Request,
-  { params }: { params: { ticketNumber: string } }
+  { params }: { params: { id: string } }
 ) {
-  const { ticketNumber } = params;
+  const { id } = params;
 
   try {
     // Find the ticket first
     const ticket = await prisma.ticket.findUnique({
-      where: { ticketNumber },
+      where: { id: Number(id) },
     });
 
     if (!ticket) {
@@ -72,7 +72,7 @@ export async function PATCH(
 
     // Update the status to 'completed'
     const updatedTicket = await prisma.ticket.update({
-      where: { ticketNumber },
+      where: { id: Number(id) },
       data: {
         status: "completed",
         updatedAt: new Date(),

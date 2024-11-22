@@ -12,17 +12,28 @@ const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 export async function POST(req) {
   try {
     const formData = await req.formData();
+    console.log("Form data:", formData);
     const data = {
-      ticketNumber: formData.get("ticketNumber"),
       ticketDescription: formData.get("ticketDescription"),
-      courseGroupType: formData.get("courseGroupType"),
+      courseGroupType: formData.get("courseGroupType"), // Receive courseGroupType from the frontend
       category: formData.get("category"),
-      student: formData.get("student"),
-      details: formData.get("details") || "",
+      studentId: parseInt(formData.get("studentId")),
       priority: formData.get("priority"),
       professorId: parseInt(formData.get("professorId")),
       taId: parseInt(formData.get("taId")),
     };
+
+    // Find the class associated with the courseGroupType
+    const associatedClass = await prisma.class.findFirst({
+      where: { courseCode: data.courseGroupType }, // Adjust if necessary
+    });
+    if (!associatedClass) {
+      return NextResponse.json(
+        { error: "Class not found for the specified courseGroupType" },
+        { status: 404 }
+      );
+    }
+    console.log("Associated class:", associatedClass);
 
     const file = formData.get("file");
     let fileUrl = null;
@@ -69,27 +80,25 @@ export async function POST(req) {
     // Create the ticket in Prisma
     const newTicket = await prisma.ticket.create({
       data: {
-        ticketNumber: data.ticketNumber,
         ticketDescription: data.ticketDescription,
-        courseGroupType: data.courseGroupType,
         category: data.category,
-        student: data.student,
-        details: data.details,
+        studentId: data.studentId,
         priority: data.priority,
         professorId: data.professorId,
         taId: data.taId,
+        classId: associatedClass.id, // Use the found classId here
         createdAt: new Date(),
         updatedAt: new Date(),
         ...(fileUrl && {
           files: {
             create: [
               {
-                url: fileUrl, // Store the SAS URL
+                url: fileUrl,
                 fileName: file.name,
               },
             ],
           },
-        }), // Conditionally include files only if fileUrl is present
+        }),
       },
     });
 
@@ -100,8 +109,6 @@ export async function POST(req) {
   }
 }
 
-
-// GET method to retrieve tickets for the logged-in user (where they are the TA or Professor)
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
 
@@ -111,7 +118,7 @@ export async function GET(req: Request) {
 
   try {
     const userEmail = session.user?.email;
-    
+
     // Parse query parameters for status (default to 'open')
     const url = new URL(req.url);
     const status = url.searchParams.get("status") || "open";
@@ -146,10 +153,33 @@ export async function GET(req: Request) {
         professor: true,
         comments: true,
         files: true,
+        student: true,
+        class: { // Include the related class details for course group information
+          select: {
+            id: true,
+            courseCode: true,
+            courseName: true,
+            groupCode: true,
+            groupType: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json(tickets);
+    // Transform the tickets to include course group information at the top level
+    const ticketsWithCourseGroup = tickets.map((ticket) => ({
+      ...ticket,
+      courseGroup: ticket.class
+        ? {
+            courseCode: ticket.class.courseCode,
+            courseName: ticket.class.courseName,
+            groupCode: ticket.class.groupCode,
+            groupType: ticket.class.groupType,
+          }
+        : null,
+    }));
+
+    return NextResponse.json(ticketsWithCourseGroup);
   } catch (error) {
     console.error("Error fetching tickets:", error);
     return NextResponse.json({ error: "Error fetching tickets" }, { status: 500 });

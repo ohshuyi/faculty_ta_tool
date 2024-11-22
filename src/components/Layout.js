@@ -23,6 +23,10 @@ const items = [
     label: <Link href="/history">History</Link>,
     key: "history",
   },
+  {
+    label: <Link href="/classmanagement">Management</Link>,
+    key: "classmanagement",
+  },
 ];
 
 const AppLayout = ({ children }) => {

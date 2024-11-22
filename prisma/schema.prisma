@@ -10,14 +10,18 @@ generator client {
 model Task {
   id             Int      @id @default(autoincrement())
   name           String   @default("Untitled Task") // Provide a default value
-  courseGroupType String
   dueDate        DateTime
   details        String
-  status         String
+  status         String   @default("pending") // Set default status to "pending"
+  
   professor      User     @relation("ProfessorTasks", fields: [professorId], references: [id])
   professorId    Int
   ta             User     @relation("TATasks", fields: [taId], references: [id])
   taId           Int
+  
+  classId        Int?      // Foreign key to link to Class
+  class          Class?    @relation("ClassTasks", fields: [classId], references: [id]) // Relation to Class
+  
   createdAt      DateTime @default(now()) // Automatically set the creation date
   files          File[]   // Relation to uploaded files
   comments       Comment[] // Relation to comments
@@ -25,27 +29,28 @@ model Task {
 
 model Ticket {
   id               Int      @id @default(autoincrement())
-  ticketNumber     String   @unique
   ticketDescription String
-  courseGroupType  String
   category         String
-  student          String
-  details          String
   priority         String
-  status           String   @default("open")  // New status field
+  status           String   @default("open")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  ta               User     @relation("TATickets", fields: [taId], references: [id])
-  taId             Int
+  classId          Int?
+  class            Class?   @relation("ClassTickets", fields: [classId], references: [id])
 
-  professor        User     @relation("ProfessorTickets", fields: [professorId], references: [id])
+  taId             Int
+  ta               User     @relation("TATickets", fields: [taId], references: [id])
+
   professorId      Int
+  professor        User     @relation("ProfessorTickets", fields: [professorId], references: [id])
+
+  studentId        Int?     // Foreign key for the associated Student
+  student          Student? @relation("StudentTickets", fields: [studentId], references: [id])
 
   comments         Comment[]
   files            File[]
 }
-
 model File {
   id        Int      @id @default(autoincrement())
   url       String
@@ -89,4 +94,27 @@ enum Role {
   USER
   TA
   PROFESSOR
+}
+
+model Class {
+  id          Int       @id @default(autoincrement())
+  courseName  String    // Name of the course (e.g., "Introduction to Computer Science")
+  courseCode  String    // Unique code for the course (e.g., "CS101")
+  groupCode   String    // Code representing the group (e.g., "A1" for Lecture 1)
+  groupType   String    // Type of group, e.g., Lecture, Tutorial, Lab
+  students    Student[] @relation("ClassStudents") // Relation to students in this class
+  tickets     Ticket[]  @relation("ClassTickets")  // Relation to tickets associated with this class
+  tasks       Task[]    @relation("ClassTasks")    // Relation to tasks associated with this class
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  @@unique([courseCode, groupCode]) // Ensure unique combination of courseCode and groupCode
+}
+model Student {
+  id          Int       @id @default(autoincrement())
+  name        String    // Student's name
+  year        Int       // Year or grade level of the student
+  studentCode String    @unique // Unique student identifier
+  classes     Class[]   @relation("ClassStudents") // Many-to-many relationship
+  createdAt   DateTime  @default(now())
+  tickets     Ticket[]  @relation("StudentTickets") // Relation back to Ticket
 }

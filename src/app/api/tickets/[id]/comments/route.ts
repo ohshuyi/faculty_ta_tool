@@ -2,13 +2,12 @@ import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 // GET method to fetch comments for a specific ticketNumber
-export async function GET(req: Request, { params }: { params: { ticketNumber: string } }) {
-  const { ticketNumber } = params;
-
+export async function GET(req: Request, { params }: { params: { id: number } }) {
+  const { id } = params;
   try {
     // Find the ticket by ticketNumber and include comments
     const ticketWithComments = await prisma.ticket.findUnique({
-      where: { ticketNumber },
+      where: { id: Number(id) },
       include: {
         comments: true,  // Include comments associated with the ticket
       },
@@ -27,8 +26,8 @@ export async function GET(req: Request, { params }: { params: { ticketNumber: st
 }
 
 // POST method to add a comment for a specific ticketNumber
-export async function POST(req: Request, { params }: { params: { ticketNumber: string } }) {
-    const { ticketNumber } = params;
+export async function POST(req: Request, { params }: { params: { id: string } }) {
+    const { id } = params;
     const body = await req.json();
     
     const { author, content } = body;
@@ -36,7 +35,7 @@ export async function POST(req: Request, { params }: { params: { ticketNumber: s
     try {
       // Find the ticket by ticketNumber
       const ticket = await prisma.ticket.findUnique({
-        where: { ticketNumber },
+        where: { id: Number(id) },
       });
   
       if (!ticket) {
