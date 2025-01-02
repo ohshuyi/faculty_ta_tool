@@ -15,7 +15,7 @@ export async function POST(req) {
     console.log("Form data:", formData);
     const data = {
       ticketDescription: formData.get("ticketDescription"),
-      courseGroupType: formData.get("courseGroupType"), // Receive courseGroupType from the frontend
+      courseCode: formData.get("courseGroupType"), // Accept a single courseCode
       category: formData.get("category"),
       studentId: parseInt(formData.get("studentId")),
       priority: formData.get("priority"),
@@ -23,17 +23,26 @@ export async function POST(req) {
       taId: parseInt(formData.get("taId")),
     };
 
+    console.log("Course code:", data.courseCode);
+
     // Find the class associated with the courseGroupType
-    const associatedClass = await prisma.class.findFirst({
-      where: { courseCode: data.courseGroupType }, // Adjust if necessary
+    // Find the class matching the courseCode
+    const classes = await prisma.class.findMany({
+      where: {
+        courseCode: data?.courseCode // Filter by courseCode
+      },
+      select: { id: true }, // Select only the `id` field
     });
-    if (!associatedClass) {
+    console.log(classes)
+    if (!classes) {
       return NextResponse.json(
         { error: "Class not found for the specified courseGroupType" },
         { status: 404 }
       );
     }
-    console.log("Associated class:", associatedClass);
+      // Extract an array of IDs
+    const classIds = classes.map(cls => cls.id);
+    console.log("Class IDs are: ", classIds);
 
     const file = formData.get("file");
     let fileUrl = null;
@@ -86,7 +95,9 @@ export async function POST(req) {
         priority: data.priority,
         professorId: data.professorId,
         taId: data.taId,
-        classId: associatedClass.id, // Use the found classId here
+        classes: {
+          connect: classIds.map(id => ({ id })),
+        },
         createdAt: new Date(),
         updatedAt: new Date(),
         ...(fileUrl && {
@@ -154,32 +165,11 @@ export async function GET(req: Request) {
         comments: true,
         files: true,
         student: true,
-        class: { // Include the related class details for course group information
-          select: {
-            id: true,
-            courseCode: true,
-            courseName: true,
-            groupCode: true,
-            groupType: true,
-          },
-        },
+        classes: true,
       },
     });
 
-    // Transform the tickets to include course group information at the top level
-    const ticketsWithCourseGroup = tickets.map((ticket) => ({
-      ...ticket,
-      courseGroup: ticket.class
-        ? {
-            courseCode: ticket.class.courseCode,
-            courseName: ticket.class.courseName,
-            groupCode: ticket.class.groupCode,
-            groupType: ticket.class.groupType,
-          }
-        : null,
-    }));
-
-    return NextResponse.json(ticketsWithCourseGroup);
+    return NextResponse.json(tickets);
   } catch (error) {
     console.error("Error fetching tickets:", error);
     return NextResponse.json({ error: "Error fetching tickets" }, { status: 500 });

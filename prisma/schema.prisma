@@ -19,9 +19,7 @@ model Task {
   ta             User     @relation("TATasks", fields: [taId], references: [id])
   taId           Int
   
-  classId        Int?      // Foreign key to link to Class
-  class          Class?    @relation("ClassTasks", fields: [classId], references: [id]) // Relation to Class
-  
+  classes     Class[]   @relation("TaskClasses") // Many-to-many relationship
   createdAt      DateTime @default(now()) // Automatically set the creation date
   files          File[]   // Relation to uploaded files
   comments       Comment[] // Relation to comments
@@ -36,8 +34,7 @@ model Ticket {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  classId          Int?
-  class            Class?   @relation("ClassTickets", fields: [classId], references: [id])
+  classes            Class[]   @relation("TicketClasses")
 
   taId             Int
   ta               User     @relation("TATickets", fields: [taId], references: [id])
@@ -98,22 +95,22 @@ enum Role {
 
 model Class {
   id          Int       @id @default(autoincrement())
-  courseName  String    // Name of the course (e.g., "Introduction to Computer Science")
-  courseCode  String    // Unique code for the course (e.g., "CS101")
-  groupCode   String    // Code representing the group (e.g., "A1" for Lecture 1)
-  groupType   String    // Type of group, e.g., Lecture, Tutorial, Lab
-  students    Student[] @relation("ClassStudents") // Relation to students in this class
-  tickets     Ticket[]  @relation("ClassTickets")  // Relation to tickets associated with this class
-  tasks       Task[]    @relation("ClassTasks")    // Relation to tasks associated with this class
+  courseCode  String
+  classType   String    @default("Unknown") // Default value for migration
+  classGroup  String    @default("Unknown") // Default value for migration
+  students    Student[] @relation("ClassStudents")
+  tickets     Ticket[]  @relation("TicketClasses")
+  tasks       Task[]    @relation("TaskClasses")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  @@unique([courseCode, groupCode]) // Ensure unique combination of courseCode and groupCode
 }
+
+
 model Student {
   id          Int       @id @default(autoincrement())
   name        String    // Student's name
-  year        Int       // Year or grade level of the student
   studentCode String    @unique // Unique student identifier
+  prog        String
   classes     Class[]   @relation("ClassStudents") // Many-to-many relationship
   createdAt   DateTime  @default(now())
   tickets     Ticket[]  @relation("StudentTickets") // Relation back to Ticket

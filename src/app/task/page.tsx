@@ -41,7 +41,7 @@ export default function TaskPage() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  console.log('Access Token from Session:', session?.accessToken)
+  console.log("Access Token from Session:", session?.accessToken);
   // Fetch tasks from the API
   const fetchTasks = async (status = "open") => {
     setLoading(true);
@@ -168,22 +168,40 @@ export default function TaskPage() {
         >
           <h2 style={{ fontWeight: "bold" }}>Task Details: {task.id}</h2>
 
-          <Button type="primary" danger onClick={() => setIsCloseModalVisible(true)}>
+          <Button
+            type="primary"
+            danger
+            onClick={() => setIsCloseModalVisible(true)}
+          >
             Close Task
           </Button>
         </div>
         <Descriptions bordered>
-          <Descriptions.Item label="Course Group">{task.courseGroupType}</Descriptions.Item>
+          <Descriptions.Item label="Course Code">
+            {task.classes[0].courseCode}
+          </Descriptions.Item>
+          <Descriptions.Item label="Course Type">
+            {task.classes[0].classType}
+          </Descriptions.Item>
+          <Descriptions.Item label="Class Group">
+            {task.classes[0].classGroup}
+          </Descriptions.Item>
           <Descriptions.Item label="Due Date">
             {new Date(task.dueDate).toLocaleDateString()}
           </Descriptions.Item>
           <Descriptions.Item label="Details">{task.details}</Descriptions.Item>
-          <Descriptions.Item label="Professor">{task.professor.name}</Descriptions.Item>
+          <Descriptions.Item label="Professor">
+            {task.professor.name}
+          </Descriptions.Item>
           <Descriptions.Item label="TA">{task.ta.name}</Descriptions.Item>
-          <Descriptions.Item label="Status">{getStatusTag(task.status)}</Descriptions.Item>
-          <Descriptions.Item label="Description">{task.details}</Descriptions.Item>
+          <Descriptions.Item label="Status">
+            {getStatusTag(task.status)}
+          </Descriptions.Item>
+          <Descriptions.Item label="Description">
+            {task.details}
+          </Descriptions.Item>
         </Descriptions>
-        
+
         <Divider />
         {/* Attached Files */}
         {task.files?.length > 0 && (
@@ -259,32 +277,38 @@ export default function TaskPage() {
   }
 
   if (status === "unauthenticated") {
-    return <Alert message="You must be logged in to view tasks." type="warning" showIcon />;
+    return (
+      <Alert
+        message="You must be logged in to view tasks."
+        type="warning"
+        showIcon
+      />
+    );
   }
 
   return (
     <AppLayout>
-      {tasks.length === 0 ? (
-        <Alert message="No tasks available." type="info" showIcon />
-      ) : (
-        <TwoColumnsLayout
-          items={tasks.map((task) => ({
-            key: task.id.toString(),
-            title: task.name,
-          }))}
-          renderContent={(key) => {
-            const task = tasks.find((task) => task.id.toString() === key);
-            if (task) {
-              setSelectedTask(task);
-              return renderTaskDetails(task);
-            }
-          }}
-          onAdd={showModal}
-          type={"task"}
-          userRole={session?.user?.role}
-        />
-      )}
-      <AddTaskModal isVisible={isModalVisible} onClose={closeModal} onTaskAdded={fetchTasks} />
+      <TwoColumnsLayout
+        items={tasks.map((task) => ({
+          key: task.id.toString(),
+          title: task.name,
+        }))}
+        renderContent={(key) => {
+          const task = tasks.find((task) => task.id.toString() === key);
+          if (task) {
+            setSelectedTask(task);
+            return renderTaskDetails(task);
+          }
+        }}
+        onAdd={showModal}
+        type={"task"}
+        userRole={session?.user?.role}
+      />
+      <AddTaskModal
+        isVisible={isModalVisible}
+        onClose={closeModal}
+        onTaskAdded={fetchTasks}
+      />
     </AppLayout>
   );
 }

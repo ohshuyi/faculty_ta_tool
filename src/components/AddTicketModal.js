@@ -131,16 +131,16 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
             </Form.Item>
 
             <Form.Item
-              label="Course Group"
+              label="Course Code"
               name="courseGroupType"
               rules={[
                 { required: true, message: "Please select a course group!" },
               ]}
             >
-              <Select placeholder="Select a course group">
+              <Select placeholder="Select a course code">
                 {classes.map((cls) => (
                   <Option key={cls.id} value={cls.courseCode}>
-                    {`${cls.courseCode} - ${cls.courseName} (${cls.groupCode}, ${cls.groupType})`}
+                    {`${cls.courseCode}`}
                   </Option>
                 ))}
               </Select>

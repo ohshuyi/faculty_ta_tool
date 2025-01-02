@@ -1,23 +1,25 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, message, Upload, Spin, List, Input } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { Table, Button, Modal, message, Spin, List, Input } from "antd";
+import { UploadOutlined, DeleteOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import AppLayout from "@/components/Layout";
-import ClassUploader from "@/components/ClassUploader"; // Import ClassUploader component
 import * as XLSX from "xlsx";
+
+const { confirm } = Modal;
 
 const ClassManagement = () => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState(null); // For modals
   const [isViewModalVisible, setIsViewModalVisible] = useState(false); // Modal to view students
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false); // Modal to add students
+  const [file, setFile] = useState(null); // File state
+  const [uploadStatus, setUploadStatus] = useState(''); // Upload status message
 
   // Fetch classes from the API
   const fetchClasses = async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/classes");
+      const response = await fetch("/api/management");
       const data = await response.json();
       setClasses(data);
     } catch (error) {
@@ -43,67 +45,75 @@ const ClassManagement = () => {
     setSelectedClass(null);
   };
 
-  // Handle "Add Students" Modal
-  const showAddStudentModal = (cls) => {
-    setSelectedClass(cls);
-    setIsAddModalVisible(true);
+  // Handle File Change
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
   };
 
-  const closeAddStudentModal = () => {
-    setIsAddModalVisible(false);
-    setSelectedClass(null);
-  };
+  // Handle File Upload
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!file) {
+      setUploadStatus('Please select a file to upload.');
+      return;
+    }
 
-  // Handle File Upload for Adding Students
-  const handleFileUpload = async (info) => {
-    const file = info.file;
+    const formData = new FormData();
+    formData.append('file', file);
 
     try {
-      // Step 1: Read the file as binary
-      const data = await file.arrayBuffer();
-
-      // Step 2: Parse the Excel file
-      const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0]; // Assuming the first sheet
-      const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-      // Step 3: Validate the parsed data
-      if (!jsonData.length) {
-        message.error("The uploaded Excel file is empty.");
-        return;
-      }
-
-      const students = jsonData.map((row) => ({
-        name: row["Student Name"],
-        studentCode: row["Student Code"],
-        year: row["Year"],
-        classId: selectedClass.id,
-      }));
-
-      console.log("Parsed Students:", students);
-
-      // Step 4: Send the parsed data to the backend
-      const response = await fetch("/api/students", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ students }),
+      const res = await fetch('/api/management', {
+        method: 'POST',
+        body: formData,
       });
 
-      if (response.ok) {
-        message.success("Students added successfully!");
-        fetchClasses(); // Refresh the class list
-        setIsAddModalVisible(false);
+      if (res.ok) {
+        setUploadStatus('File uploaded successfully!');
+        fetchClasses(); // Refresh the table after successful upload
       } else {
-        const error = await response.json();
-        message.error(`Failed to add students: ${error.message}`);
+        const error = await res.json();
+        setUploadStatus(`Upload failed: ${error.message}`);
       }
     } catch (error) {
-      console.error("Error processing file:", error);
-      message.error(
-        "Failed to process file. Please ensure it is a valid Excel file."
-      );
+      setUploadStatus(`Error: ${error.message}`);
+    }
+  };
+
+  // Show confirmation modal before deleting
+  const showDeleteConfirm = (classId) => {
+    confirm({
+      title: "Are you sure you want to delete this class?",
+      icon: <ExclamationCircleOutlined />,
+      content: "This action cannot be undone.",
+      okText: "Yes, Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+      onOk() {
+        handleDeleteClass(classId);
+      },
+      onCancel() {
+        console.log("Cancel deletion");
+      },
+    });
+  };
+
+  // Handle Deletion of Class Group
+  const handleDeleteClass = async (classId) => {
+    try {
+      const res = await fetch(`/api/management/${classId}`, {
+        method: "DELETE",
+      });
+
+      if (res.ok) {
+        message.success("Class deleted successfully!");
+        fetchClasses(); // Refresh the table after deletion
+      } else {
+        const error = await res.json();
+        message.error(`Failed to delete class: ${error.message}`);
+      }
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      message.error("An error occurred. Please try again.");
     }
   };
 
@@ -139,43 +149,13 @@ const ClassManagement = () => {
           .toLowerCase()
           .includes(value.toLowerCase()),
     },
-    {
-      title: "Course Name",
-      dataIndex: "courseName",
-      key: "courseName",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Search Course Name"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => confirm()}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button
-            type="primary"
-            onClick={() => confirm()}
-            style={{ width: "100%" }}
-          >
-            Search
-          </Button>
-        </div>
-      ),
-      onFilter: (value, record) =>
-        record.courseName
-          .toString()
-          .toLowerCase()
-          .includes(value.toLowerCase()),
-    },
-    { title: "Group Code", dataIndex: "groupCode", key: "groupCode" },
-    { title: "Group Type", dataIndex: "groupType", key: "groupType" },
+    { title: "Class Group", dataIndex: "classGroup", key: "classGroup" },
+    { title: "Class Type", dataIndex: "classType", key: "classType" },
     {
       title: "Student Count",
       dataIndex: "students",
       key: "students",
-      render: (students) => students.length,
+      render: (students) => students?.length,
     },
     {
       title: "View Students",
@@ -187,35 +167,103 @@ const ClassManagement = () => {
       ),
     },
     {
-      title: "Add Students",
-      key: "addStudents",
+      title: "Delete",
+      key: "delete",
       render: (_, record) => (
-        <Button type="primary" onClick={() => showAddStudentModal(record)}>
-          Add Students
-        </Button>
+        <DeleteOutlined
+          style={{ color: "red", cursor: "pointer" }}
+          onClick={() => showDeleteConfirm(record.id)}
+        />
       ),
     },
   ];
 
   return (
     <AppLayout>
-      <div style={{ padding: "24px"}}>
-        <div className="flex items-center gap-4 rounded-md shadow-md">
-          <h1 className="text-lg font-semibold">Upload Class:</h1>
-          {/* ClassUploader Component */}
-          <ClassUploader onUploadSuccess={fetchClasses} />
+      <div style={{ padding: "24px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+            backgroundColor: "#f9f9f9",
+            borderRadius: "8px",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            padding: "16px",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: "18px",
+              fontWeight: "600",
+              color: "#333",
+              marginBottom: "8px",
+            }}
+          >
+            Upload Class
+          </h1>
+          <form
+            onSubmit={handleUpload}
+            style={{ display: "flex", alignItems: "center", gap: "16px" }}
+          >
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleFileChange}
+              style={{
+                padding: "8px",
+                border: "1px solid #ccc",
+                borderRadius: "4px",
+                backgroundColor: "#fff",
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                padding: "8px 16px",
+                backgroundColor: "#007bff",
+                color: "#fff",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "14px",
+              }}
+            >
+              Upload
+            </button>
+          </form>
+          {uploadStatus && (
+            <p
+              style={{
+                marginTop: "8px",
+                color: uploadStatus.includes("successfully") ? "green" : "red",
+              }}
+            >
+              {uploadStatus}
+            </p>
+          )}
         </div>
+
         {loading ? (
-          <Spin size="large" />
+          <div style={{ display: "flex", justifyContent: "center", marginTop: "24px" }}>
+            <Spin size="large" />
+          </div>
         ) : classes.length === 0 ? (
-          <p>No classes found</p>
+          <p style={{ textAlign: "center", marginTop: "24px", color: "#666" }}>
+            No classes found
+          </p>
         ) : (
-          <Table columns={columns} dataSource={classes} rowKey="id" />
+          <Table
+            columns={columns}
+            dataSource={classes}
+            rowKey="id"
+            style={{ marginTop: "24px" }}
+          />
         )}
 
         {/* Modal to view students */}
         <Modal
-          title={`Students in ${selectedClass?.courseCode} - ${selectedClass?.groupCode}`}
+          title={`Students in ${selectedClass?.courseCode} - ${selectedClass?.classGroup}`}
           visible={isViewModalVisible}
           onCancel={closeViewStudentModal}
           footer={null}
@@ -232,33 +280,6 @@ const ClassManagement = () => {
           ) : (
             <p>No students found for this class.</p>
           )}
-        </Modal>
-
-        {/* Modal to add students */}
-        <Modal
-          title={`Add Students to ${selectedClass?.courseCode} - ${selectedClass?.groupCode}`}
-          visible={isAddModalVisible}
-          onCancel={closeAddStudentModal}
-          footer={null}
-        >
-          <Upload
-            accept=".xlsx,.xls"
-            beforeUpload={() => false} // Prevent automatic upload
-            onChange={handleFileUpload}
-          >
-            <Button icon={<UploadOutlined />}>Upload Student Excel</Button>
-          </Upload>
-          <p style={{ marginTop: "10px" }}>
-            Ensure the Excel file has the following columns:
-          </p>
-          <ul>
-            <li>
-              <b>Student Name</b>: Name of the student
-            </li>
-            <li>
-              <b>Year</b>: Academic year of the student
-            </li>
-          </ul>
         </Modal>
       </div>
     </AppLayout>

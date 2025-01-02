@@ -1,38 +1,25 @@
-// app/api/classes/route.js
-import prisma from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
-export async function GET() {
+const prisma = new PrismaClient();
+
+export async function GET(req) {
   try {
-    const classes = await prisma.class.findMany({
-      select: {
-        id: true,
-        courseCode: true,
-        courseName: true,
-        groupCode: true,
-        groupType: true,
-        students: {
-          select: {
-            id: true,
-            name: true,
-            studentCode: true,
-          },
-        },
-      },
+    // Use groupBy to fetch distinct classGroup
+    const courseCode = await prisma.class.groupBy({
+      by: ["courseCode"], // Group by the classGroup field
     });
 
-    // Add student count to each class
-    const classesWithStudentCount = classes.map((cls) => ({
-      ...cls,
-      studentCount: cls.students.length,
-    }));
-
-    return NextResponse.json(classesWithStudentCount, { status: 200 });
+    return new Response(JSON.stringify(courseCode), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
-    console.error("Error fetching classes:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch classes" },
+    console.error("Error fetching class groups:", error);
+    return new Response(
+      JSON.stringify({ message: "Failed to fetch class groups", error: error.message }),
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }

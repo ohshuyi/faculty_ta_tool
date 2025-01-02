@@ -1,17 +1,15 @@
-
-
 // POST method to create a task
-import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // Assuming you have Prisma setup
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma"; // Assuming you have Prisma setup
 import { authOptions } from "@/lib/auth"; // Assuming your NextAuth options are in lib/auth.ts
 import { getServerSession } from "next-auth";
-import { v4 as uuidv4 } from 'uuid'; // For generating unique filenames
+import { v4 as uuidv4 } from "uuid"; // For generating unique filenames
 import {
   BlobServiceClient,
   StorageSharedKeyCredential,
   generateBlobSASQueryParameters,
   BlobSASPermissions,
-} from '@azure/storage-blob';
+} from "@azure/storage-blob";
 
 const AZURE_STORAGE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
@@ -19,28 +17,31 @@ const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 export async function POST(req) {
   try {
     const formData = await req.formData();
-
+    console.log("hello123");
     // Extract task details from formData
     const name = formData.get("name");
     const dueDate = formData.get("dueDate");
     const details = formData.get("details");
     const professorId = parseInt(formData.get("professorId"), 10);
     const taId = parseInt(formData.get("taId"), 10);
+    const courseCode = formData.get("courseGroupType"); // Accept a single courseCode
     const file = formData.get("file");
 
     let fileUrl = null;
 
-    // If a file is uploaded, upload it to Azure Blob Storage
+    // Handle file upload if applicable
     if (file) {
       const buffer = await file.arrayBuffer();
-
-      // Azure Blob Storage setup
       const blobServiceClient = new BlobServiceClient(
         `https://${AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net`,
-        new StorageSharedKeyCredential(AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY)
+        new StorageSharedKeyCredential(
+          AZURE_STORAGE_ACCOUNT_NAME,
+          AZURE_STORAGE_ACCOUNT_KEY
+        )
       );
 
-      const containerClient = blobServiceClient.getContainerClient("tasks-files");
+      const containerClient =
+        blobServiceClient.getContainerClient("tasks-files");
       const exists = await containerClient.exists();
       if (!exists) {
         await containerClient.create();
@@ -49,28 +50,41 @@ export async function POST(req) {
       const blobName = `${Date.now()}-${file.name}`;
       const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-      // Upload the file to Azure Blob Storage
       await blockBlobClient.uploadData(Buffer.from(buffer), {
         blobHTTPHeaders: { blobContentType: file.type },
       });
 
-      // Generate the URL to access the uploaded file
       fileUrl = blockBlobClient.url;
     }
 
-    // Explicitly set the status (e.g., "open")
-    const status = "open"; // You can make this dynamic if needed
+    // Explicitly set the status
+    const status = "open";
+    // Find the class matching the courseCode
+    const classes = await prisma.class.findMany({
+      where: {
+        courseCode, // Filter by courseCode
+      },
+      select: { id: true }, // Select only the `id` field
+    });
+    
+    // Extract an array of IDs
+    const classIds = classes.map(cls => cls.id);
+    
+    console.log("Class IDs are: ", classIds);
 
-    // Create the task in Prisma, including the TA relation
+    // Create the task and link to multiple classes
     const newTask = await prisma.task.create({
       data: {
         name,
-        dueDate: new Date(dueDate), // Ensure the dueDate is stored as a Date object
+        dueDate: new Date(dueDate),
         details,
-        status, // Include the status field
+        status,
         professorId,
         taId,
-        createdAt: new Date(), // Optional: if not set, Prisma will handle it automatically
+        createdAt: new Date(),
+        classes: {
+          connect: classIds.map((id) => ({ id })), // Connect the task to multiple classes
+        },
         ...(fileUrl && {
           files: {
             create: [
@@ -80,17 +94,18 @@ export async function POST(req) {
               },
             ],
           },
-        }), // Conditionally include files if fileUrl exists
+        }),
       },
       include: {
-        ta: true, // Include TA information in the response
-        professor: true, // Include Professor information if needed
-        files: true, // Include uploaded files if any
+        ta: true,
+        professor: true,
+        files: true,
+        classes: true, // Include related classes in the response
       },
     });
 
-    // Construct the response structure
-    const responseTask = { //
+    // Construct the response
+    const responseTask = {
       id: newTask.id,
       name: newTask.name,
       dueDate: newTask.dueDate,
@@ -106,6 +121,10 @@ export async function POST(req) {
         name: newTask.ta.name,
         email: newTask.ta.email,
       },
+      classes: newTask.classes.map((cls) => ({
+        id: cls.id,
+        courseCode: cls.courseCode,
+      })),
       files: newTask.files.map((file) => ({
         id: file.id,
         url: file.url,
@@ -173,6 +192,7 @@ export async function GET(req) {
           ta: true,
           comments: true,
           files: true,
+          classes: true,
         },
       });
     }
@@ -186,4 +206,3 @@ export async function GET(req) {
     );
   }
 }
-

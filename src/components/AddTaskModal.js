@@ -61,7 +61,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   // Handle form submission
   const onFinish = async (values) => {
     setLoading(true);
-
+    console.log(values)
     try {
       const formData = new FormData();
       formData.append("name", values.name);
@@ -121,7 +121,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
               <Select placeholder="Select a course group" loading={classes.length === 0}>
                 {classes.map((cls) => (
                   <Option key={cls.id} value={cls.courseCode}>
-                    {`${cls.courseCode} - ${cls.courseName} (${cls.groupCode}, ${cls.groupType})`}
+                    {`${cls.courseCode} `}
                   </Option>
                 ))}
               </Select>

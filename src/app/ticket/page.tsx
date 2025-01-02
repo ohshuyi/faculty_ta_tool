@@ -152,7 +152,7 @@ export default function TicketPage() {
           {ticket.ticketDescription || "N/A"}
         </Descriptions.Item>
         <Descriptions.Item label="Course Group">
-          {ticket.courseGroup?.courseCode || "N/A"}
+          {ticket.classes[0].courseCode|| "N/A"}
         </Descriptions.Item>
         <Descriptions.Item label="Category">
           {ticket.category || "N/A"}
@@ -291,9 +291,7 @@ export default function TicketPage() {
 
   return (
     <AppLayout>
-      {tickets.length === 0 ? (
-        <Alert message="No tickets available." type="info" showIcon />
-      ) : (
+      
         <TwoColumnsLayout
           items={tickets.map((ticket) => ({
             key: ticket.id,
@@ -310,7 +308,7 @@ export default function TicketPage() {
           type={"ticket"}
           userRole={session?.user?.role}
         />
-      )}
+
       <AddTicketModal
         isVisible={isModalVisible}
         onClose={closeModal}
