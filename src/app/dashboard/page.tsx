@@ -1,78 +1,71 @@
-"use client"
-import React from 'react';
+"use client";
+import React, { useEffect, useState } from 'react';
 import { Card, Col, Row, Statistic } from 'antd';
 import { Bar } from 'react-chartjs-2';
-import { Pie } from 'react-chartjs-2';
-import 'chart.js/auto'; // This is required for Chart.js to work properly
+import 'chart.js/auto';
 import AppLayout from '@/components/Layout';
 
 const Dashboard = () => {
-  // Mock Data
-  const taskAnalytics = {
-    totalTasks: 50,
-    completedTasks: 35,
-    pendingTasks: 10,
-    overdueTasks: 5,
-    tasksByCourseGroup: {
-      Math101: 20,
-      Physics202: 15,
-      Chemistry301: 10,
-      Biology401: 5,
-    },
-  };
+  const [analyticsData, setAnalyticsData] = useState(null);
 
-  const ticketAnalytics = {
-    totalTickets: 80,
-    completedTickets: 60,
-    pendingTickets: 15,
-    highPriorityTickets: 5,
-    ticketsByCategory: {
-      Technical: 40,
-      Administrative: 30,
-      Other: 10,
-    },
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/analytics');
+        const data = await response.json();
+        setAnalyticsData(data);
+      } catch (error) {
+        console.error('Error fetching analytics data:', error);
+      }
+    };
+    fetchData();
+  }, []);
 
-  // Data for the Pie Charts
-  const taskPieData = {
+  if (!analyticsData) {
+    return <div>Loading...</div>;
+  }
+
+  const { taskAnalytics, ticketAnalytics } = analyticsData;
+
+  // Fix undefined keys in task analytics
+  const cleanedTaskGroups = Object.entries(taskAnalytics.tasksByCourseGroup).reduce(
+    (acc, [key, value]) => {
+      acc[key === 'undefined' ? 'Uncategorized' : key] = value;
+      return acc;
+    },
+    {}
+  );
+
+  // Data for Task Status Histogram
+  const taskStatusHistogramData = {
     labels: ['Completed', 'Pending', 'Overdue'],
     datasets: [
       {
         label: 'Task Status',
-        data: [taskAnalytics.completedTasks, taskAnalytics.pendingTasks, taskAnalytics.overdueTasks],
+        data: [
+          taskAnalytics.completedTasks,
+          taskAnalytics.pendingTasks,
+          taskAnalytics.overdueTasks,
+        ],
         backgroundColor: ['#00C49F', '#FFBB28', '#FF8042'],
       },
     ],
   };
 
-  const ticketPieData = {
-    labels: ['Technical', 'Administrative', 'Other'],
-    datasets: [
-      {
-        label: 'Ticket Categories',
-        data: [
-          ticketAnalytics.ticketsByCategory.Technical,
-          ticketAnalytics.ticketsByCategory.Administrative,
-          ticketAnalytics.ticketsByCategory.Other,
-        ],
-        backgroundColor: ['#0088FE', '#00C49F', '#FFBB28'],
-      },
-    ],
-  };
-
-  // Data for the Bar Charts
+  // Data for Task by Course Group Bar Chart
   const taskBarData = {
-    labels: Object.keys(taskAnalytics.tasksByCourseGroup),
+    labels: Object.keys(cleanedTaskGroups),
     datasets: [
       {
         label: 'Tasks by Course Group',
-        data: Object.values(taskAnalytics.tasksByCourseGroup),
+        data: Object.values(cleanedTaskGroups),
         backgroundColor: '#0088FE',
       },
     ],
   };
 
-  const ticketBarData = {
+  // Data for Ticket Categories Histogram
+  const ticketCategoryHistogramData = {
     labels: Object.keys(ticketAnalytics.ticketsByCategory),
     datasets: [
       {
@@ -85,35 +78,36 @@ const Dashboard = () => {
 
   return (
     <AppLayout>
-      <div className='p-16'>
+      <div className="p-16">
+        <Row gutter={16}>
+          {/* Task Analytics */}
+          <Col span={12}>
+            <Card title="Task Analytics">
+              <Statistic title="Total Tasks" value={taskAnalytics.totalTasks} />
+              <Statistic title="Completed Tasks" value={taskAnalytics.completedTasks} />
+              <Statistic title="Pending Tasks" value={taskAnalytics.pendingTasks} />
+              <Statistic title="Overdue Tasks" value={taskAnalytics.overdueTasks} />
 
-      <Row gutter={16}>
-        {/* Task Analytics */}
-        <Col span={12}>
-          <Card title="Task Analytics">
-            <Statistic title="Total Tasks" value={taskAnalytics.totalTasks} />
-            <Statistic title="Completed Tasks" value={taskAnalytics.completedTasks} />
-            <Statistic title="Pending Tasks" value={taskAnalytics.pendingTasks} />
-            <Statistic title="Overdue Tasks" value={taskAnalytics.overdueTasks} />
+              {/* Task by Course Group Bar Chart */}
+              <Bar data={taskBarData} />
+            </Card>
+          </Col>
 
-            {/* Task by Course Group Bar Chart */}
-            <Bar data={taskBarData} />
-          </Card>
-        </Col>
+          {/* Ticket Analytics */}
+          <Col span={12}>
+            <Card title="Ticket Analytics">
+              <Statistic title="Total Tickets" value={ticketAnalytics.totalTickets} />
+              <Statistic title="Completed Tickets" value={ticketAnalytics.completedTickets} />
+              <Statistic title="Pending Tickets" value={ticketAnalytics.pendingTickets} />
+              <Statistic title="High Priority Tickets" value={ticketAnalytics.highPriorityTickets} />
 
-        {/* Ticket Analytics */}
-        <Col span={12}>
-          <Card title="Ticket Analytics">
-            <Statistic title="Total Tickets" value={ticketAnalytics.totalTickets} />
-            <Statistic title="Completed Tickets" value={ticketAnalytics.completedTickets} />
-            <Statistic title="Pending Tickets" value={ticketAnalytics.pendingTickets} />
-            <Statistic title="High Priority Tickets" value={ticketAnalytics.highPriorityTickets} />
+              {/* Tickets by Category Histogram */}
+              <Bar data={ticketCategoryHistogramData} />
+            </Card>
+          </Col>
+        </Row>
 
-            {/* Tickets by Category Bar Chart */}
-            <Bar data={ticketBarData} />
-          </Card>
-        </Col>
-      </Row>
+        
       </div>
     </AppLayout>
   );
