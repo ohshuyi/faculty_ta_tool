@@ -152,8 +152,8 @@ export default function TicketPage() {
           {ticket.ticketDescription || "N/A"}
         </Descriptions.Item>
         <Descriptions.Item label="Course Group">
-          {ticket.classes[0].courseCode|| "N/A"}
-        </Descriptions.Item>
+        {ticket.classes?.length > 0 ? ticket.classes[0].courseCode : "N/A"}
+      </Descriptions.Item>
         <Descriptions.Item label="Category">
           {ticket.category || "N/A"}
         </Descriptions.Item>
