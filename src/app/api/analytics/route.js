@@ -12,18 +12,20 @@ export async function GET(req) {
     // Task Analytics
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(task => task.status === 'completed').length;
-    const pendingTasks = tasks.filter(task => task.status === 'pending').length;
+    const pendingTasks = tasks.filter(task => task.status === 'open').length;
     const overdueTasks = tasks.filter(
       task => new Date(task.dueDate) < new Date() && task.status !== 'completed'
     ).length;
 
     const tasksByCourseGroup = tasks.reduce((acc, task) => {
-      task.classes.forEach(cls => {
-        acc[cls.name] = (acc[cls.name] || 0) + 1;
+      task.classes.forEach((cls) => {
+        // Use courseCode for grouping
+        const groupKey = cls.courseCode || 'Unknown';
+        acc[groupKey] = (acc[groupKey] || 0) + 1;
       });
       return acc;
     }, {});
-
+    
     // Fetch Tickets
     const tickets = await prisma.ticket.findMany({
       include: {
@@ -33,13 +35,13 @@ export async function GET(req) {
         student: true,
       },
     });
-
+    
     // Ticket Analytics
     const totalTickets = tickets.length;
     const completedTickets = tickets.filter(ticket => ticket.status === 'completed').length;
     const pendingTickets = tickets.filter(ticket => ticket.status === 'open').length;
     const highPriorityTickets = tickets.filter(ticket => ticket.priority === 'high').length;
-
+    console.log('All tasks:', tasks);
     const ticketsByCategory = tickets.reduce((acc, ticket) => {
       acc[ticket.category] = (acc[ticket.category] || 0) + 1;
       return acc;
