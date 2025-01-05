@@ -7,8 +7,6 @@ import {
   Button,
   Select,
   message,
-  Row,
-  Col,
   Upload,
   DatePicker,
 } from "antd";
@@ -61,7 +59,6 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   // Handle form submission
   const onFinish = async (values) => {
     setLoading(true);
-    console.log(values)
     try {
       const formData = new FormData();
       formData.append("name", values.name);
@@ -101,74 +98,73 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
       title="Add New Task"
       onCancel={onClose}
       footer={null}
+      width={800} // Increase modal width if needed
     >
       <Form layout="vertical" onFinish={onFinish}>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              label="Task Name"
-              name="name"
-              rules={[{ required: true, message: "Please input the task name!" }]}
-            >
-              <Input placeholder="Enter task name" />
-            </Form.Item>
+        <Form.Item
+          label="Task Name"
+          name="name"
+          rules={[{ required: true, message: "Please input the task name!" }]}
+          style={{ width: "100%" }}
+        >
+          <Input placeholder="Enter task name" />
+        </Form.Item>
 
-            <Form.Item
-              label="Course Group"
-              name="courseGroupType"
-              rules={[{ required: true, message: "Please select a course group!" }]}
-            >
-              <Select placeholder="Select a course group" loading={classes.length === 0}>
-                {classes.map((cls) => (
-                  <Option key={cls.id} value={cls.courseCode}>
-                    {`${cls.courseCode} `}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+        <Form.Item
+          label="Course Group"
+          name="courseGroupType"
+          rules={[{ required: true, message: "Please select a course group!" }]}
+          style={{ width: "100%" }}
+        >
+          <Select placeholder="Select a course group" loading={classes.length === 0}>
+            {classes.map((cls) => (
+              <Option key={cls.id} value={cls.courseCode}>
+                {`${cls.courseCode} `}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
 
-            <Form.Item
-              label="Assign To (TA)"
-              name="taId"
-              rules={[{ required: true, message: "Please select a TA!" }]}
-            >
-              <Select placeholder="Select a TA">
-                {tas.map((ta) => (
-                  <Option key={ta.id} value={ta.id}>
-                    {ta.name}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+        <Form.Item
+          label="Assign To (TA)"
+          name="taId"
+          rules={[{ required: true, message: "Please select a TA!" }]}
+          style={{ width: "100%" }}
+        >
+          <Select placeholder="Select a TA">
+            {tas.map((ta) => (
+              <Option key={ta.id} value={ta.id}>
+                {ta.name}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
 
-            <Form.Item
-              label="Due Date"
-              name="dueDate"
-              rules={[{ required: true, message: "Please select a due date!" }]}
-            >
-              <DatePicker />
-            </Form.Item>
-          </Col>
+        <Form.Item
+          label="Due Date"
+          name="dueDate"
+          rules={[{ required: true, message: "Please select a due date!" }]}
+          style={{ width: "100%" }}
+        >
+          <DatePicker style={{ width: "100%" }} />
+        </Form.Item>
 
-          <Col span={12}>
-            <Form.Item
-              label="Details"
-              name="details"
-              rules={[{ required: true, message: "Please input task details!" }]}
-            >
-              <TextArea rows={4} placeholder="Enter task details" />
-            </Form.Item>
+        <Form.Item
+          label="Details"
+          name="details"
+          rules={[{ required: true, message: "Please input task details!" }]}
+          style={{ width: "100%" }}
+        >
+          <TextArea rows={4} placeholder="Enter task details" />
+        </Form.Item>
 
-            {/* File Upload Field */}
-            <Form.Item label="Attach File (Optional)">
-              <Upload beforeUpload={() => false} onChange={handleFileChange}>
-                <Button icon={<UploadOutlined />}>Select File</Button>
-              </Upload>
-            </Form.Item>
-          </Col>
-        </Row>
+        <Form.Item label="Attach File (Optional)" style={{ width: "100%" }}>
+          <Upload beforeUpload={() => false} onChange={handleFileChange}>
+            <Button icon={<UploadOutlined />}>Select File</Button>
+          </Upload>
+        </Form.Item>
 
-        <Form.Item>
+        <Form.Item style={{ width: "100%" }}>
           <Button type="primary" htmlType="submit" loading={loading} block>
             Submit
           </Button>

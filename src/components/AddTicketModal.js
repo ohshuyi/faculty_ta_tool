@@ -7,8 +7,6 @@ import {
   Button,
   Select,
   message,
-  Row,
-  Col,
   Upload,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
@@ -21,7 +19,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
   const [loading, setLoading] = useState(false);
   const [professors, setProfessors] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [students, setStudents] = useState([]); // State for students data
+  const [students, setStudents] = useState([]);
   const { data: session } = useSession();
   const [file, setFile] = useState(null);
 
@@ -76,9 +74,9 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
     try {
       const formData = new FormData();
       formData.append("ticketDescription", values.ticketDescription);
-      formData.append("courseGroupType", values.courseGroupType); // Use courseGroupType instead of classId
+      formData.append("courseGroupType", values.courseGroupType);
       formData.append("category", values.category);
-      formData.append("studentId", values.studentId); 
+      formData.append("studentId", values.studentId);
       formData.append("priority", values.priority);
       formData.append("professorId", values.professorId);
       formData.append("taId", session.user.id);
@@ -113,108 +111,109 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       title="Add New Ticket"
       onCancel={onClose}
       footer={null}
+      width={800} // Adjust modal width if necessary
     >
       <Form layout="vertical" onFinish={onFinish}>
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              label="Ticket Description"
-              name="ticketDescription"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input the ticket description!",
-                },
-              ]}
-            >
-              <TextArea rows={4} placeholder="Enter ticket description" />
-            </Form.Item>
+        <Form.Item
+          label="Ticket Description"
+          name="ticketDescription"
+          rules={[
+            {
+              required: true,
+              message: "Please input the ticket description!",
+            },
+          ]}
+          style={{ width: "100%" }}
+        >
+          <TextArea rows={4} placeholder="Enter ticket description" />
+        </Form.Item>
 
-            <Form.Item
-              label="Course Code"
-              name="courseGroupType"
-              rules={[
-                { required: true, message: "Please select a course group!" },
-              ]}
-            >
-              <Select placeholder="Select a course code">
-                {classes.map((cls) => (
-                  <Option key={cls.id} value={cls.courseCode}>
-                    {`${cls.courseCode}`}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+        <Form.Item
+          label="Course Code"
+          name="courseGroupType"
+          rules={[
+            { required: true, message: "Please select a course group!" },
+          ]}
+          style={{ width: "100%" }}
+        >
+          <Select placeholder="Select a course code">
+            {classes.map((cls) => (
+              <Option key={cls.id} value={cls.courseCode}>
+                {cls.courseCode}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
 
-            <Form.Item
-              label="Category"
-              name="category"
-              rules={[{ required: true, message: "Please select a category!" }]}
-            >
-              <Select placeholder="Select a category">
-                <Option value="Assignment">Assignment</Option>
-                <Option value="Exam">Exam</Option>
-                <Option value="Project">Project</Option>
-                <Option value="Quiz">Quiz</Option>
-                <Option value="Lab">Lab</Option>
-              </Select>
-            </Form.Item>
-          </Col>
+        <Form.Item
+          label="Category"
+          name="category"
+          rules={[{ required: true, message: "Please select a category!" }]}
+          style={{ width: "100%" }}
+        >
+          <Select placeholder="Select a category">
+            <Option value="Assignment">Assignment</Option>
+            <Option value="Exam">Exam</Option>
+            <Option value="Project">Project</Option>
+            <Option value="Quiz">Quiz</Option>
+            <Option value="Lab">Lab</Option>
+          </Select>
+        </Form.Item>
 
-          <Col span={12}>
-            <Form.Item
-              label="Student"
-              name="studentId"
-              rules={[
-                { required: true, message: "Please select a student!" },
-              ]}
-            >
-              <Select placeholder="Select a student">
-                {students.map((student) => (
-                  <Option key={student.id} value={student.id}>
-                    {student.name}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-            <Form.Item
-              label="Priority"
-              name="priority"
-              rules={[{ required: true, message: "Please select a priority!" }]}
-            >
-              <Select placeholder="Select priority">
-                <Option value="low">Low</Option>
-                <Option value="medium">Medium</Option>
-                <Option value="high">High</Option>
-              </Select>
-            </Form.Item>
+        <Form.Item
+          label="Student"
+          name="studentId"
+          rules={[{ required: true, message: "Please select a student!" }]}
+          style={{ width: "100%" }}
+        >
+          <Select placeholder="Select a student">
+            {students.map((student) => (
+              <Option key={student.id} value={student.id}>
+                {student.name}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
 
-            <Form.Item
-              label="Professor"
-              name="professorId"
-              rules={[
-                { required: true, message: "Please select a professor!" },
-              ]}
-            >
-              <Select placeholder="Select a professor">
-                {professors.map((professor) => (
-                  <Option key={professor.id} value={professor.id}>
-                    {professor.name}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+        <Form.Item
+          label="Priority"
+          name="priority"
+          rules={[{ required: true, message: "Please select a priority!" }]}
+          style={{ width: "100%" }}
+        >
+          <Select placeholder="Select priority">
+            <Option value="low">Low</Option>
+            <Option value="medium">Medium</Option>
+            <Option value="high">High</Option>
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Professor"
+          name="professorId"
+          rules={[{ required: true, message: "Please select a professor!" }]}
+          style={{ width: "100%" }}
+        >
+          <Select placeholder="Select a professor">
+            {professors.map((professor) => (
+              <Option key={professor.id} value={professor.id}>
+                {professor.name}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
 
         {/* File Upload Field */}
-        <Form.Item label="Medical Certificate (Optional)">
+        <Form.Item
+          label="Medical Certificate (Optional)"
+          style={{ width: "100%" }}
+        >
           <Upload beforeUpload={() => false} onChange={handleFileChange}>
             <Button icon={<UploadOutlined />}>Select File</Button>
           </Upload>
         </Form.Item>
 
-        <Form.Item>
+        <Form.Item style={{ width: "100%" }}>
           <Button type="primary" htmlType="submit" loading={loading} block>
             Submit
           </Button>
