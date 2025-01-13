@@ -288,14 +288,19 @@ export default function TicketPage() {
       />
     );
   }
-
+  console.log(tickets)
   return (
     <AppLayout>
       
         <TwoColumnsLayout
           items={tickets.map((ticket) => ({
-            key: ticket.id,
-            title: ticket.ticketDescription,
+            key: ticket.id, // d
+            title: ticket.ticketDescription, // d
+            category: ticket.category, // d
+            priority: ticket.priority, // d
+            professor: ticket.professor.id, // d
+            student: ticket.student.id,
+            courseCode: ticket.classes[0].courseCode, // d
           }))}
           renderContent={(key) => {
             const ticket = tickets.find((ticket) => ticket.id == key);

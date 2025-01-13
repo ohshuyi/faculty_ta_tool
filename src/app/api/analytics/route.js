@@ -1,14 +1,20 @@
 import prisma from '../../../lib/prisma';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth"; // Assuming your NextAuth options are in lib/auth.ts
 
 export async function GET(req) {
+  const session = await getServerSession(authOptions);
+  const userId = session.user.id;
   try {
     // Fetch Tasks
     const tasks = await prisma.task.findMany({
+      where: {
+        taId: userId,
+      },        
       include: {
         classes: true,
       },
-    });
-
+      });
     // Task Analytics
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter(task => task.status === 'completed').length;

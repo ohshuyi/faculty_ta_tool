@@ -41,7 +41,8 @@ export default function TaskPage() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  console.log("Access Token from Session:", session?.accessToken);
+  console.log("Tasks")
+  console.log(tasks)
   // Fetch tasks from the API
   const fetchTasks = async (status = "open") => {
     setLoading(true);
@@ -166,7 +167,7 @@ export default function TaskPage() {
             marginBottom: "16px",
           }}
         >
-          <h2 style={{ fontWeight: "bold" }}>Task Details: {task.id}</h2>
+          <h2 style={{ fontWeight: "bold" }}>Task ID: {task.id}</h2>
 
           <Button
             type="primary"
@@ -179,9 +180,6 @@ export default function TaskPage() {
         <Descriptions bordered>
           <Descriptions.Item label="Course Code">
             {task.classes[0].courseCode}
-          </Descriptions.Item>
-          <Descriptions.Item label="Course Type">
-            {task.classes[0].classType}
           </Descriptions.Item>
           <Descriptions.Item label="Class Group">
             {task.classes[0].classGroup}
@@ -292,6 +290,9 @@ export default function TaskPage() {
         items={tasks.map((task) => ({
           key: task.id.toString(),
           title: task.name,
+          tas: task.ta.id,
+          courseCode: task?.classes[0].courseCode,
+          
         }))}
         renderContent={(key) => {
           const task = tasks.find((task) => task.id.toString() === key);

@@ -178,6 +178,7 @@ export async function GET(req) {
           ta: true,
           comments: true,
           files: true,
+          classes: true,
         },
       });
     } else if (userRole === "PROFESSOR") {

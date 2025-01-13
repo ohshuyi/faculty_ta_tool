@@ -12,8 +12,9 @@ const ClassManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState(null); // For modals
   const [isViewModalVisible, setIsViewModalVisible] = useState(false); // Modal to view students
+  const [studentSearchQuery, setStudentSearchQuery] = useState(""); // Search query for students
   const [file, setFile] = useState(null); // File state
-  const [uploadStatus, setUploadStatus] = useState(''); // Upload status message
+  const [uploadStatus, setUploadStatus] = useState(""); // Upload status message
 
   // Fetch classes from the API
   const fetchClasses = async () => {
@@ -37,6 +38,7 @@ const ClassManagement = () => {
   // Handle "View Students" Modal
   const showViewStudentModal = (cls) => {
     setSelectedClass(cls);
+    setStudentSearchQuery(""); // Reset the search query
     setIsViewModalVisible(true);
   };
 
@@ -54,21 +56,21 @@ const ClassManagement = () => {
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!file) {
-      setUploadStatus('Please select a file to upload.');
+      setUploadStatus("Please select a file to upload.");
       return;
     }
 
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
     try {
-      const res = await fetch('/api/management', {
-        method: 'POST',
+      const res = await fetch("/api/management", {
+        method: "POST",
         body: formData,
       });
 
       if (res.ok) {
-        setUploadStatus('File uploaded successfully!');
+        setUploadStatus("File uploaded successfully!");
         fetchClasses(); // Refresh the table after successful upload
       } else {
         const error = await res.json();
@@ -90,9 +92,6 @@ const ClassManagement = () => {
       cancelText: "Cancel",
       onOk() {
         handleDeleteClass(classId);
-      },
-      onCancel() {
-        console.log("Cancel deletion");
       },
     });
   };
@@ -117,37 +116,18 @@ const ClassManagement = () => {
     }
   };
 
+  // Filtered list of students based on search query
+  const filteredStudents = selectedClass?.students.filter((student) =>
+    student.name.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+    student.studentCode.toLowerCase().includes(studentSearchQuery.toLowerCase())
+  );
+
   // Table columns with filters
   const columns = [
     {
       title: "Course Code",
       dataIndex: "courseCode",
       key: "courseCode",
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            placeholder="Search Course Code"
-            value={selectedKeys[0]}
-            onChange={(e) =>
-              setSelectedKeys(e.target.value ? [e.target.value] : [])
-            }
-            onPressEnter={() => confirm()}
-            style={{ marginBottom: 8, display: "block" }}
-          />
-          <Button
-            type="primary"
-            onClick={() => confirm()}
-            style={{ width: "100%" }}
-          >
-            Search
-          </Button>
-        </div>
-      ),
-      onFilter: (value, record) =>
-        record.courseCode
-          .toString()
-          .toLowerCase()
-          .includes(value.toLowerCase()),
     },
     { title: "Class Group", dataIndex: "classGroup", key: "classGroup" },
     { title: "Class Type", dataIndex: "classType", key: "classType" },
@@ -181,6 +161,7 @@ const ClassManagement = () => {
   return (
     <AppLayout>
       <div style={{ padding: "24px" }}>
+        {/* Upload Section */}
         <div
           style={{
             display: "flex",
@@ -192,14 +173,7 @@ const ClassManagement = () => {
             padding: "16px",
           }}
         >
-          <h1
-            style={{
-              fontSize: "18px",
-              fontWeight: "600",
-              color: "#333",
-              marginBottom: "8px",
-            }}
-          >
+          <h1 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>
             Upload Class
           </h1>
           <form
@@ -233,32 +207,17 @@ const ClassManagement = () => {
             </button>
           </form>
           {uploadStatus && (
-            <p
-              style={{
-                marginTop: "8px",
-                color: uploadStatus.includes("successfully") ? "green" : "red",
-              }}
-            >
+            <p style={{ marginTop: "8px", color: uploadStatus.includes("successfully") ? "green" : "red" }}>
               {uploadStatus}
             </p>
           )}
         </div>
 
+        {/* Class Table */}
         {loading ? (
-          <div style={{ display: "flex", justifyContent: "center", marginTop: "24px" }}>
-            <Spin size="large" />
-          </div>
-        ) : classes.length === 0 ? (
-          <p style={{ textAlign: "center", marginTop: "24px", color: "#666" }}>
-            No classes found
-          </p>
+          <Spin size="large" style={{ marginTop: "24px", display: "flex", justifyContent: "center" }} />
         ) : (
-          <Table
-            columns={columns}
-            dataSource={classes}
-            rowKey="id"
-            style={{ marginTop: "24px" }}
-          />
+          <Table columns={columns} dataSource={classes} rowKey="id" style={{ marginTop: "24px" }} />
         )}
 
         {/* Modal to view students */}
@@ -268,12 +227,19 @@ const ClassManagement = () => {
           onCancel={closeViewStudentModal}
           footer={null}
         >
+          <div style={{ marginBottom: "16px" }}>
+            <Input
+              placeholder="Search for a student"
+              onChange={(e) => setStudentSearchQuery(e.target.value)} // Update search query
+              allowClear
+            />
+          </div>
           {selectedClass && selectedClass.students.length > 0 ? (
             <List
-              dataSource={selectedClass.students}
+              dataSource={filteredStudents} // Use the filtered list
               renderItem={(student) => (
                 <List.Item>
-                  {student.name} ( {student.studentCode} )
+                  {student.name} ({student.studentCode})
                 </List.Item>
               )}
             />

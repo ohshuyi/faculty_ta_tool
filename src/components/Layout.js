@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Layout, Menu, theme, Modal, Button } from "antd";
 import Link from "next/link"; // Import Next.js Link component
 import { signOut } from "next-auth/react"; // Import signOut from NextAuth
-
+import Image from 'next/image'
 const { Header, Content, Footer } = Layout;
 
 const items = [
@@ -55,7 +55,14 @@ const AppLayout = ({ children }) => {
           justifyContent: "space-between",
         }}
       >
-        <div className="demo-logo" />
+      
+         <Image
+    src="/ntu.png"
+    width={160}
+    height={10}
+    alt="NTU"
+  />
+      
         <Menu
           theme="dark"
           mode="horizontal"

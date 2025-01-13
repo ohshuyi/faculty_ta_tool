@@ -101,6 +101,7 @@ const HistoryPage = () => {
                     </Descriptions>
                   );
                 }}
+                type="history"
                 userRole={session?.user?.role}
                 showAddButton={false}
               />
@@ -115,6 +116,7 @@ const HistoryPage = () => {
               <Alert message="No completed tickets found." type="info" />
             ) : (
               <TwoColumnsLayout
+              type="history"
                 items={tickets.map((ticket) => ({
                   key: ticket.id.toString(),
                   title: ticket.ticketDescription,

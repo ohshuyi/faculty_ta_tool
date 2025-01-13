@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Layout, Menu, Button } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
 import Link from "next/link";
-
+import Image from 'next/image'
 const { Header } = Layout;
 
 const Navbar = () => {
@@ -19,11 +19,32 @@ const Navbar = () => {
     { label: <Link href="/services">Services</Link>, key: "services" },
     { label: <Link href="/contact">Contact</Link>, key: "contact" },
   ];
-
   return (
+    <Image
+    src="/next.svg"
+    width={500}
+    height={500}
+    alt="Picture of the author"
+  />
+  )
+  return (
+    
     <Header className="header" style={{ position: "fixed", zIndex: 1, width: "100%" }}>
-      <div className="logo" style={{ float: "left", color: "white", fontWeight: "bold", fontSize: "18px" }}>
-        <Link href="/">BrandName</Link>
+       <Image
+      src="/next.svg"
+      width={500}
+      height={500}
+      alt="Picture of the author"
+    />
+      <div className="logo" style={{ float: "left", display: "flex", alignItems: "center" }}>
+        <Link href="/">
+        <Image
+      src="/next.svg"
+      width={500}
+      height={500}
+      alt="Picture of the author"
+    />
+        </Link>
       </div>
 
       {/* Mobile Menu Button */}
