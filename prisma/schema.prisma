@@ -91,6 +91,7 @@ enum Role {
   USER
   TA
   PROFESSOR
+  ADMIN
 }
 
 model Class {

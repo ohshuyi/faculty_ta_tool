@@ -1,40 +1,20 @@
-"use client"
+"use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation"; // Import useRouter for navigation
 
 export default function Home() {
   const [data, setData] = useState(null);
+  const router = useRouter(); // Initialize the router
 
   useEffect(() => {
-    // Fetch data from the API
-    const fetchData = async () => {
-      try { // test
-        const response = await fetch("/api/users");
-        const result = await response.json();
-        // Set the first result to fsfs state if it exists
-        if (result.length > 0) {
-          setData(result[0]);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
+    // Redirect to /home immediately
+    router.push("/home");
 
-    fetchData();
-  }, []); // Empty dependency array to run the effect once on mount
+  }, [router]); // Include router in dependency array to avoid warnings
 
   return (
     <div>
-      <h1>Hello</h1>
-      {data ? (
-        <div>
-          {/* @ts-ignore */}
-          <p>First User Name: {data.name}</p>
-          {/* @ts-ignore */}
-          <p>First User Email: {data.email}</p>
-        </div>
-      ) : (
-        <p>Loading...</p>
-      )}
+      <h1>Redirecting...</h1>
     </div>
   );
 }

@@ -4,10 +4,11 @@ import { Card, Col, Row, Statistic } from 'antd';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import AppLayout from '@/components/Layout';
+import { useSession } from 'next-auth/react';
 
 const Dashboard = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
-
+  const { data: session, status: sessionStatus } = useSession();
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -20,6 +21,10 @@ const Dashboard = () => {
     };
     fetchData();
   }, []);
+
+  if (session?.user?.role === 'USER') {
+    return <p>You do not have access to this page. Contact the admin to update your role.</p>;
+  }
 
   if (!analyticsData) {
     return <div>Loading...</div>;
