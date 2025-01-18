@@ -25,7 +25,7 @@ const Dashboard = () => {
     return <div>Loading...</div>;
   }
 
-  const { taskAnalytics, ticketAnalytics } = analyticsData;
+  const { taskAnalytics, ticketAnalytics, studentAnalytics } = analyticsData;
 
   // Fix undefined keys in task analytics
   const cleanedTaskGroups = Object.entries(taskAnalytics.tasksByCourseGroup).reduce(
@@ -76,6 +76,30 @@ const Dashboard = () => {
     ],
   };
 
+  // Data for Students per Class Bar Chart
+  const studentBarData = {
+    labels: Object.keys(studentAnalytics.studentsPerClass),
+    datasets: [
+      {
+        label: 'Students per Class',
+        data: Object.values(studentAnalytics.studentsPerClass),
+        backgroundColor: '#82CA9D',
+      },
+    ],
+  };
+
+  // Data for Students by Program Pie Chart
+  const studentProgramData = {
+    labels: Object.keys(studentAnalytics.studentsByProgram),
+    datasets: [
+      {
+        label: 'Students by Program',
+        data: Object.values(studentAnalytics.studentsByProgram),
+        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+      },
+    ],
+  };
+
   return (
     <AppLayout>
       <div className="p-16">
@@ -107,7 +131,24 @@ const Dashboard = () => {
           </Col>
         </Row>
 
-        
+        <Row gutter={16} style={{ marginTop: '16px' }}>
+          {/* Student Analytics */}
+          <Col span={12}>
+            <Card title="Student Analytics">
+              <Statistic title="Total Students" value={studentAnalytics.totalStudents} />
+
+              {/* Students per Class Bar Chart */}
+              <Bar data={studentBarData} />
+            </Card>
+          </Col>
+
+          <Col span={12}>
+            <Card title="Program Distribution">
+              {/* Students by Program Pie Chart */}
+              <Bar data={studentProgramData} />
+            </Card>
+          </Col>
+        </Row>
       </div>
     </AppLayout>
   );
