@@ -68,7 +68,7 @@ export default function TaskPage() {
     try {
       const response = await fetch(`/api/tasks/${taskId}/comments`);
       const data = await response.json();
-     g the fetched comments
+    
       setComments(data); // Set the state with the fetched comments
     } catch (error) {
       console.error("Error fetching comments:", error);
