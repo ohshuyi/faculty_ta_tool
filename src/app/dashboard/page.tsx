@@ -5,11 +5,18 @@ import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import AppLayout from '@/components/Layout';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 const Dashboard = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter();
   useEffect(() => {
+    if (session?.user?.role === 'ADMIN') {
+      router.push('/admin');
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const response = await fetch('/api/analytics');
@@ -20,7 +27,7 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [session, router]);
 
   if (session?.user?.role === 'USER') {
     return <p>You do not have access to this page. Contact the admin to update your role.</p>;

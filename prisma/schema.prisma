@@ -14,9 +14,9 @@ model Task {
   details        String
   status         String   @default("pending") // Set default status to "pending"
   
-  professor      User     @relation("ProfessorTasks", fields: [professorId], references: [id])
+  professor      User     @relation("ProfessorTasks", fields: [professorId], references: [id], onDelete: Cascade)
   professorId    Int
-  ta             User     @relation("TATasks", fields: [taId], references: [id])
+  ta             User     @relation("TATasks", fields: [taId], references: [id], onDelete: Cascade)
   taId           Int
   
   classes     Class[]   @relation("TaskClasses") // Many-to-many relationship
@@ -37,13 +37,13 @@ model Ticket {
   classes            Class[]   @relation("TicketClasses")
 
   taId             Int
-  ta               User     @relation("TATickets", fields: [taId], references: [id])
+  ta               User     @relation("TATickets", fields: [taId], references: [id], onDelete: Cascade)
 
   professorId      Int
-  professor        User     @relation("ProfessorTickets", fields: [professorId], references: [id])
+  professor        User     @relation("ProfessorTickets", fields: [professorId], references: [id], onDelete: Cascade)
 
   studentId        Int?     // Foreign key for the associated Student
-  student          Student? @relation("StudentTickets", fields: [studentId], references: [id])
+  student          Student? @relation("StudentTickets", fields: [studentId], references: [id], onDelete: Cascade)
 
   comments         Comment[]
   files            File[]
