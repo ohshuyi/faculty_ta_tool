@@ -28,8 +28,7 @@ const ClassUploader = ({ onUploadSuccess }) => {
         groupCode: row["Group Code"],
         groupType: row["Group Type"],
       }));
-      console.log("hello")
-      console.log("Parsed Classes:", classes);
+    
 
       // Step 4: Send the parsed data to the backend
       const response = await fetch("/api/management", {

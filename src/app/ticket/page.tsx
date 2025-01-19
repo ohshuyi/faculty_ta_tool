@@ -288,7 +288,7 @@ export default function TicketPage() {
       />
     );
   }
-  console.log(tickets)
+  
   return (
     <AppLayout>
       

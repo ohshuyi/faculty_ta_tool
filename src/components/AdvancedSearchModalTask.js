@@ -60,7 +60,7 @@ const AdvancedSearchModalTask = ({ visible, onClose, onSearch, onReset }) => {
   };
 
   const handleSubmit = (values) => {
-    console.log("Filter values:", values);
+ 
     onSearch(values);
     onClose();
   };

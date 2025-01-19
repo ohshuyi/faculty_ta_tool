@@ -12,7 +12,7 @@ const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 export async function POST(req) {
   try {
     const formData = await req.formData();
-    console.log("Form data:", formData);
+   
     const data = {
       ticketDescription: formData.get("ticketDescription"),
       courseCode: formData.get("courseGroupType"), // Accept a single courseCode
@@ -23,7 +23,7 @@ export async function POST(req) {
       taId: parseInt(formData.get("taId")),
     };
 
-    console.log("Course code:", data.courseCode);
+    
 
     // Find the class associated with the courseGroupType
     // Find the class matching the courseCode
@@ -33,7 +33,7 @@ export async function POST(req) {
       },
       select: { id: true }, // Select only the `id` field
     });
-    console.log(classes)
+   
     if (!classes) {
       return NextResponse.json(
         { error: "Class not found for the specified courseGroupType" },
@@ -42,7 +42,7 @@ export async function POST(req) {
     }
       // Extract an array of IDs
     const classIds = classes.map(cls => cls.id);
-    console.log("Class IDs are: ", classIds);
+   
 
     const file = formData.get("file");
     let fileUrl = null;

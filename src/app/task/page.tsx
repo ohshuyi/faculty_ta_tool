@@ -41,8 +41,7 @@ export default function TaskPage() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  console.log("Tasks")
-  console.log(tasks)
+ 
   // Fetch tasks from the API
   const fetchTasks = async (status = "open") => {
     setLoading(true);
@@ -69,7 +68,7 @@ export default function TaskPage() {
     try {
       const response = await fetch(`/api/tasks/${taskId}/comments`);
       const data = await response.json();
-      console.log("Fetched comments:", data); // Log the fetched comments
+     g the fetched comments
       setComments(data); // Set the state with the fetched comments
     } catch (error) {
       console.error("Error fetching comments:", error);

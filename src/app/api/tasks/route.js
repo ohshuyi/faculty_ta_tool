@@ -17,7 +17,7 @@ const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 export async function POST(req) {
   try {
     const formData = await req.formData();
-    console.log("hello123");
+
     // Extract task details from formData
     const name = formData.get("name");
     const dueDate = formData.get("dueDate");
@@ -70,8 +70,7 @@ export async function POST(req) {
     // Extract an array of IDs
     const classIds = classes.map(cls => cls.id);
     
-    console.log("Class IDs are: ", classIds);
-
+   
     // Create the task and link to multiple classes
     const newTask = await prisma.task.create({
       data: {

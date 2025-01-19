@@ -58,9 +58,9 @@ const AdvancedSearchModalTask = ({ visible, onClose, onSearch, onReset }) => {
   const handleOk = () => {
     form.submit();
   };
-  console.log(professors)
+
   const handleSubmit = (values) => {
-    console.log("Filter values:", values);
+  
     onSearch(values);
     onClose();
   };

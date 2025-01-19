@@ -9,8 +9,7 @@ const { Search } = Input;
 
 
 const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton = true, type }) => {
-  console.log("Type ")
-  console.log(type)
+ 
   const [selectedKey, setSelectedKey] = useState(items[0]?.key); // Handle if items are empty
   const [filteredItems, setFilteredItems] = useState(items); // Items filtered based on search
   const [isModalVisible, setIsModalVisible] = useState(false); // Modal visibility state
@@ -38,14 +37,13 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
   };
 
   const handleResetSearch = () => {
-    console.log("Resetting search...");
+   
     setFilteredItems(items); // Reset filtered items to the original list
   };
-  console.log("items")
-  console.log(items)
+ 
   // Advanced search function
   const handleAdvancedSearchTask = (filters) => {
-    console.log("Filters received:", filters); // Debug: Verify filters
+
     const { teachingAssistant, courseCode, professor } = filters;
 
 
@@ -64,7 +62,7 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
   };
 
   const handleAdvancedSearchTicket = (filters) => {
-    console.log("Filters received:", filters); // Debug: Verify filters
+   
     const { priority, courseCode, professor, category } = filters;
 
 

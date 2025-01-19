@@ -8,9 +8,7 @@ export async function GET(req) {
   const userRole = session.user.role;
   try {
     // Fetch Tasks
-    console.log("User ID");
-    console.log(userId);
-
+ 
     let whereClause = {
       include: {
         classes: true,
@@ -49,7 +47,7 @@ export async function GET(req) {
     const tickets = await prisma.ticket.findMany(whereClause);
     // Ticket Analytics
     const totalTickets = tickets.length;
-    console.log(totalTickets)
+
     const completedTickets = tickets.filter(
       (ticket) => ticket.status === "completed"
     ).length;
@@ -71,7 +69,7 @@ export async function GET(req) {
         classes: true, // Include classes to analyze student-class relationships
       },
     });
-    console.log(students)
+   
 
      // Total Students
      const totalStudents = students.length;
