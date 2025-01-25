@@ -1,0 +1,133 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table Task {
+  id Int [pk, increment]
+  name String [not null, default: 'Untitled Task']
+  dueDate DateTime [not null]
+  details String [not null]
+  status String [not null, default: 'pending']
+  professor User [not null]
+  professorId Int [not null]
+  ta User [not null]
+  taId Int [not null]
+  classes Class [not null]
+  createdAt DateTime [default: `now()`, not null]
+  files File [not null]
+  comments Comment [not null]
+}
+
+Table Ticket {
+  id Int [pk, increment]
+  ticketDescription String [not null]
+  category String [not null]
+  priority String [not null]
+  status String [not null, default: 'open']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  classes Class [not null]
+  taId Int [not null]
+  ta User [not null]
+  professorId Int [not null]
+  professor User [not null]
+  studentId Int
+  student Student
+  comments Comment [not null]
+  files File [not null]
+}
+
+Table File {
+  id Int [pk, increment]
+  url String [not null]
+  fileName String [not null]
+  ticket Ticket
+  ticketId Int
+  task Task
+  taskId Int
+}
+
+Table User {
+  id Int [pk, increment]
+  name String [not null]
+  email String [unique, not null]
+  role Role [not null, default: 'USER']
+  createdAt DateTime [default: `now()`, not null]
+  assignedTATickets Ticket [not null]
+  assignedProfessorTickets Ticket [not null]
+  assignedTATasks Task [not null]
+  assignedProfessorTasks Task [not null]
+}
+
+Table Comment {
+  id Int [pk, increment]
+  author String [not null]
+  content String [not null]
+  ticket Ticket
+  ticketId Int
+  task Task
+  taskId Int
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table Class {
+  id Int [pk, increment]
+  courseCode String [not null]
+  classType String [not null, default: 'Unknown']
+  classGroup String [not null, default: 'Unknown']
+  students Student [not null]
+  tickets Ticket [not null]
+  tasks Task [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table Student {
+  id Int [pk, increment]
+  name String [not null]
+  studentCode String [unique, not null]
+  prog String [not null]
+  classes Class [not null]
+  createdAt DateTime [default: `now()`, not null]
+  tickets Ticket [not null]
+}
+
+Table TaskClasses {
+  classesId Int [ref: > Class.id]
+  tasksId Int [ref: > Task.id]
+}
+
+Table TicketClasses {
+  classesId Int [ref: > Class.id]
+  ticketsId Int [ref: > Ticket.id]
+}
+
+Table ClassStudents {
+  studentsId Int [ref: > Student.id]
+  classesId Int [ref: > Class.id]
+}
+
+Enum Role {
+  USER
+  TA
+  PROFESSOR
+  ADMIN
+}
+
+Ref: Task.professorId > User.id [delete: Cascade]
+
+Ref: Task.taId > User.id [delete: Cascade]
+
+Ref: Ticket.taId > User.id [delete: Cascade]
+
+Ref: Ticket.professorId > User.id [delete: Cascade]
+
+Ref: Ticket.studentId > Student.id [delete: Cascade]
+
+Ref: File.ticketId > Ticket.id
+
+Ref: File.taskId > Task.id
+
+Ref: Comment.ticketId > Ticket.id
+
+Ref: Comment.taskId > Task.id
