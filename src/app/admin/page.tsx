@@ -19,24 +19,25 @@ const AdminPage = () => {
   const [form] = Form.useForm();
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch("/api/users");
+      const data = await response.json();
+      setUsers(data);
+      setFilteredUsers(data);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setLoading(false);
+    }
+  };
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "ADMIN") {
       router.push("/"); // Redirect unauthorized users
       return;
     }
 
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch("/api/users");
-        const data = await response.json();
-        setUsers(data);
-        setFilteredUsers(data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        setLoading(false);
-      }
-    };
 
     fetchUsers();
   }, [session, status, router]);
@@ -54,6 +55,7 @@ const AdminPage = () => {
       }
 
       message.success("Role updated successfully");
+      await fetchUsers();
       setUsers((prevUsers) =>
         prevUsers.map((user) =>
           user.id === userId ? { ...user, role: newRole } : user
