@@ -27,7 +27,7 @@ const AdminPage = () => {
 
     const fetchUsers = async () => {
       try {
-        const response = await fetch("/api/users", {cache: "no-store"});
+        const response = await fetch("/api/users");
         const data = await response.json();
         setUsers(data);
         setFilteredUsers(data);
