@@ -17,8 +17,15 @@ const AppLayout = ({ children }) => {
 
   const handleLogout = async () => {
     setIsModalVisible(false);
-    await signOut({ callbackUrl: "/home" }); // Redirect to home page after logout
+  
+    // Debugging
+    console.log("Signing out...");
+  
+    await signOut({ callbackUrl: "/home" })
+      .then(() => console.log("User signed out successfully"))
+      .catch((err) => console.error("Error signing out:", err));
   };
+  
 
   const handleCancel = () => {
     setIsModalVisible(false);
