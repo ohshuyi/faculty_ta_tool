@@ -17,7 +17,7 @@ const AppLayout = ({ children }) => {
 
   const handleLogout = async () => {
     setIsModalVisible(false);
-  
+    // test
     // Debugging
     console.log("Signing out...");
   
