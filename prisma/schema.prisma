@@ -6,12 +6,7 @@ datasource db {
 generator client {
   provider = "prisma-client-js"
 }
-generator dbml {
-  provider = "prisma-dbml-generator"
-}
-generator erd {
-  provider = "prisma-erd-generator"
-}
+
 
 model Task {
   id             Int      @id @default(autoincrement())

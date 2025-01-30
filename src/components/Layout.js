@@ -64,7 +64,7 @@ const AppLayout = ({ children }) => {
           justifyContent: "space-between",
         }}
       >
-        <Image src="/ntu.png" width={160} height={10} alt="NTU" />
+        {/* <Image src="/ntu.png" width={160} height={10} alt="NTU" /> */}
 
         <Menu
           theme="dark"
