@@ -8,9 +8,7 @@ export async function GET(req: Request) {
 
   // Create a response with cache control headers to disable caching
   const response = NextResponse.json(users);
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  response.headers.set('Expires', '0');
-  response.headers.set('Pragma', 'no-cache');
+
 
   return response;
 }
