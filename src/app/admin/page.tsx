@@ -19,7 +19,7 @@ const AdminPage = () => {
   const [form] = Form.useForm();
   const { data: session, status } = useSession();
   const router = useRouter();
-
+  console.log("DB URL: ", process.env.NEXT_PUBLIC_DATABASE_URL);
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "ADMIN") {
       router.push("/"); // Redirect unauthorized users
