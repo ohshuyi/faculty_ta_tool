@@ -21,7 +21,7 @@ const AppLayout = ({ children }) => {
     // Debugging
     console.log("Signing out...");
   
-    await signOut({ callbackUrl: "/home" })
+    await signOut({ callbackUrl: "/" })
       .then(() => console.log("User signed out successfully"))
       .catch((err) => console.error("Error signing out:", err));
   };

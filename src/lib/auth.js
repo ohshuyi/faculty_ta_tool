@@ -14,6 +14,9 @@ export const authOptions = {
       tenantId: "common",
     }),
   ],
+  pages: {
+    signOut: '/custom-signout-page',  // Default callback URL (optional)
+  },
   secret: process.env.NEXTAUTH_SECRET,
   authorization: {
     params: {
