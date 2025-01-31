@@ -1,14 +1,17 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// GET method to retrieve users
 export async function GET(req: Request) {
-  // Retrieve all users from the database
-  const users = await prisma.user.findMany();
+  console.log("API Route Hit: Fetching fresh data");  // For debugging
 
-  // Create a response with cache control headers to disable caching
+  const users = await prisma.user.findMany();  // Always query fresh data
+  console.log()
+  // Disable caching completely in the API response
   const response = NextResponse.json(users);
-
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
 
   return response;
 }
+export const dynamic = "force-dynamic";
