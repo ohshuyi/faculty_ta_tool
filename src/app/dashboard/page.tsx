@@ -1,16 +1,19 @@
-"use client";
+"use client"
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic } from 'antd';
+import { Card, Col, Row, Statistic, Typography } from 'antd';
 import { Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import AppLayout from '@/components/Layout';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+const { Title, Text } = Typography;
+
 const Dashboard = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
+
   useEffect(() => {
     if (session?.user?.role === 'ADMIN') {
       router.push('/admin');
@@ -28,7 +31,7 @@ const Dashboard = () => {
     };
     fetchData();
   }, [session, router]);
-
+  console.log(session)
   if (session?.user?.role === 'USER') {
     return <p>You do not have access to this page. Contact the admin to update your role.</p>;
   }
@@ -48,7 +51,7 @@ const Dashboard = () => {
     {}
   );
 
-  // Data for Task Status Histogram
+  // Data for charts
   const taskStatusHistogramData = {
     labels: ['Completed', 'Pending', 'Overdue'],
     datasets: [
@@ -64,7 +67,6 @@ const Dashboard = () => {
     ],
   };
 
-  // Data for Task by Course Group Bar Chart
   const taskBarData = {
     labels: Object.keys(cleanedTaskGroups),
     datasets: [
@@ -76,7 +78,6 @@ const Dashboard = () => {
     ],
   };
 
-  // Data for Ticket Categories Histogram
   const ticketCategoryHistogramData = {
     labels: Object.keys(ticketAnalytics.ticketsByCategory),
     datasets: [
@@ -88,7 +89,6 @@ const Dashboard = () => {
     ],
   };
 
-  // Data for Students per Class Bar Chart
   const studentBarData = {
     labels: Object.keys(studentAnalytics.studentsPerClass),
     datasets: [
@@ -100,7 +100,6 @@ const Dashboard = () => {
     ],
   };
 
-  // Data for Students by Program Pie Chart
   const studentProgramData = {
     labels: Object.keys(studentAnalytics.studentsByProgram),
     datasets: [
@@ -115,6 +114,16 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <div className="p-16">
+        {/* Welcome Message Section */}
+        <Card style={{ marginBottom: '24px' }}>
+          <Title level={2}>
+            Welcome, {session?.user?.name || 'User'}!
+          </Title>
+          <Text>
+            This is your personalized dashboard, where you can explore key insights on tasks, tickets, and students. Stay updated with the latest analytics to manage projects and track progress effectively.
+          </Text>
+        </Card>
+
         <Row gutter={16}>
           {/* Task Analytics */}
           <Col span={12}>

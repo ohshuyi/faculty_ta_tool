@@ -298,7 +298,7 @@ export default function TicketPage() {
             title: ticket.ticketDescription, // d
             category: ticket.category, // d
             priority: ticket.priority, // d
-            professor: {id: ticket.professor.id, name: ticket.professor.name}, // d
+            professor: ticket.professor.id, // d
             student: ticket.student.id,
             courseCode: ticket.classes[0].courseCode, // d
           }))}
