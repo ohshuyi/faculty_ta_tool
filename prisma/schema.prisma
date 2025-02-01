@@ -28,6 +28,7 @@ model Task {
 
 model Ticket {
   id               Int      @id @default(autoincrement())
+  name             String   // Name field added
   ticketDescription String
   category         String
   priority         String
@@ -35,7 +36,7 @@ model Ticket {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  classes            Class[]   @relation("TicketClasses")
+  classes          Class[]   @relation("TicketClasses")
 
   taId             Int
   ta               User     @relation("TATickets", fields: [taId], references: [id], onDelete: Cascade)
@@ -49,6 +50,7 @@ model Ticket {
   comments         Comment[]
   files            File[]
 }
+
 model File {
   id        Int      @id @default(autoincrement())
   url       String

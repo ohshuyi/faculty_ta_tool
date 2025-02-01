@@ -84,7 +84,7 @@ const AppLayout = ({ children }) => {
       <Content>{children}</Content>
 
       <Footer style={{ textAlign: "center" }}>
-        Ant Design ©{new Date().getFullYear()} Created for NTU - TA Faculty Tool
+        Created for NTU - TA Faculty Tool
       </Footer>
 
       {/* Logout Confirmation Modal */}
