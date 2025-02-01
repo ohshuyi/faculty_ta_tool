@@ -4,6 +4,7 @@
 import { signIn, useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const { data: session } = useSession();
@@ -13,13 +14,23 @@ export default function LoginPage() {
   useEffect(() => {
     if (session) {
       router.push('/dashboard');
-    } //
+    }
   }, [session, router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-900 to-blue-400 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Welcome Back!</h1>
+        {/* NTU Logo */}
+        <div className="flex justify-center mb-6">
+          <Image
+            src="/ntu.png"
+            alt="NTU Logo"
+            width={400}
+            height={400}
+            className="rounded"
+            priority
+          />
+        </div>
         <p className="text-gray-600 text-center mb-6">Log in with your Microsoft account to continue</p>
         <button
           onClick={() => signIn('azure-ad')}
