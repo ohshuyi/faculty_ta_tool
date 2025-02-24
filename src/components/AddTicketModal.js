@@ -73,6 +73,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
 
     try {
       const formData = new FormData();
+      formData.append("name", values.name); // Adding name to form data
       formData.append("ticketDescription", values.ticketDescription);
       formData.append("courseGroupType", values.courseGroupType);
       formData.append("category", values.category);
@@ -114,6 +115,16 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       width={800} // Adjust modal width if necessary
     >
       <Form layout="vertical" onFinish={onFinish}>
+        {/* New Name Field */}
+        <Form.Item
+          label="Ticket Name"
+          name="name"
+          rules={[{ required: true, message: "Please input a ticket name!" }]}
+          style={{ width: "100%" }}
+        >
+          <Input placeholder="Enter ticket name" />
+        </Form.Item>
+
         <Form.Item
           label="Ticket Description"
           name="ticketDescription"

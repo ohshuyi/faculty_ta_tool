@@ -17,8 +17,15 @@ const AppLayout = ({ children }) => {
 
   const handleLogout = async () => {
     setIsModalVisible(false);
-    await signOut({ callbackUrl: "/home" }); // Redirect to home page after logout
+    // test
+    // Debugging
+    console.log("Signing out...");
+  
+    await signOut({ callbackUrl: "/" })
+      .then(() => console.log("User signed out successfully"))
+      .catch((err) => console.error("Error signing out:", err));
   };
+  
 
   const handleCancel = () => {
     setIsModalVisible(false);
@@ -64,7 +71,7 @@ const AppLayout = ({ children }) => {
           justifyContent: "space-between",
         }}
       >
-        <Image src="/ntu.png" width={160} height={10} alt="NTU" />
+       {/* <Image src="/ntu.png" width={160} height={10} alt="NT U" />¬ */}
 
         <Menu
           theme="dark"
@@ -77,7 +84,7 @@ const AppLayout = ({ children }) => {
       <Content>{children}</Content>
 
       <Footer style={{ textAlign: "center" }}>
-        Ant Design ©{new Date().getFullYear()} Created for NTU - TA Faculty Tool
+        Created for NTU - TA Faculty Tool
       </Footer>
 
       {/* Logout Confirmation Modal */}

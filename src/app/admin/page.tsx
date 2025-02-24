@@ -19,7 +19,6 @@ const AdminPage = () => {
   const [form] = Form.useForm();
   const { data: session, status } = useSession();
   const router = useRouter();
-
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "ADMIN") {
       router.push("/"); // Redirect unauthorized users

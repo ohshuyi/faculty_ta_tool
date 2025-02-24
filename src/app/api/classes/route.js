@@ -23,3 +23,5 @@ export async function GET(req) {
     await prisma.$disconnect();
   }
 }
+
+export const dynamic = "force-dynamic";

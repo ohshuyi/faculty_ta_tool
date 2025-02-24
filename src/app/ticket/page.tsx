@@ -148,9 +148,7 @@ export default function TicketPage() {
         )}
       </div>
       <Descriptions bordered>
-        <Descriptions.Item label="Description">
-          {ticket.ticketDescription || "N/A"}
-        </Descriptions.Item>
+        
         <Descriptions.Item label="Course Group">
         {ticket.classes?.length > 0 ? ticket.classes[0].courseCode : "N/A"}
       </Descriptions.Item>
@@ -175,6 +173,9 @@ export default function TicketPage() {
           ) : (
             <Tag color="blue">OPEN</Tag>
           )}
+        </Descriptions.Item>
+        <Descriptions.Item label="Description">
+          {ticket.ticketDescription || "N/A"}
         </Descriptions.Item>
       </Descriptions>
 
@@ -295,10 +296,11 @@ export default function TicketPage() {
         <TwoColumnsLayout
           items={tickets.map((ticket) => ({
             key: ticket.id, // d
-            title: ticket.ticketDescription, // d
+            title: ticket.name, // d
+            descriptions: ticket.ticketDescription,
             category: ticket.category, // d
             priority: ticket.priority, // d
-            professor: ticket.professor.id, // d
+            professor: {id: ticket.professor.id, name: ticket.professor.name}, // d
             student: ticket.student.id,
             courseCode: ticket.classes[0].courseCode, // d
           }))}

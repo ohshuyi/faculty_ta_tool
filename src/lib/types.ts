@@ -9,6 +9,7 @@ export interface Ticket {
     details: string;
     professor: string;
     ta: string;
+    name: string;
     priority: "low" | "medium" | "high";
     comments: { author: string, content: string }[];
   }

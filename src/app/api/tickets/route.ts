@@ -1,10 +1,14 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth"; // Assuming your NextAuth options are in lib/auth.ts
-import { BlobServiceClient, generateBlobSASQueryParameters, BlobSASPermissions, StorageSharedKeyCredential } from "@azure/storage-blob";
-import { v4 as uuidv4 } from 'uuid';
-// GET method to retrieve tickets for the logged-in user (where they are the TA)
+import { authOptions } from "@/lib/auth";
+import {
+  BlobServiceClient,
+  generateBlobSASQueryParameters,
+  BlobSASPermissions,
+  StorageSharedKeyCredential,
+} from "@azure/storage-blob";
+import { v4 as uuidv4 } from "uuid";
 
 const AZURE_STORAGE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
@@ -12,8 +16,9 @@ const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 export async function POST(req) {
   try {
     const formData = await req.formData();
-   
+    
     const data = {
+      name: formData.get("name"), // Get the name field
       ticketDescription: formData.get("ticketDescription"),
       courseCode: formData.get("courseGroupType"), // Accept a single courseCode
       category: formData.get("category"),
@@ -23,40 +28,42 @@ export async function POST(req) {
       taId: parseInt(formData.get("taId")),
     };
 
-    
-
-    // Find the class associated with the courseGroupType
     // Find the class matching the courseCode
     const classes = await prisma.class.findMany({
       where: {
-        courseCode: data?.courseCode // Filter by courseCode
+        courseCode: data?.courseCode, // Filter by courseCode
       },
       select: { id: true }, // Select only the `id` field
     });
-   
-    if (!classes) {
+
+    if (!classes || classes.length === 0) {
       return NextResponse.json(
         { error: "Class not found for the specified courseGroupType" },
         { status: 404 }
       );
     }
-      // Extract an array of IDs
-    const classIds = classes.map(cls => cls.id);
-   
+
+    // Extract an array of class IDs
+    const classIds = classes.map((cls) => cls.id);
 
     const file = formData.get("file");
     let fileUrl = null;
 
     if (file) {
       const buffer = await file.arrayBuffer();
-      
+
       // Create the BlobServiceClient using SharedKeyCredential
-      const credential = new StorageSharedKeyCredential(AZURE_STORAGE_ACCOUNT_NAME, AZURE_STORAGE_ACCOUNT_KEY);
+      const credential = new StorageSharedKeyCredential(
+        AZURE_STORAGE_ACCOUNT_NAME,
+        AZURE_STORAGE_ACCOUNT_KEY
+      );
       const blobServiceClient = new BlobServiceClient(
         `https://${AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net`,
         credential
       );
-      const containerClient = blobServiceClient.getContainerClient("blobstorageta");
+      const containerClient = blobServiceClient.getContainerClient(
+        "blobstorageta"
+      );
 
       // Ensure the container exists or create it
       const exists = await containerClient.exists();
@@ -89,6 +96,7 @@ export async function POST(req) {
     // Create the ticket in Prisma
     const newTicket = await prisma.ticket.create({
       data: {
+        name: data.name, // Assign the name field
         ticketDescription: data.ticketDescription,
         category: data.category,
         studentId: data.studentId,
@@ -96,7 +104,7 @@ export async function POST(req) {
         professorId: data.professorId,
         taId: data.taId,
         classes: {
-          connect: classIds.map(id => ({ id })),
+          connect: classIds.map((id) => ({ id })),
         },
         createdAt: new Date(),
         updatedAt: new Date(),

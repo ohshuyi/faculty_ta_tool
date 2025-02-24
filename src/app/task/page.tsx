@@ -290,7 +290,7 @@ export default function TaskPage() {
         items={tasks.map((task) => ({
           key: task.id.toString(),
           title: task.name,
-          tas: task.ta.id,
+          tas: {id: task.ta.id, name: task.ta.name},
           courseCode: task?.classes[0].courseCode,
           
         }))}

@@ -1,10 +1,17 @@
-// api/addticket/route.ts
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// GET method to retrieve tickets by email
 export async function GET(req: Request) {
-  const users = await prisma.user.findMany();
+  console.log("API Route Hit: Fetching fresh data");  // For debugging
 
-  return NextResponse.json(users);
+  const users = await prisma.user.findMany();  // Always query fresh data
+  console.log()
+  // Disable caching completely in the API response
+  const response = NextResponse.json(users);
+  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  response.headers.set('Pragma', 'no-cache');
+  response.headers.set('Expires', '0');
+
+  return response;
 }
+export const dynamic = "force-dynamic";

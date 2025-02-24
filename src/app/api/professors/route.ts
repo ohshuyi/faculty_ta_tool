@@ -13,3 +13,5 @@ export async function GET() {
     return NextResponse.json({ error: "Error fetching professors" }, { status: 500 });
   }
 }
+
+export const dynamic = "force-dynamic";
