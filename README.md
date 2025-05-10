@@ -7,7 +7,7 @@ A full-stack web application developed using Next.js, Prisma, and Tailwind CSS, 
 - **Frontend**: [Next.js](https://nextjs.org/) with TypeScript
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Backend**: [Prisma ORM](https://www.prisma.io/)
-- **Database**: SQLite (development)
+- **Database**: PostgreSQL
 - **Deployment**: Azure Static Web Apps
 - **CI/CD**: GitHub Actions
 
