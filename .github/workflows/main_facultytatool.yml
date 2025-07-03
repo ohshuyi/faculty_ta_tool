@@ -3,6 +3,7 @@
 
 name: Build and deploy Node.js app to Azure Web App - facultytatool
 
+
 on:
   push:
     branches:
@@ -66,8 +67,8 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_ECC8CA2D969A4AB69A3CA61F5BA9EE59 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_126D9B9573E844249518F6A5D50B6A20 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_DB5646DF5BEC4CA4BF98C3653266183B }}
 
       - name: 'Deploy to Azure Web App'
