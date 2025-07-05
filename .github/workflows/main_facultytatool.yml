@@ -10,6 +10,10 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  APPLICATION_PUBLISH_PROFILE: ${{ secrets.APP_PUBLISH_PROFILE }}
+  WEBAPP_NAME: "facultytatool"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,13 +31,6 @@ jobs:
       - name: npm install, build, and test
         env:
             DATABASE_URL: ${{ secrets.DATABASE_URL }}
-            AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
-            AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
-            NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-            NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-            AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
-            AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
-            AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
         run: |
           npm install
           npm run build --if-present
@@ -63,19 +60,13 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
-      
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'facultytatool'
+          app-name: ${{ env.WEBAPP_NAME }}
           slot-name: 'Production'
+          publish-profile: ${{ env.APPLICATION_PUBLISH_PROFILE }}
           package: .
           
