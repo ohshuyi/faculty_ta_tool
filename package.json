@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && npm run test --if-present && mv ./build/static ./build/standalone/build && mv ./public ./build/standalone",
+    "build": "next build && npm run test --if-present",
     "start": "next start -p $PORT",
     "lint": "next lint"
   },
