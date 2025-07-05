@@ -34,7 +34,7 @@ jobs:
       - name: Prisma Generate
         run: npx prisma generate
 
-      - name: npm build, and test
+      - name: npm build and test
         env:
             DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run:
