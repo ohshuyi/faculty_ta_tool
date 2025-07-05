@@ -70,7 +70,7 @@ jobs:
         with:
           app-name: 'facultytatool'
           publish-profile: ${{ secrets.APP_PUBLISH_PROFILE }}
-          package: .
+          package: ./build/standalone/
 
   #   steps:
   #     - name: Download artifact from build job
