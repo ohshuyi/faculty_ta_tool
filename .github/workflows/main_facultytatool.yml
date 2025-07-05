@@ -35,6 +35,8 @@ jobs:
           npm install
           npm run build --if-present
           npm run test --if-present
+          mv ./build/static ./build/standalone/build
+          mv ./public ./build/standalone
 
       - name: Zip artifact for deployment
         run: zip release.zip ./* -r
@@ -68,5 +70,5 @@ jobs:
           app-name: ${{ env.WEBAPP_NAME }}
           slot-name: 'Production'
           publish-profile: ${{ env.APPLICATION_PUBLISH_PROFILE }}
-          package: .
+          package: ./build/standalone
           
