@@ -12,7 +12,7 @@ on:
 
 env:
   APPLICATION_PUBLISH_PROFILE: ${{ secrets.APP_PUBLISH_PROFILE }}
-  WEBAPP_NAME: "facultytatool"
+  WEBAPP_NAME: "faculty-ta"
 
 jobs:
   build:
@@ -94,10 +94,11 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'facultytatool'
+          app-name: 'faculty-ta'
           slot-name: 'Production'
           publish-profile: ${{ secrets.APP_PUBLISH_PROFILE }}
           package: .
+
   # deploy:
   #   runs-on: ubuntu-latest
   #   needs: build
