@@ -1,7 +1,7 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Node.js app to Azure Web App - facultytatool
+name: Build and deploy Node.js app to Azure Web App - faculty-ta
 
 
 on:
@@ -79,7 +79,7 @@ jobs:
     needs: build
     environment:
       name: 'Production'
-      url: https://facultytatool.azurewebsites.net
+      url: https://faculty-ta.azurewebsites.net
 
     steps:
       - name: Download artifact from build job
