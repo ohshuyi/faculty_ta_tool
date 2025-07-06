@@ -6,6 +6,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export const authOptions = {
+  trustHost: true,
   providers: [
     AzureADProvider({
       clientId: process.env.AZURE_AD_CLIENT_ID,
