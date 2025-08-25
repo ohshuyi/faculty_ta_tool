@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Table, Select, Button, message, Input, Space, Modal, Form } from "antd";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -17,29 +17,32 @@ const AdminPage = () => {
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [form] = Form.useForm();
+  const [addForm] = Form.useForm();
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const { data: session, status } = useSession();
   const router = useRouter();
+
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/users");
+      const data = await response.json();
+      setUsers(data);
+      setFilteredUsers(data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []); // Empty dependency array means it's created only once
+
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "ADMIN") {
-      router.push("/"); // Redirect unauthorized users
+      router.push("/");
       return;
     }
-
-    const fetchUsers = async () => {
-      try {
-        const response = await fetch("/api/users");
-        const data = await response.json();
-        setUsers(data);
-        setFilteredUsers(data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        setLoading(false);
-      }
-    };
-
     fetchUsers();
-  }, [session, status, router]);
+  }, [session, status, router, fetchUsers]);
 
   const handleRoleChange = async (userId, newRole) => {
     try {
@@ -90,6 +93,38 @@ const AdminPage = () => {
       console.error("Error deleting user:", error);
       message.error("Failed to delete user");
     }
+  };
+
+  const handleAddUser = async (values) => {
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add user");
+      }
+
+      message.success("User added successfully");
+      setIsAddModalVisible(false); // Close the modal
+      addForm.resetFields(); // Reset the form
+      fetchUsers(); // Refresh the user list
+    } catch (error) {
+      console.error("Error adding user:", error);
+      message.error(error.message);
+    }
+  };
+
+  const showAddModal = () => {
+    setIsAddModalVisible(true);
+  };
+
+  const handleAddModalCancel = () => {
+    setIsAddModalVisible(false);
+    addForm.resetFields();
   };
 
   const handleUpdateClick = (user) => {
@@ -182,17 +217,76 @@ const AdminPage = () => {
   return (
     <AppLayout>
       <Space
-  direction="vertical"
-  style={{ marginBottom: 16, width: "100%", padding: "16px" }} // Added padding
->
-  <Search
-    placeholder="Search by name, email, or role"
-    onSearch={handleSearch}
-    enterButton
-    style={{ maxWidth: 400 }}
-  />
-</Space>
-      <Table dataSource={filteredUsers} columns={columns} rowKey="id" />
+        direction="vertical"
+        style={{ marginBottom: 16, width: "100%", padding: "16px" }}
+      >
+        <Space>
+          <Search
+            placeholder="Search by name, email, or role"
+            onSearch={handleSearch}
+            enterButton
+            style={{ width: 400 }}
+          />
+          {/* Add the "Add User" button here */}
+          <Button type="primary" onClick={showAddModal}>
+            Add User
+          </Button>
+        </Space>
+      </Space>
+      {/* <div className="table-side-borders-container"> */}
+      <Table
+        className="table-side-borders-container"
+        dataSource={filteredUsers}
+        columns={columns}
+        rowKey="id"
+        scroll={{ x: 'max-content' }}
+        style={{ padding: "16px" }}
+      />
+      {/* </div>table-side-borders-container */}
+      <Modal
+        title="Add New User"
+        open={isAddModalVisible}
+        onOk={() => addForm.submit()}
+        onCancel={handleAddModalCancel}
+        okText="Add User"
+        cancelText="Cancel"
+      >
+        <Form form={addForm} layout="vertical" onFinish={handleAddUser}>
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[{ required: true, message: "Please enter the user's name" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[
+              { required: true, message: "Please enter the user's email" },
+              { type: "email", message: "Please enter a valid email" },
+            ]}
+          >
+            <Input placeholder="user@example.com" />
+          </Form.Item>
+
+          {/* The Password Form.Item has been completely removed */}
+
+          <Form.Item
+            name="role"
+            label="Role"
+            rules={[{ required: true, message: "Please select a role" }]}
+            initialValue="USER"
+          >
+            <Select>
+              <Option value="USER">USER</Option>
+              <Option value="TA">TA</Option>
+              <Option value="PROFESSOR">PROFESSOR</Option>
+              <Option value="ADMIN">ADMIN</Option>
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
       {/* Modal for Update */}
       <Modal
         title="Update User Role"

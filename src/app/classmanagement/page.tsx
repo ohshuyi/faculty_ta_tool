@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Table, Button, Modal, message, Spin, List, Input } from "antd";
 import { UploadOutlined, DeleteOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import AppLayout from "@/components/Layout";
@@ -15,6 +15,7 @@ const ClassManagement = () => {
   const [studentSearchQuery, setStudentSearchQuery] = useState(""); // Search query for students
   const [file, setFile] = useState(null); // File state
   const [uploadStatus, setUploadStatus] = useState(""); // Upload status message
+  const fileInputRef = useRef(null);
 
   // Fetch classes from the API
   const fetchClasses = async () => {
@@ -52,6 +53,14 @@ const ClassManagement = () => {
     setFile(e.target.files[0]);
   };
 
+  const handleClearFile = () => {
+    setFile(null); // Clear the file from state
+    setUploadStatus(""); // Clear any status message
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null; // Reset the file input DOM element
+    }
+  };
+
   // Handle File Upload
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -72,6 +81,7 @@ const ClassManagement = () => {
       if (res.ok) {
         setUploadStatus("File uploaded successfully!");
         fetchClasses(); // Refresh the table after successful upload
+        handleClearFile();
       } else {
         const error = await res.json();
         setUploadStatus(`Upload failed: ${error.message}`);
@@ -180,17 +190,29 @@ const ClassManagement = () => {
             onSubmit={handleUpload}
             style={{ display: "flex", alignItems: "center", gap: "16px" }}
           >
-            <input
-              type="file"
-              accept=".xlsx, .xls"
-              onChange={handleFileChange}
-              style={{
-                padding: "8px",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-                backgroundColor: "#fff",
-              }}
-            />
+            {/* Group the input and clear icon together */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                ref={fileInputRef} // Attach the ref here
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleFileChange}
+                style={{
+                  padding: "8px",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  backgroundColor: "#fff",
+                }}
+              />
+              {/* This icon appears only when a file is selected */}
+              {file && (
+                <DeleteOutlined
+                  onClick={handleClearFile}
+                  style={{ color: "red", cursor: "pointer", fontSize: "16px" }}
+                  title="Clear selection"
+                />
+              )}
+            </div>
             <button
               type="submit"
               style={{

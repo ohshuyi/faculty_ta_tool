@@ -5,11 +5,13 @@ const prisma = new PrismaClient();
 export async function GET(req) {
   try {
     // Use groupBy to fetch distinct classGroup
-    const courseCode = await prisma.class.groupBy({
-      by: ["courseCode"], // Group by the classGroup field
+    const classes = await prisma.class.findMany({
+      include: {
+        students: true,
+      },
     });
 
-    return new Response(JSON.stringify(courseCode), {
+    return new Response(JSON.stringify(classes), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

@@ -63,7 +63,7 @@ const AppLayout = ({ children }) => {
     : [...commonItems, logoutItem];
 
   return (
-    <Layout>
+    <Layout style={{ minHeight: '100vh' }}>
       <Header
         style={{
           display: "flex",

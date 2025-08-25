@@ -17,11 +17,13 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [tas, setTAs] = useState([]);
   const [classes, setClasses] = useState([]); // State for classes (course groups)
   const { data: session } = useSession();
   const [file, setFile] = useState(null);
+  const [filteredClassGroups, setFilteredClassGroups] = useState([]);
 
   // Fetch TAs and Classes when the modal is visible
   useEffect(() => {
@@ -56,13 +58,25 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
     setFile(fileList[0]);
   };
 
+  const handleCourseChange = (courseCode) => {
+    // Filter the main classes list to find groups matching the selected course
+    const groupsForCourse = classes.filter(
+      (cls) => cls.courseCode === courseCode
+    );
+    setFilteredClassGroups(groupsForCourse);
+
+    // Reset the class group field to ensure the user makes a new selection
+    form.setFieldsValue({ classId: undefined });
+  };
+
   // Handle form submission
   const onFinish = async (values) => {
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append("name", values.name);
-      formData.append("courseGroupType", values.courseGroupType); // Selected course group
+      // formData.append("courseGroupType", values.courseGroupType); // Selected course group
+      formData.append("classId", values.classId);
       formData.append("dueDate", values.dueDate.format("YYYY-MM-DD"));
       formData.append("details", values.details);
       formData.append("professorId", session.user.id);
@@ -110,7 +124,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
           <Input placeholder="Enter task name" />
         </Form.Item>
 
-        <Form.Item
+        {/* <Form.Item
           label="Course Group"
           name="courseGroupType"
           rules={[{ required: true, message: "Please select a course group!" }]}
@@ -123,7 +137,45 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
               </Option>
             ))}
           </Select>
-        </Form.Item>
+        </Form.Item> */}
+        
+        <Form.Item
+        label="Course Code"
+        name="courseCode" // This is just for the UI, not submitted
+        rules={[{ required: true, message: "Please select a course code!" }]}
+      >
+        <Select
+          placeholder="Select a course code"
+          onChange={handleCourseChange}
+          loading={classes.length === 0}
+        >
+          {/* Create a unique list of course codes for the options */}
+          {[...new Set(classes.map((cls) => cls.courseCode))].map((code) => (
+            <Option key={code} value={code}>
+              {code}
+            </Option>
+          ))}
+        </Select>
+      </Form.Item>
+
+      {/* 2. New "Class Group" Dropdown */}
+      <Form.Item
+        label="Class Group"
+        name="classId" // This will be submitted to the backend
+        rules={[{ required: true, message: "Please select a class group!" }]}
+      >
+        <Select
+          placeholder="Select a class group"
+          // Disable this field until a course code has been selected
+          disabled={filteredClassGroups.length === 0}
+        >
+          {filteredClassGroups.map((cls) => (
+            <Option key={cls.id} value={cls.id}>
+              {cls.classGroup}
+            </Option>
+          ))}
+        </Select>
+      </Form.Item>
 
         <Form.Item
           label="Assign To (TA)"

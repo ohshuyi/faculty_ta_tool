@@ -121,7 +121,7 @@ export default function TaskPage() {
       if (response.ok) {
         message.success("Task marked as completed");
         setIsCloseModalVisible(false);
-        fetchTasks(); // Refresh tasks after closing
+        fetchTasks(); // Refresh tasks after closingƒite
       } else {
         message.error("Failed to close the task");
       }
@@ -179,7 +179,7 @@ export default function TaskPage() {
         </div>
         <Descriptions bordered>
           <Descriptions.Item label="Course Code">
-            {task.classes[0].courseCode}
+          {task.classes?.[0]?.courseCode || "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Class Group">
             {task.classes[0].classGroup}
@@ -291,7 +291,7 @@ export default function TaskPage() {
           key: task.id.toString(),
           title: task.name,
           tas: {id: task.ta.id, name: task.ta.name},
-          courseCode: task?.classes[0].courseCode,
+          courseCode: task.classes?.[0]?.courseCode,
           
         }))}
         renderContent={(key) => {

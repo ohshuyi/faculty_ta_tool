@@ -16,10 +16,14 @@ const { TextArea } = Input;
 const { Option } = Select;
 
 const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
+  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [professors, setProfessors] = useState([]);
   const [classes, setClasses] = useState([]);
-  const [students, setStudents] = useState([]);
+  const [selectedCourseCode, setSelectedCourseCode] = useState(null);
+  const [filteredClassTypes, setFilteredClassTypes] = useState([]);
+  const [filteredClassGroups, setFilteredClassGroups] = useState([]);
+  const [filteredStudents, setFilteredStudents] = useState([]);
   const { data: session } = useSession();
   const [file, setFile] = useState(null);
 
@@ -40,27 +44,71 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
         try {
           const response = await fetch("/api/classes");
           const data = await response.json();
+          console.log("API Response for Classes:", data);
+
           setClasses(data);
         } catch (error) {
           console.error("Error fetching classes:", error);
         }
       }
 
-      async function fetchStudents() {
-        try {
-          const response = await fetch("/api/students");
-          const data = await response.json();
-          setStudents(data);
-        } catch (error) {
-          console.error("Error fetching students:", error);
-        }
-      }
-
       fetchProfessors();
       fetchClasses();
-      fetchStudents();
+    } else {
+      setSelectedCourseCode(null);
+      setFilteredClassTypes([]);
+      setFilteredClassGroups([]);
+      setFilteredStudents([]);
+      form.resetFields();
     }
-  }, [isVisible]);
+  }, [isVisible, form]);
+
+  console.log("Classes state:", classes);
+
+  const handleCourseChange = (courseCode) => {
+    setSelectedCourseCode(courseCode); // Store the selected course code
+
+    // Find unique class types for the selected course
+    const courseClasses = classes.filter((cls) => cls.courseCode === courseCode);
+    const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
+    setFilteredClassTypes(uniqueTypes);
+
+    // Clear all three dependent fields
+    setFilteredClassGroups([]);
+    setFilteredStudents([]);
+    form.setFieldsValue({
+      classType: undefined,
+      classId: undefined,
+      studentId: undefined,
+    });
+  };
+
+  // 2. NEW: Handles when a user selects a Class Type
+  const handleClassTypeChange = (classType) => {
+    // Filter class groups based on BOTH course code and class type
+    const groupsForType = classes.filter(
+      (cls) => cls.courseCode === selectedCourseCode && cls.classType === classType
+    );
+    setFilteredClassGroups(groupsForType);
+
+    // Clear the two dependent fields
+    setFilteredStudents([]);
+    form.setFieldsValue({
+      classId: undefined,
+      studentId: undefined,
+    });
+  };
+  // Handles when a user selects a Class Group
+  const handleClassGroupChange = (classId) => {
+    // Find the full class object from the selected ID
+    const selectedClass = classes.find((cls) => cls.id === classId);
+
+    // Set the students from that class
+    setFilteredStudents(selectedClass ? selectedClass.students : []);
+
+    // Clear the dependent student field
+    form.setFieldsValue({ studentId: undefined });
+  };
 
   // Handle file selection
   const handleFileChange = ({ fileList }) => {
@@ -76,6 +124,8 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       formData.append("name", values.name); // Adding name to form data
       formData.append("ticketDescription", values.ticketDescription);
       formData.append("courseGroupType", values.courseGroupType);
+      formData.append("classType", values.classType);
+      formData.append("classId", values.classId);
       formData.append("category", values.category);
       formData.append("studentId", values.studentId);
       formData.append("priority", values.priority);
@@ -108,13 +158,13 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
 
   return (
     <Modal
-      visible={isVisible}
+      open={isVisible}
       title="Add New Ticket"
       onCancel={onClose}
       footer={null}
       width={800} // Adjust modal width if necessary
     >
-      <Form layout="vertical" onFinish={onFinish}>
+      <Form layout="vertical" onFinish={onFinish} form={form}>
         {/* New Name Field */}
         <Form.Item
           label="Ticket Name"
@@ -142,15 +192,53 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
         <Form.Item
           label="Course Code"
           name="courseGroupType"
-          rules={[
-            { required: true, message: "Please select a course group!" },
-          ]}
-          style={{ width: "100%" }}
+          rules={[{ required: true, message: "Please select a course code!" }]}
         >
-          <Select placeholder="Select a course code">
-            {classes.map((cls) => (
-              <Option key={cls.id} value={cls.courseCode}>
-                {cls.courseCode}
+          <Select
+            placeholder="Select a course code"
+            onChange={handleCourseChange}
+          >
+            {/* Create a unique list of course codes for the options */}
+            {[...new Set(classes.map((cls) => cls.courseCode))].map((code) => (
+              <Option key={code} value={code}>
+                {code}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Class Type"
+          name="classType"
+          rules={[{ required: true, message: "Please select a class type!" }]}
+        >
+          <Select
+            placeholder="Select a class type"
+            onChange={handleClassTypeChange}
+            disabled={filteredClassTypes.length === 0}
+          >
+            {filteredClassTypes.map((type) => (
+              <Option key={type} value={type}>
+                {type}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Class Group"
+          name="classId"
+          rules={[{ required: true, message: "Please select a class group!" }]}
+        >
+          <Select
+            placeholder="Select a class group"
+            onChange={handleClassGroupChange}
+            // Disable until a course code is selected
+            disabled={filteredClassGroups.length === 0}
+          >
+            {filteredClassGroups.map((cls) => (
+              <Option key={cls.id} value={cls.id}>
+                {cls.classGroup}
               </Option>
             ))}
           </Select>
@@ -175,10 +263,13 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           label="Student"
           name="studentId"
           rules={[{ required: true, message: "Please select a student!" }]}
-          style={{ width: "100%" }}
         >
-          <Select placeholder="Select a student">
-            {students.map((student) => (
+          <Select
+            placeholder="Select a student"
+            // Disable until a class group is selected
+            disabled={filteredStudents.length === 0}
+          >
+            {filteredStudents.map((student) => (
               <Option key={student.id} value={student.id}>
                 {student.name}
               </Option>

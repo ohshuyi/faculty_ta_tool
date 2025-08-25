@@ -57,47 +57,47 @@ export async function PUT(
 }
 
 export async function DELETE(
-    req: Request,
-    { params }: { params: { userid: string } }
-  ) {
-    const { userid } = params;
-  
-    try {
-      // Convert the user ID to an integer
-      const userIdInt = parseInt(userid, 10);
-  
-      if (isNaN(userIdInt)) {
-        return NextResponse.json(
-          { error: "Invalid user ID format" },
-          { status: 400 }
-        );
-      }
-  
-      // Delete the user from the database
-      const deletedUser = await prisma.user.delete({
-        where: { id: userIdInt },
-      });
-  
-      // Return success response
-      return NextResponse.json({
-        message: "User deleted successfully",
-        user: deletedUser,
-      });
-    } catch (error) {
-      console.error("Error deleting user:", error);
-  
-      // Handle specific errors
-      if (error.code === "P2025") {
-        return NextResponse.json(
-          { error: "User not found" },
-          { status: 404 }
-        );
-      }
-  
-      // Handle general errors
+  req: Request,
+  { params }: { params: { userid: string } }
+) {
+  const { userid } = params;
+
+  try {
+    // Convert the user ID to an integer
+    const userIdInt = parseInt(userid, 10);
+
+    if (isNaN(userIdInt)) {
       return NextResponse.json(
-        { error: "An error occurred while deleting the user" },
-        { status: 500 }
+        { error: "Invalid user ID format" },
+        { status: 400 }
       );
     }
+
+    // Delete the user from the database
+    const deletedUser = await prisma.user.delete({
+      where: { id: userIdInt },
+    });
+
+    // Return success response
+    return NextResponse.json({
+      message: "User deleted successfully",
+      user: deletedUser,
+    });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+
+    // Handle specific errors
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    // Handle general errors
+    return NextResponse.json(
+      { error: "An error occurred while deleting the user" },
+      { status: 500 }
+    );
   }
+}
