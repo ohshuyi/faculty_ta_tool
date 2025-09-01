@@ -24,7 +24,7 @@ export async function POST(req) {
     const details = formData.get("details");
     const professorId = parseInt(formData.get("professorId"), 10);
     const taId = parseInt(formData.get("taId"), 10);
-    const courseCode = formData.get("courseGroupType"); // Accept a single courseCode
+    const courseCode = formData.get("courseCode"); // Accept a single courseCode
     const file = formData.get("file");
 
     let fileUrl = null;

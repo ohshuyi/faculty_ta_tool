@@ -75,7 +75,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
     try {
       const formData = new FormData();
       formData.append("name", values.name);
-      // formData.append("courseGroupType", values.courseGroupType); // Selected course group
+      formData.append("courseCode", values.courseCode); // Selected course group
       formData.append("classId", values.classId);
       formData.append("dueDate", values.dueDate.format("YYYY-MM-DD"));
       formData.append("details", values.details);
