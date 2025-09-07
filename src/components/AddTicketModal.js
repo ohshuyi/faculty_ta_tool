@@ -27,6 +27,9 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
   const { data: session } = useSession();
   const [file, setFile] = useState(null);
 
+  const filterOption = (input, option) =>
+    (option?.children ?? '').toLowerCase().includes(input.toLowerCase());
+
   // Fetch professors, classes, and students when the modal is visible
   useEffect(() => {
     if (isVisible) {
@@ -195,8 +198,10 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           rules={[{ required: true, message: "Please select a course code!" }]}
         >
           <Select
-            placeholder="Select a course code"
+            placeholder="Search or select a course code"
             onChange={handleCourseChange}
+            showSearch
+            filterOption={filterOption}
           >
             {/* Create a unique list of course codes for the options */}
             {[...new Set(classes.map((cls) => cls.courseCode))].map((code) => (
@@ -213,9 +218,11 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           rules={[{ required: true, message: "Please select a class type!" }]}
         >
           <Select
-            placeholder="Select a class type"
+            placeholder="Search or select a class type"
             onChange={handleClassTypeChange}
             disabled={filteredClassTypes.length === 0}
+            showSearch
+            filterOption={filterOption}
           >
             {filteredClassTypes.map((type) => (
               <Option key={type} value={type}>
@@ -231,10 +238,12 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           rules={[{ required: true, message: "Please select a class group!" }]}
         >
           <Select
-            placeholder="Select a class group"
+            placeholder="Search or select a class group"
             onChange={handleClassGroupChange}
             // Disable until a course code is selected
             disabled={filteredClassGroups.length === 0}
+            showSearch
+            filterOption={filterOption}
           >
             {filteredClassGroups.map((cls) => (
               <Option key={cls.id} value={cls.id}>
@@ -265,9 +274,11 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           rules={[{ required: true, message: "Please select a student!" }]}
         >
           <Select
-            placeholder="Select a student"
+            placeholder="Search or select a student"
             // Disable until a class group is selected
             disabled={filteredStudents.length === 0}
+            showSearch
+            filterOption={filterOption}
           >
             {filteredStudents.map((student) => (
               <Option key={student.id} value={student.id}>
@@ -296,7 +307,10 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           rules={[{ required: true, message: "Please select a professor!" }]}
           style={{ width: "100%" }}
         >
-          <Select placeholder="Select a professor">
+          <Select 
+            placeholder="Search or select a professor"
+            showSearch
+            filterOption={filterOption}>
             {professors.map((professor) => (
               <Option key={professor.id} value={professor.id}>
                 {professor.name}
