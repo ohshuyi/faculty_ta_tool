@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma"; // Assuming you have Prisma setup
 import { authOptions } from "@/lib/auth"; // Assuming your NextAuth options are in lib/auth.ts
 import { getServerSession } from "next-auth";
 import { v4 as uuidv4 } from "uuid"; // For generating unique filenames
+import { sendEmail } from "@/lib/email";
 import {
   BlobServiceClient,
   StorageSharedKeyCredential,
@@ -26,6 +27,7 @@ export async function POST(req) {
     const taId = parseInt(formData.get("taId"), 10);
     const courseCode = formData.get("courseCode"); // Accept a single courseCode
     const file = formData.get("file");
+    const baseUrl = "https://faculty-ta.azurewebsites.net"
 
     let fileUrl = null;
 
@@ -66,11 +68,11 @@ export async function POST(req) {
       },
       select: { id: true }, // Select only the `id` field
     });
-    
+
     // Extract an array of IDs
     const classIds = classes.map(cls => cls.id);
-    
-   
+
+
     // Create the task and link to multiple classes
     const newTask = await prisma.task.create({
       data: {
@@ -102,6 +104,27 @@ export async function POST(req) {
         classes: true, // Include related classes in the response
       },
     });
+
+    if (newTask && newTask.ta.email) {
+      const subject = `New Task Assigned: ${newTask.name}`;
+      const body = `
+        <html>
+          <body>
+            <h2>A new task has been assigned to you.</h2>
+            <p><strong>Task:</strong> ${newTask.name}</p>
+            <p><strong>Details:</strong> ${newTask.details}</p>
+            <p><strong>Due Date:</strong> ${new Date(newTask.dueDate).toLocaleDateString()}</p>
+            <p>Assigned by: ${newTask.professor.name}</p>
+            <br>
+            <a href="${baseUrl}" style="display: inline-block; padding: 10px 15px; font-size: 16px; color: #ffffff; background-color: #007bff; text-decoration: none; border-radius: 5px;">
+              View Task
+            </a>
+          </body>
+        </html>
+      `;
+
+      await sendEmail(newTask.ta.email, subject, body);
+    }
 
     // Construct the response
     const responseTask = {

@@ -41,7 +41,8 @@ export default function TaskPage() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
- 
+  const [closingTask, setClosingTask] = useState(false);
+
   // Fetch tasks from the API
   const fetchTasks = async (status = "open") => {
     setLoading(true);
@@ -69,7 +70,7 @@ export default function TaskPage() {
     try {
       const response = await fetch(`/api/tasks/${taskId}/comments`);
       const data = await response.json();
-    
+
       setComments(data); // Set the state with the fetched comments
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -113,6 +114,7 @@ export default function TaskPage() {
 
   // Close task (mark as completed)
   const handleCloseTask = async (taskId: number) => {
+    setClosingTask(true);
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
@@ -121,13 +123,15 @@ export default function TaskPage() {
       if (response.ok) {
         message.success("Task marked as completed");
         setIsCloseModalVisible(false);
-        fetchTasks(); // Refresh tasks after closingƒite
+        fetchTasks("open"); // Re-fetch the open tasks list
       } else {
         message.error("Failed to close the task");
       }
     } catch (error) {
       console.error("Error closing the task:", error);
       message.error("An error occurred. Please try again.");
+    } finally {
+      setClosingTask(false); // Stop loading in any case
     }
   };
 
@@ -169,17 +173,19 @@ export default function TaskPage() {
         >
           <h2 style={{ fontWeight: "bold" }}>Task ID: {task.id}</h2>
 
-          <Button
-            type="primary"
-            danger
-            onClick={() => setIsCloseModalVisible(true)}
-          >
-            Close Task
-          </Button>
+          {task.status !== "completed" && (
+            <Button
+              type="primary"
+              danger
+              onClick={() => setIsCloseModalVisible(true)}
+            >
+              Close Task
+            </Button>
+          )}
         </div>
         <Descriptions bordered>
           <Descriptions.Item label="Course Code">
-          {task.classes?.[0]?.courseCode || "N/A"}
+            {task.classes?.[0]?.courseCode || "N/A"}
           </Descriptions.Item>
           <Descriptions.Item label="Class Group">
             {task.classes[0].classGroup}
@@ -254,11 +260,12 @@ export default function TaskPage() {
         {/* Modal to confirm closing the task */}
         <Modal
           title="Confirm Close Task"
-          visible={isCloseModalVisible}
+          open={isCloseModalVisible}
           onOk={() => handleCloseTask(task.id)}
           onCancel={() => setIsCloseModalVisible(false)}
           okText="Close Task"
           cancelText="Cancel"
+          confirmLoading={closingTask}
         >
           <p>Are you sure you want to close this task?</p>
         </Modal>
@@ -290,9 +297,9 @@ export default function TaskPage() {
         items={tasks.map((task) => ({
           key: task.id.toString(),
           title: task.name,
-          tas: {id: task.ta.id, name: task.ta.name},
+          tas: { id: task.ta?.id, name: task.ta?.name },
           courseCode: task.classes?.[0]?.courseCode,
-          
+          status: task.status,
         }))}
         renderContent={(key) => {
           const task = tasks.find((task) => task.id.toString() === key);

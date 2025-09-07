@@ -37,6 +37,7 @@ export default function TicketPage() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [closingTicket, setClosingTicket] = useState(false);
 
   const fetchTickets = async (status = "open") => {
     setLoading(true);
@@ -234,11 +235,12 @@ export default function TicketPage() {
 
       <Modal
         title="Confirm Close Ticket"
-        visible={isCloseModalVisible}
+        open={isCloseModalVisible}
         onOk={() => handleCloseTicket(ticket.id)}
         onCancel={() => setIsCloseModalVisible(false)}
         okText="Close Ticket"
         cancelText="Cancel"
+        confirmLoading={closingTicket}
       >
         <p>Are you sure you want to close this ticket?</p>
       </Modal>
@@ -246,6 +248,7 @@ export default function TicketPage() {
   );
 
   const handleCloseTicket = async (id: string) => {
+    setClosingTicket(true);
     try {
       const response = await fetch(`/api/tickets/${id}`, {
         method: "PATCH",
@@ -261,6 +264,8 @@ export default function TicketPage() {
     } catch (error) {
       console.error("Error closing the ticket:", error);
       message.error("An error occurred. Please try again.");
+    } finally {
+      setClosingTicket(false);
     }
   };
 

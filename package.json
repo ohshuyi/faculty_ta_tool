@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@azure/communication-email": "^1.0.0",
     "@azure/storage-blob": "^12.25.0",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@prisma/client": "^5.21.1",

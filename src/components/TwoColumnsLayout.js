@@ -97,18 +97,35 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
 
   return (
     <Layout style={{ height: "100vh" }}>
-      <Sider width={450} style={{ background: "#fff", padding: "16px", overflow: "auto" }}>
+      <Sider
+        width={450}
+        style={{ background: "#fff", padding: "16px", overflow: "auto" }}
+        
+        // --- Add these responsive props ---
+        breakpoint="md" // The screen width at which the sidebar will collapse (md = 768px)
+        collapsedWidth="0" // Hides the sidebar completely and shows a trigger button
+      >
         <div className="flex gap-2 mb-4">
           <Search placeholder="Search" onSearch={onSearch} />
-          {type !== "history" && <Button icon={<FilterOutlined />} onClick={() => setIsModalVisible(true)} />}
-          <Button icon={<SettingOutlined />} onClick={() => setIsGroupingModalVisible(true)} />
+          {type !== "history" && (
+            <Button
+              icon={<FilterOutlined />}
+              onClick={() => setIsModalVisible(true)}
+            />
+          )}
+          <Button
+            icon={<SettingOutlined />}
+            onClick={() => setIsGroupingModalVisible(true)}
+          />
         </div>
 
-        {showAddButton && (type === "task" && userRole === "PROFESSOR" || type === "ticket" && userRole === "TA") && (
-          <Button type="primary" icon={<PlusOutlined />} block onClick={onAdd}>
-            Add New {type === "task" ? "Task" : "Ticket"}
-          </Button>
-        )}
+        {showAddButton &&
+          ((type === "task" && userRole === "PROFESSOR") ||
+            (type === "ticket" && userRole === "TA")) && (
+            <Button type="primary" icon={<PlusOutlined />} block onClick={onAdd}>
+              Add New {type === "task" ? "Task" : "Ticket"}
+            </Button>
+          )}
 
         <Collapse defaultActiveKey={["All Tickets"]} ghost>
           {Object.keys(groupedItems).map((group) => (
@@ -120,6 +137,11 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
                 items={groupedItems[group].map((item) => ({
                   key: item.key,
                   label: item.title,
+                  style: {
+                    textDecoration:
+                      item.status === "completed" ? "line-through" : "none",
+                    opacity: item.status === "completed" ? 0.6 : 1,
+                  },
                 }))}
               />
             </Panel>
@@ -127,16 +149,23 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
         </Collapse>
       </Sider>
 
-      <Layout style={{ padding: "24px" }}>
-        <Content style={{ padding: 24, background: "#f0f2f5", borderRadius: 8 }}>
-          {selectedKey ? renderContent(selectedKey) : <p>Select an item to view details</p>}
+      {/* This part remains the same and will correctly expand to full-width on mobile */}
+      <Layout style={{ padding: "24px", overflow: "auto" }}>
+        <Content
+          style={{ padding: 24, background: "#f0f2f5", borderRadius: 8 }}
+        >
+          {selectedKey ? (
+            renderContent(selectedKey)
+          ) : (
+            <p>Select an item to view details</p>
+          )}
         </Content>
       </Layout>
 
       {/* Grouping Selection Modal */}
       <Modal
         title="Select Grouping Criteria"
-        visible={isGroupingModalVisible}
+        open={isGroupingModalVisible} // Use 'open' instead of deprecated 'visible'
         onOk={() => setIsGroupingModalVisible(false)}
         onCancel={() => setIsGroupingModalVisible(false)}
       >
@@ -168,17 +197,18 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
         </Select>
       </Modal>
 
+      {/* Advanced Search Modals */}
       {type === "task" ? (
         <AdvancedSearchModalTask
           onReset={handleResetSearch}
-          visible={isModalVisible}
+          open={isModalVisible} // Use 'open' instead of deprecated 'visible'
           onClose={() => setIsModalVisible(false)}
           onSearch={handleAdvancedSearchTask}
         />
       ) : (
         <AdvancedSearchModalTicket
           onReset={handleResetSearch}
-          visible={isModalVisible}
+          open={isModalVisible} // Use 'open' instead of deprecated 'visible'
           onClose={() => setIsModalVisible(false)}
           onSearch={handleAdvancedSearchTicket}
         />

@@ -9,6 +9,7 @@ import {
   StorageSharedKeyCredential,
 } from "@azure/storage-blob";
 import { v4 as uuidv4 } from "uuid";
+import { sendEmail } from "@/lib/email";
 
 const AZURE_STORAGE_ACCOUNT_NAME = process.env.AZURE_STORAGE_ACCOUNT_NAME;
 const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
@@ -16,7 +17,8 @@ const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 export async function POST(req) {
   try {
     const formData = await req.formData();
-    
+    const baseUrl = "https://faculty-ta.azurewebsites.net"
+
     const data = {
       name: formData.get("name"), // Get the name field
       ticketDescription: formData.get("ticketDescription"),
@@ -119,7 +121,32 @@ export async function POST(req) {
           },
         }),
       },
+      include: { // Include relations needed for the email
+        professor: true,
+        ta: true,
+      },
     });
+
+    if (newTicket) {
+      const subject = `New Ticket Created: ${newTicket.name}`;
+      const body = `
+        <html><body>
+          <h2>A new support ticket has been created.</h2>
+          <p><strong>Ticket:</strong> ${newTicket.name}</p>
+          <p><strong>Category:</strong> ${newTicket.category}</p>
+          <p><strong>Priority:</strong> ${newTicket.priority}</p>
+          <p><strong>Created by:</strong> ${newTicket.ta.name}</p>
+          <br>
+            <a href="${baseUrl}" style="display: inline-block; padding: 10px 15px; font-size: 16px; color: #ffffff; background-color: #007bff; text-decoration: none; border-radius: 5px;">
+              View Ticket
+            </a>
+        </body></html>
+      `;
+
+      if (newTicket.professor.email) {
+        await sendEmail(newTicket.professor.email, subject, body);
+      }
+    }
 
     return NextResponse.json(newTicket, { status: 201 });
   } catch (error) {
