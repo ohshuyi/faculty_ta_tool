@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import * as XLSX from "xlsx";
 const prisma = new PrismaClient();
@@ -27,124 +28,167 @@ export async function GET(req) {
   }
 }
 
-
 export async function POST(req) {
   try {
     const formData = await req.formData();
     const file = formData.get("file");
-
     if (!file) {
-      return new Response(JSON.stringify({ message: "No file uploaded" }), {
-        status: 400,
-      });
+      return NextResponse.json({ message: "No file uploaded" }, { status: 400 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
-    const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {
-      header: 1,
-    });
+    const rawData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+    const classGroupsInFile = extractClassCourseGroups(rawData);
 
-    const classCourseGroups = extractClassCourseGroups(rawData); // Use your extraction logic
+    if (classGroupsInFile.length === 0) {
+      return NextResponse.json({ error: "No valid class groups found in file." }, { status: 400 });
+    }
 
-    for (const classData of classCourseGroups) {
-      // Find or create class
-      let classRecord = await prisma.class.findFirst({
+    const uploadScope = {
+      courseCode: classGroupsInFile[0].courseCode,
+      classType: classGroupsInFile[0].classType,
+    };
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Get all students and classes from the file
+      const studentDataInFile = new Map(); // Use a Map for easy lookup
+      classGroupsInFile.forEach(g => g.students.forEach(s => studentDataInFile.set(s.studentCode, s)));
+
+      const classDataInFile = new Map(); // Map for class lookup
+      classGroupsInFile.forEach(g => classDataInFile.set(g.classGroup, g));
+
+      // 2. Upsert all students from the file
+      const studentUpsertPromises = Array.from(studentDataInFile.values()).map(student =>
+        tx.student.upsert({
+          where: { studentCode: student.studentCode },
+          update: { name: student.name, prog: student.prog },
+          create: { name: student.name, studentCode: student.studentCode, prog: student.prog },
+        })
+      );
+      await Promise.all(studentUpsertPromises);
+
+      // 3. Get the database IDs of all students in the file
+      const studentsInFileDb = await tx.student.findMany({
+        where: { studentCode: { in: Array.from(studentDataInFile.keys()) } },
+        select: { id: true, studentCode: true },
+      });
+      const studentCodeToIdMap = new Map(studentsInFileDb.map(s => [s.studentCode, s.id]));
+
+      // 4. For each class in the file, upsert it and set its student roster exactly
+      for (const group of classGroupsInFile) {
+        const studentIdsToConnect = group.students.map(s => ({ id: studentCodeToIdMap.get(s.studentCode) }));
+
+        await tx.class.upsert({
+          where: {
+            courseCode_classGroup_classType: {
+              courseCode: group.courseCode,
+              classGroup: group.classGroup,
+              classType: group.classType,
+            }
+          },
+          update: {
+            classType: group.classType,
+            students: { set: studentIdsToConnect },
+          },
+          create: {
+            courseCode: group.courseCode,
+            classGroup: group.classGroup,
+            classType: group.classType,
+            students: { connect: studentIdsToConnect },
+          },
+        });
+      }
+
+      // 5. SCOPED DELETION: Find and delete obsolete classes WITHIN THE SCOPE
+      const classesInDbForScope = await tx.class.findMany({
+        where: { courseCode: uploadScope.courseCode, classType: uploadScope.classType },
+      });
+
+      const classesToDelete = classesInDbForScope
+        .filter(dbClass => !classDataInFile.has(dbClass.classGroup))
+        .map(c => c.id);
+
+      if (classesToDelete.length > 0) {
+        await tx.class.deleteMany({ where: { id: { in: classesToDelete } } });
+      }
+
+      // 6. SCOPED DELETION: Find and delete obsolete students WITHIN THE SCOPE
+      const studentsInDbForScope = await tx.student.findMany({
         where: {
-          courseCode: classData.courseCode,
-          classType: classData.classType,
-          classGroup: classData.classGroup,
+          classes: { some: { courseCode: uploadScope.courseCode, classType: uploadScope.classType } },
         },
       });
 
-      if (!classRecord) {
-        classRecord = await prisma.class.create({
-          data: {
-            courseCode: classData.courseCode,
-            classType: classData.classType,
-            classGroup: classData.classGroup,
-          },
-        });
+      const studentsToDelete = studentsInDbForScope
+        .filter(dbStudent => !studentDataInFile.has(dbStudent.studentCode))
+        .map(s => s.id);
+
+      if (studentsToDelete.length > 0) {
+        await tx.student.deleteMany({ where: { id: { in: studentsToDelete } } });
       }
 
-      for (const student of classData.students) {
-        await prisma.student.upsert({
-          where: { studentCode: student.studentCode },
-          update: {
-            classes: {
-              connect: { id: classRecord.id }, // Connect the student to the class
-            },
-          },
-          create: {
-            studentCode: student.studentCode,
-            name: student.name,
-            prog: student.prog,
-            classes: {
-              connect: { id: classRecord.id }, // Connect the student to the class
-            },
-          },
-        });
-      }
-      
-    }
+    }, { timeout: 30000 });
 
-    return new Response(
-      JSON.stringify({ message: "Data populated successfully" }),
-      { status: 200 }
-    );
+    return NextResponse.json({ message: `Sync for ${uploadScope.courseCode} (${uploadScope.classType}) successful.` }, { status: 200 });
   } catch (error) {
-    console.error(error);
-    return new Response(
-      JSON.stringify({ message: "Error populating data", error: error.message }),
-      { status: 500 }
-    );
-  } finally {
-    await prisma.$disconnect();
+    console.error("Error processing Excel file:", error);
+    return NextResponse.json({ message: "Error processing data", error: error.message }, { status: 500 });
   }
 }
 
 function extractClassCourseGroups(rawData) {
-  const metadata = {
-    courseCode: rawData[2][0]?.split(":")[1]?.trim().split(" ")[0] || "Unknown",
-    classType: rawData[3][0]?.split(":")[1]?.trim() || "Unknown",
+  // This metadata is for the entire file.
+  const fileMetadata = {
+    courseCode: rawData[2]?.[0]?.split(":")[1]?.trim().split(" ")[0] || "Unknown",
+    classType: rawData[3]?.[0]?.split(":")[1]?.trim() || "Unknown",
   };
 
-  const classCourseGroups = [];
-  let studentArray = [];
-  let classGroup = "Unknown";
+  const classGroups = [];
+  let currentGroup = null;
 
-  for (let i = 5; i < rawData.length; i++) {
-    const row = rawData[i];
-
-    if (row.some((cell) => typeof cell === "string" && cell.includes("Class Group"))) {
-      classGroup = row.find((cell) => typeof cell === "string" && cell.includes("Class Group")) || "Unknown";
-      classGroup = classGroup.split(":")[1]?.trim();
+  // Helper to save the group we've been building
+  const saveCurrentGroup = () => {
+    if (currentGroup && currentGroup.students.length > 0) {
+      classGroups.push(currentGroup);
     }
+  };
 
-    if (row.some((cell) => typeof cell === "number")) {
-      const student = {
+  for (const row of rawData) {
+    if (row.length === 0 || row.every(cell => !cell)) continue; // Skip empty rows
+
+    const isClassGroupHeader = row.some(
+      (cell) => typeof cell === "string" && cell.includes("Class Group")
+    );
+
+    // Check if a row looks like a student entry (has a number and a student code)
+    const isStudentRow = row.some((cell) => typeof cell === "number") && row[5];
+
+    if (isClassGroupHeader) {
+      // A new class group is starting. Save the previous one first.
+      saveCurrentGroup();
+
+      // Start the new group object
+      const classGroupCell = row.find((cell) => typeof cell === "string" && cell.includes("Class Group"));
+      currentGroup = {
+        ...fileMetadata,
+        classGroup: classGroupCell?.split(":")[1]?.trim() || "Unknown",
+        students: [],
+      };
+    } else if (isStudentRow && currentGroup) {
+      // This is a student row, add it to the current group being built
+      currentGroup.students.push({
         studentCode: row[5],
         name: row[1],
         prog: row[2],
-      };
-      studentArray.push(student);
-    }
-
-    if (
-      (studentArray.length > 0 && row.every((cell) => !cell)) ||
-      (studentArray.length > 0 && i === rawData.length - 1)
-    ) {
-      classCourseGroups.push({
-        ...metadata,
-        classGroup: classGroup,
-        students: studentArray,
       });
-      studentArray = [];
     }
   }
 
-  return classCourseGroups;
+  // After the loop finishes, make sure to save the very last group.
+  saveCurrentGroup();
+
+  return classGroups;
 }
 

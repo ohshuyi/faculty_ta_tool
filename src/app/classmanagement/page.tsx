@@ -1,273 +1,578 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
-import { Table, Button, Modal, message, Spin, List, Input } from "antd";
-import { UploadOutlined, DeleteOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import {
+  Table,
+  Button,
+  Modal,
+  message,
+  Spin,
+  List,
+  Input,
+  Card,
+  Col,
+  Row,
+  Popconfirm,
+  Select,
+  Space,
+  Form,
+  Tabs,
+} from "antd";
+import {
+  UploadOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+  PlusOutlined,
+  UserDeleteOutlined,
+} from "@ant-design/icons";
 import AppLayout from "@/components/Layout";
 import * as XLSX from "xlsx";
 
 const { confirm } = Modal;
+const { Option } = Select;
 
 const ClassManagement = () => {
   const [classes, setClasses] = useState([]);
+  const [filteredClasses, setFilteredClasses] = useState([]);
+  const [allStudents, setAllStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClass, setSelectedClass] = useState(null); // For modals
-  const [isViewModalVisible, setIsViewModalVisible] = useState(false); // Modal to view students
-  const [studentSearchQuery, setStudentSearchQuery] = useState(""); // Search query for students
-  const [file, setFile] = useState(null); // File state
-  const [uploadStatus, setUploadStatus] = useState(""); // Upload status message
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
+  const [file, setFile] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Fetch classes from the API
-  const fetchClasses = async () => {
+  // --- State for Modals ---
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [studentToAdd, setStudentToAdd] = useState(null);
+  const [isMoveModalVisible, setIsMoveModalVisible] = useState(false);
+  const [studentToMove, setStudentToMove] = useState(null);
+  const [filteredMoveGroups, setFilteredMoveGroups] = useState([]);
+  const [moveTargetClassId, setMoveTargetClassId] = useState(null);
+  const [addStudentTab, setAddStudentTab] = useState("existing"); // To track the active tab
+  const [newStudentForm] = Form.useForm();
+  const [moveForm] = Form.useForm();
+  const [courseCodeFilter, setCourseCodeFilter] = useState(null);
+  const [classTypeFilter, setClassTypeFilter] = useState(null);
+
+
+  // --- Data Fetching ---
+  const fetchClasses = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/management");
-      const data = await response.json();
-      setClasses(data);
+      let data = await response.json(); // Use 'let' so we can reassign it
+
+      // --- START: NEW SORTING LOGIC ---
+
+      // Define the desired sort order for class types
+      const sortOrder = {
+        Lab: 1,
+        Tutorial: 2,
+      };
+
+      data.sort((a, b) => {
+        // Assign a sort number to each class type (defaulting to 3 for others)
+        const orderA = sortOrder[a.classType] || 3;
+        const orderB = sortOrder[b.classType] || 3;
+
+        // 1. Primary Sort: By class type (Lab before Tutorial)
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+
+        // 2. Secondary Sort: If types are the same, sort alphabetically by class group
+        return a.classGroup.localeCompare(b.classGroup);
+      });
+
+      // --- END: NEW SORTING LOGIC ---
+
+      setClasses(data); // Set the state with the newly sorted array
     } catch (error) {
       console.error("Error fetching classes:", error);
-      message.error("Failed to fetch classes. Please try again.");
+      message.error("Failed to fetch classes.");
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchClasses();
   }, []);
 
-  // Handle "View Students" Modal
+  const fetchAllStudents = useCallback(async () => {
+    try {
+      const response = await fetch("/api/students");
+      setAllStudents(await response.json());
+    } catch (error) {
+      message.error("Failed to fetch student list.");
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchClasses(), fetchAllStudents()]);
+      setLoading(false);
+    };
+    loadData();
+  }, [fetchClasses, fetchAllStudents]);
+
+  useEffect(() => {
+    // If no class is selected, do nothing.
+    if (!selectedClass) return;
+
+    // After the main 'classes' list is re-fetched, find the updated version
+    // of the class we are currently viewing.
+    const updatedClassInList = classes.find(c => c.id === selectedClass.id);
+
+    // If we found it, update our 'selectedClass' state to match.
+    // This will trigger a re-render of the modal with the fresh student list.
+    if (updatedClassInList) {
+      setSelectedClass(updatedClassInList);
+    }
+
+    // This effect should only run when the main `classes` array changes.
+    // We disable the lint warning because we intentionally don't want to
+    // include `selectedClass` as a dependency, which would cause a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classes]);
+
+  useEffect(() => {
+    let newFilteredClasses = [...classes];
+
+    // Apply course code filter
+    if (courseCodeFilter) {
+      newFilteredClasses = newFilteredClasses.filter(
+        (cls) => cls.courseCode === courseCodeFilter
+      );
+    }
+
+    // Apply class type filter
+    if (classTypeFilter) {
+      newFilteredClasses = newFilteredClasses.filter(
+        (cls) => cls.classType === classTypeFilter
+      );
+    }
+
+    setFilteredClasses(newFilteredClasses);
+  }, [classes, courseCodeFilter, classTypeFilter]);
+
+  // --- Event Handlers ---
+  const handleAddStudent = async () => {
+    if (!selectedClass) return;
+    let success = false;
+
+    if (addStudentTab === "existing") {
+      if (!studentToAdd) return;
+      try {
+        await fetch(`/api/classes/${selectedClass.id}/students`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ studentId: studentToAdd }),
+        });
+        message.success("Student added successfully!");
+        success = true;
+      } catch (error) {
+        message.error("Failed to add student.");
+      }
+    } else { // 'new' tab
+      try {
+        const values = await newStudentForm.validateFields();
+        const response = await fetch(`/api/classes/${selectedClass.id}/students/create`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(values),
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to create student.");
+        }
+        message.success("New student created and added successfully!");
+        success = true;
+      } catch (error) {
+        message.error(error.message);
+      }
+    }
+
+    if (success) {
+      await fetchClasses();
+      await fetchAllStudents();
+      handleAddModalCancel();
+      setIsAddModalVisible(false);
+      newStudentForm.resetFields();
+      setStudentToAdd(null);
+    }
+  };
+
+  const handleRemoveStudent = async (studentId) => {
+    if (!selectedClass) return;
+    try {
+      await fetch(`/api/classes/${selectedClass.id}/students/${studentId}`, {
+        method: "DELETE",
+      });
+      message.success("Student removed successfully!");
+      await fetchClasses();
+    } catch (error) {
+      message.error("Failed to remove student.");
+    }
+  };
+
+  const handleMoveStudent = async () => {
+    if (!studentToMove || !moveTargetClassId || !selectedClass) return;
+    try {
+      await fetch(`/api/students/${studentToMove.id}/move`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fromClassId: selectedClass.id,
+          toClassId: moveTargetClassId,
+        }),
+      });
+      message.success(`${studentToMove.name} moved successfully!`);
+      await fetchClasses();
+    } catch (error) {
+      message.error("Failed to move student.");
+    } finally {
+      handleMoveModalCancel();
+    }
+  };
+
+  // --- File Upload Handlers ---
+  const handleFileChange = (e) => setFile(e.target.files[0]);
+
+  const handleClearFile = () => {
+    setFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null;
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return message.error("Please select a file first.");
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch("/api/management", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      message.success("Class list synced successfully!");
+      handleClearFile();
+      await fetchClasses();
+    } catch (error) {
+      message.error("Failed to process file.");
+    }
+  };
+
+  const handleAddModalCancel = () => {
+    setIsAddModalVisible(false);    // Hide the modal
+    newStudentForm.resetFields();   // Clear the 'Create New Student' form fields
+    setStudentToAdd(null);          // Clear the selection from the 'Add Existing' tab
+    setAddStudentTab('existing');   // Reset the tabs to the default view
+  };
+
+  // --- Modal Control ---
   const showViewStudentModal = (cls) => {
     setSelectedClass(cls);
-    setStudentSearchQuery(""); // Reset the search query
     setIsViewModalVisible(true);
   };
 
-  const closeViewStudentModal = () => {
-    setIsViewModalVisible(false);
-    setSelectedClass(null);
+  const showMoveModal = (student) => {
+    if (!selectedClass) return;
+
+    // 1. Find all classes that have the SAME TYPE as the student's current class,
+    //    but exclude the current class itself.
+    const potentialGroups = classes.filter(
+      (cls) => cls.classType === selectedClass.classType && cls.id !== selectedClass.id
+    );
+
+    // 2. Pre-load the state with this filtered list for the dropdown.
+    setFilteredMoveGroups(potentialGroups);
+
+    // 3. Set the student to move and open the modal.
+    setStudentToMove(student);
+    setIsMoveModalVisible(true);
   };
 
-  // Handle File Change
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+  const handleMoveModalCancel = () => {
+    setIsMoveModalVisible(false);
+    setStudentToMove(null);
+    setFilteredMoveGroups([]);
+    setMoveTargetClassId(null);
+    moveForm.resetFields();
   };
 
-  const handleClearFile = () => {
-    setFile(null); // Clear the file from state
-    setUploadStatus(""); // Clear any status message
-    if (fileInputRef.current) {
-      fileInputRef.current.value = null; // Reset the file input DOM element
-    }
+  const showAddStudentModal = () => {
+    if (!selectedClass) return;
+    // Fetch only the students relevant to the selected class type
+    fetchAllStudents(selectedClass.classType);
+    setIsAddModalVisible(true);
   };
 
-  // Handle File Upload
-  const handleUpload = async (e) => {
-    e.preventDefault();
-    if (!file) {
-      setUploadStatus("Please select a file to upload.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetch("/api/management", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (res.ok) {
-        setUploadStatus("File uploaded successfully!");
-        fetchClasses(); // Refresh the table after successful upload
-        handleClearFile();
-      } else {
-        const error = await res.json();
-        setUploadStatus(`Upload failed: ${error.message}`);
-      }
-    } catch (error) {
-      setUploadStatus(`Error: ${error.message}`);
-    }
+  const handleMoveClassTypeChange = (classType) => {
+    const potentialGroups = classes.filter(
+      (cls) => cls.classType === classType && cls.id !== selectedClass?.id
+    );
+    setFilteredMoveGroups(potentialGroups);
+    setMoveTargetClassId(null);
   };
 
-  // Show confirmation modal before deleting
-  const showDeleteConfirm = (classId) => {
-    confirm({
-      title: "Are you sure you want to delete this class?",
-      icon: <ExclamationCircleOutlined />,
-      content: "This action cannot be undone.",
-      okText: "Yes, Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk() {
-        handleDeleteClass(classId);
-      },
-    });
-  };
-
-  // Handle Deletion of Class Group
   const handleDeleteClass = async (classId) => {
     try {
       const res = await fetch(`/api/management/${classId}`, {
         method: "DELETE",
       });
 
-      if (res.ok) {
-        message.success("Class deleted successfully!");
-        fetchClasses(); // Refresh the table after deletion
-      } else {
-        const error = await res.json();
-        message.error(`Failed to delete class: ${error.message}`);
+      if (!res.ok) {
+        throw new Error("Failed to delete class");
       }
+
+      message.success("Class deleted successfully!");
+      fetchClasses(); // Refresh the table after deletion
     } catch (error) {
       console.error("Error deleting class:", error);
-      message.error("An error occurred. Please try again.");
+      message.error("An error occurred while deleting the class.");
     }
   };
 
-  // Filtered list of students based on search query
-  const filteredStudents = selectedClass?.students.filter((student) =>
+  const filterOption = (input, option) =>
+    (option?.children ?? '').toLowerCase().includes(input.toLowerCase());
+
+  // Filtered list of students for the view modal's search bar
+  const filteredStudents = selectedClass?.students?.filter((student) =>
     student.name.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
     student.studentCode.toLowerCase().includes(studentSearchQuery.toLowerCase())
-  );
+  ) || [];
 
-  // Table columns with filters
+  const courseCodeOptions = useMemo(() => {
+    return [...new Set(classes.map((cls) => cls.courseCode))];
+  }, [classes]);
+
+  // Create a unique list of class types for the filter dropdown
+  const classTypeOptions = useMemo(() => {
+    return [...new Set(classes.map((cls) => cls.classType))];
+  }, [classes]);
+
   const columns = [
-    {
-      title: "Course Code",
-      dataIndex: "courseCode",
-      key: "courseCode",
-    },
+    { title: "Course Code", dataIndex: "courseCode", key: "courseCode" },
     { title: "Class Group", dataIndex: "classGroup", key: "classGroup" },
     { title: "Class Type", dataIndex: "classType", key: "classType" },
     {
       title: "Student Count",
       dataIndex: "students",
       key: "students",
-      render: (students) => students?.length,
+      render: (students) => students?.length || 0,
     },
     {
-      title: "View Students",
-      key: "viewStudents",
+      title: "Actions",
+      key: "actions",
+      align: 'left',
       render: (_, record) => (
-        <Button type="link" onClick={() => showViewStudentModal(record)}>
-          View Students
-        </Button>
-      ),
-    },
-    {
-      title: "Delete",
-      key: "delete",
-      render: (_, record) => (
-        <DeleteOutlined
-          style={{ color: "red", cursor: "pointer" }}
-          onClick={() => showDeleteConfirm(record.id)}
-        />
+        <Space size="middle">
+          <Button type="link" onClick={() => showViewStudentModal(record)}>
+            Manage Class
+          </Button>
+          <Popconfirm
+            title="Delete this class?"
+            description="This action is permanent. Are you sure?"
+            onConfirm={() => handleDeleteClass(record.id)}
+            okText="Yes, Delete"
+            cancelText="No"
+          >
+            <Button icon={<DeleteOutlined />} danger />
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
 
+  if (loading) return <AppLayout><Spin size="large" style={{ display: 'flex', justifyContent: 'center', marginTop: 50 }} /></AppLayout>;
+
   return (
     <AppLayout>
       <div style={{ padding: "24px" }}>
-        {/* Upload Section */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "16px",
-            backgroundColor: "#f9f9f9",
-            borderRadius: "8px",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-            padding: "16px",
-          }}
-        >
-          <h1 style={{ fontSize: "18px", fontWeight: "600", marginBottom: "8px" }}>
-            Upload Class
-          </h1>
-          <form
-            onSubmit={handleUpload}
-            style={{ display: "flex", alignItems: "center", gap: "16px" }}
-          >
-            {/* Group the input and clear icon together */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <input
-                ref={fileInputRef} // Attach the ref here
-                type="file"
-                accept=".xlsx, .xls"
-                onChange={handleFileChange}
-                style={{
-                  padding: "8px",
-                  border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  backgroundColor: "#fff",
-                }}
-              />
-              {/* This icon appears only when a file is selected */}
-              {file && (
-                <DeleteOutlined
-                  onClick={handleClearFile}
-                  style={{ color: "red", cursor: "pointer", fontSize: "16px" }}
-                  title="Clear selection"
-                />
-              )}
-            </div>
-            <button
-              type="submit"
-              style={{
-                padding: "8px 16px",
-                backgroundColor: "#007bff",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "14px",
-              }}
+        <Card title="Upload New Class Roster" style={{ marginBottom: 24 }}>
+          <Space>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleFileChange}
+            />
+            {file && <Button icon={<DeleteOutlined />} onClick={handleClearFile} danger />}
+            <Button icon={<UploadOutlined />} onClick={handleUpload} type="primary" disabled={!file}>
+              Upload and Sync
+            </Button>
+          </Space>
+        </Card>
+
+        <Card title="Filter Classes" style={{ marginBottom: 24 }}>
+          <Space wrap>
+            <Select
+              allowClear
+              showSearch
+              placeholder="Filter by Course Code"
+              style={{ width: 200 }}
+              onChange={(value) => setCourseCodeFilter(value)}
+              filterOption={(input, option) =>
+                (option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+              }
             >
-              Upload
-            </button>
-          </form>
-          {uploadStatus && (
-            <p style={{ marginTop: "8px", color: uploadStatus.includes("successfully") ? "green" : "red" }}>
-              {uploadStatus}
-            </p>
-          )}
-        </div>
+              {courseCodeOptions.map((code) => (
+                <Option key={code} value={code}>{code}</Option>
+              ))}
+            </Select>
 
-        {/* Class Table */}
-        {loading ? (
-          <Spin size="large" style={{ marginTop: "24px", display: "flex", justifyContent: "center" }} />
-        ) : (
-          <Table columns={columns} dataSource={classes} rowKey="id" style={{ marginTop: "24px" }} />
-        )}
+            <Select
+              allowClear
+              showSearch
+              placeholder="Filter by Class Type"
+              style={{ width: 200 }}
+              onChange={(value) => setClassTypeFilter(value)}
+              filterOption={(input, option) =>
+                (option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {classTypeOptions.map((type) => (
+                <Option key={type} value={type}>{type}</Option>
+              ))}
+            </Select>
+          </Space>
+        </Card>
 
-        {/* Modal to view students */}
-        <Modal
-          title={`Students in ${selectedClass?.courseCode} - ${selectedClass?.classGroup}`}
-          visible={isViewModalVisible}
-          onCancel={closeViewStudentModal}
-          footer={null}
-        >
-          <div style={{ marginBottom: "16px" }}>
+        <Table
+          columns={columns}
+          dataSource={filteredClasses}
+          rowKey="id"
+        />
+
+        {/* Modal to VIEW and MANAGE students */}
+        {selectedClass && (
+          <Modal
+            width={600}
+            title={`Manage Roster: ${selectedClass.courseCode} - ${selectedClass.classGroup}`}
+            open={isViewModalVisible}
+            onCancel={() => setIsViewModalVisible(false)}
+            // The "Add Student" button is removed from the footer
+            footer={[
+              <Button key="close" onClick={() => setIsViewModalVisible(false)}>
+                Done
+              </Button>,
+            ]}
+          >
+            {/* The search bar remains here */}
             <Input
-              placeholder="Search for a student"
-              onChange={(e) => setStudentSearchQuery(e.target.value)} // Update search query
+              placeholder="Search students in this class"
+              onChange={(e) => setStudentSearchQuery(e.target.value)}
+              style={{ marginBottom: 16 }}
               allowClear
             />
-          </div>
-          {selectedClass && selectedClass.students.length > 0 ? (
+
+            {/* The "Add Student" button is now placed here, below the search bar */}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setIsAddModalVisible(true)}
+              style={{ marginBottom: 16 }}
+            >
+              Add Student
+            </Button>
+
             <List
-              dataSource={filteredStudents} // Use the filtered list
+              dataSource={filteredStudents}
               renderItem={(student) => (
-                <List.Item>
+                <List.Item
+                  actions={[
+                    <Button key="move" type="link" onClick={() => showMoveModal(student)}>Move</Button>,
+                    <Popconfirm
+                      key="remove"
+                      title="Remove this student from the class?"
+                      onConfirm={() => handleRemoveStudent(student.id)}
+                    >
+                      <Button icon={<UserDeleteOutlined />} type="text" danger />
+                    </Popconfirm>,
+                  ]}
+                >
                   {student.name} ({student.studentCode})
                 </List.Item>
               )}
             />
-          ) : (
-            <p>No students found for this class.</p>
-          )}
+          </Modal>
+        )}
+
+        {/* Modal to ADD a student */}
+        <Modal
+          title={`Add Student to ${selectedClass?.courseCode} - ${selectedClass?.classGroup}`}
+          open={isAddModalVisible}
+          onOk={handleAddStudent}
+          onCancel={handleAddModalCancel}
+          okText="Add Student"
+        >
+          <Tabs defaultActiveKey="existing" onChange={(key) => setAddStudentTab(key)}>
+            <Tabs.TabPane tab="Add Existing Student" key="existing">
+              <Select
+                showSearch
+                placeholder="Search for an existing student to add"
+                style={{ width: "100%" }}
+                onChange={(value) => setStudentToAdd(value)}
+                filterOption={(input, option) =>
+                  (option?.children ?? "").toLowerCase().includes(input.toLowerCase())
+                }
+              >
+                {allStudents.map((student) => (
+                  <Option key={student.id} value={student.id}>
+                    {`${student.name} (${student.studentCode})`}
+                  </Option>
+                ))}
+              </Select>
+            </Tabs.TabPane>
+            <Tabs.TabPane tab="Create New Student" key="new">
+              <Form form={newStudentForm} layout="vertical">
+                <Form.Item name="name" label="Student Name" rules={[{ required: true }]}>
+                  <Input placeholder="Enter student's full name" onChange={(e) => {
+                    newStudentForm.setFieldsValue({ name: e.target.value.toUpperCase() });
+                  }} />
+                </Form.Item>
+                <Form.Item name="studentCode" label="Student Code" rules={[{ required: true }]}>
+                  <Input placeholder="Enter unique student code (e.g., KE001TAN)"
+                    onChange={(e) => {
+                      newStudentForm.setFieldsValue({ studentCode: e.target.value.toUpperCase() });
+                    }} />
+                </Form.Item>
+                <Form.Item name="prog" label="Program" rules={[{ required: true }]}>
+                  <Input placeholder="Enter student's program (e.g., CSC3, DSAI1)" />
+                </Form.Item>
+              </Form>
+            </Tabs.TabPane>
+          </Tabs>
+        </Modal>
+
+        {/* Modal to MOVE a student */}
+        <Modal
+          title={`Move ${studentToMove?.name}`}
+          open={isMoveModalVisible}
+          onOk={handleMoveStudent}
+          onCancel={handleMoveModalCancel}
+          okText="Confirm Move"
+          okButtonProps={{ disabled: !moveTargetClassId }}
+        >
+          <p>
+            Moving from <strong>{selectedClass?.classGroup}</strong> ({selectedClass?.classType}).
+          </p>
+
+          <Form form={moveForm} layout="vertical">
+            <Form.Item
+              label={`Select New ${selectedClass?.classType} Group`}
+              name="toClassId"
+            >
+              <Select
+                placeholder="Search or select a new class group"
+                onChange={(value) => setMoveTargetClassId(value)}
+                showSearch
+                filterOption={filterOption}
+              >
+                {filteredMoveGroups.map((cls) => (
+                  <Option key={cls.id} value={cls.id}>
+                    {`${cls.courseCode} - ${cls.classGroup}`}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Form>
         </Modal>
       </div>
     </AppLayout>

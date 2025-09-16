@@ -2,15 +2,30 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req) {
   try {
+    const url = new URL(req.url);
+    const classType = url.searchParams.get("classType"); // Check for a classType filter
+
+    const whereCondition = {};
+
+    // If a classType is provided, add a filter to the query
+    if (classType) {
+      whereCondition.classes = {
+        some: { // Find students who have at least one class that matches
+          classType: {
+            equals: classType,
+          },
+        },
+      };
+    }
+
     const students = await prisma.student.findMany({
-      select: {
-        id: true,
-        name: true,
-      },
+      where: whereCondition,
+      orderBy: { name: 'asc' },
     });
-    return NextResponse.json(students, { status: 200 });
+    
+    return NextResponse.json(students);
   } catch (error) {
     console.error("Error fetching students:", error);
     return NextResponse.json({ error: "Failed to fetch students" }, { status: 500 });
