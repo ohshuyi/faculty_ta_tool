@@ -8,10 +8,13 @@ import {
   Select,
   message,
   Upload,
+  Card,
+  Divider,
   DatePicker,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useSession } from "next-auth/react";
+import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -26,6 +29,9 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   const [selectedCourseCode, setSelectedCourseCode] = useState(null);
   const [filteredClassGroups, setFilteredClassGroups] = useState([]);
   const [filteredClassTypes, setFilteredClassTypes] = useState([]);
+
+  const [aiDescription, setAiDescription] = useState("");
+  const [generating, setGenerating] = useState(false);
 
   const filterOption = (input, option) =>
     (option?.children ?? '').toLowerCase().includes(input.toLowerCase());
@@ -90,6 +96,62 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
     form.setFieldsValue({ classId: undefined });
   };
 
+const handleGenerateDetails = async () => {
+    if (!aiDescription) {
+      return message.warning("Please describe the task in the text box first.");
+    }
+    setGenerating(true);
+    try {
+      const response = await fetch('/api/generate-details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: aiDescription }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "AI generation failed.");
+      }
+
+      console.log(data);
+      
+      // 1. Find the target class ID from the AI-generated data
+      const targetClass = data.classGroup 
+        ? classes.find(c => c.courseCode === data.courseCode && c.classGroup === data.classGroup) 
+        : null;
+
+      // 2. Set ALL form values in a single, reliable call
+      form.setFieldsValue({
+        name: data.name,
+        details: data.details,
+        courseCode: data.courseCode,
+        classType: data.classType,
+        classId: targetClass?.id, // Use the ID we found
+        dueDate: data.dueDate ? dayjs(data.dueDate, 'YYYY-MM-DD') : null,
+      });
+
+      // 3. Manually update the states that populate the dropdown OPTIONS
+      if (data.courseCode) {
+        const courseClasses = classes.filter((cls) => cls.courseCode === data.courseCode);
+        const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
+        setFilteredClassTypes(uniqueTypes);
+        setSelectedCourseCode(data.courseCode); // Also update the selected course code state
+      }
+      if (data.courseCode && data.classType) {
+        const groupsForType = classes.filter(
+          (cls) => cls.courseCode === data.courseCode && cls.classType === data.classType
+        );
+        setFilteredClassGroups(groupsForType);
+      }
+
+      message.success("Details generated successfully!");
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   // Handle form submission
   const onFinish = async (values) => {
     setLoading(true);
@@ -136,7 +198,25 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
       footer={null}
       width={800} // Increase modal width if needed
     >
-      <Form layout="vertical" onFinish={onFinish}>
+      <Card title="Describe Task with AI" style={{ marginBottom: 24 }}>
+        <TextArea
+          rows={3}
+          placeholder="e.g., 'Grade the mid-term exams for SC2207 Lab Group 1, due next Friday'"
+          value={aiDescription}
+          onChange={(e) => setAiDescription(e.target.value)}
+        />
+        <Button
+          type="primary"
+          onClick={handleGenerateDetails}
+          loading={generating}
+          style={{ marginTop: 16 }}
+        >
+          Generate Details
+        </Button>
+      </Card>
+
+      <Divider>Or Fill Manually</Divider>
+      <Form form={form} layout="vertical" onFinish={onFinish}>
         <Form.Item
           label="Task Name"
           name="name"
