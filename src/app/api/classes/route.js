@@ -1,15 +1,45 @@
 import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const prisma = new PrismaClient();
 
 export async function GET(req) {
   try {
-    // Use groupBy to fetch distinct classGroup
-    const classes = await prisma.class.findMany({
-      include: {
-        students: true,
-      },
-    });
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return new Response(JSON.stringify({ message: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const userRole = session.user.role;
+    const userId = session.user.id;
+
+    let classes;
+
+    if (userRole === 'TA') {
+      classes = await prisma.class.findMany({
+        where: {
+          assignedTAs: {
+            some: {
+              id: userId,
+            },
+          },
+        },
+        include: {
+          students: true,
+        },
+      });
+    } else {
+      classes = await prisma.class.findMany({
+        include: {
+          students: true,
+        },
+      });
+    }
 
     return new Response(JSON.stringify(classes), {
       status: 200,

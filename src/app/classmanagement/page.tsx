@@ -26,6 +26,8 @@ import {
 } from "@ant-design/icons";
 import AppLayout from "@/components/Layout";
 import * as XLSX from "xlsx";
+import AssignTAsModal from "@/components/AssignTAsModal";
+import { useSession } from "next-auth/react";
 
 const { confirm } = Modal;
 const { Option } = Select;
@@ -53,14 +55,23 @@ const ClassManagement = () => {
   const [moveForm] = Form.useForm();
   const [courseCodeFilter, setCourseCodeFilter] = useState(null);
   const [classTypeFilter, setClassTypeFilter] = useState(null);
+  const [isAssignTAsModalVisible, setIsAssignTAsModalVisible] = useState(false);
 
+  const { data: session, status } = useSession();
+  const userRole = session?.user?.role;
 
   // --- Data Fetching ---
   const fetchClasses = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch("/api/management");
-      let data = await response.json(); // Use 'let' so we can reassign it
+      let data = await response.json();
+
+      // Ensure data is an array before sorting
+      if (!Array.isArray(data)) {
+        console.warn("API returned non-array data for classes:", data);
+        data = []; // Default to an empty array to prevent sort errors
+      }
 
       // --- START: NEW SORTING LOGIC ---
 
@@ -110,8 +121,14 @@ const ClassManagement = () => {
       await Promise.all([fetchClasses(), fetchAllStudents()]);
       setLoading(false);
     };
-    loadData();
-  }, [fetchClasses, fetchAllStudents]);
+
+    if (status === "authenticated") {
+      loadData();
+    } else if (status === "unauthenticated") {
+      // Handle unauthenticated state, e.g., redirect to login
+      setLoading(false); // Stop loading if unauthenticated
+    }
+  }, [fetchClasses, fetchAllStudents, status]);
 
   useEffect(() => {
     // If no class is selected, do nothing.
@@ -363,24 +380,32 @@ const ClassManagement = () => {
       align: 'left',
       render: (_, record) => (
         <Space size="middle">
-          <Button type="link" onClick={() => showViewStudentModal(record)}>
-            Manage Class
-          </Button>
-          <Popconfirm
-            title="Delete this class?"
-            description="This action is permanent. Are you sure?"
-            onConfirm={() => handleDeleteClass(record.id)}
-            okText="Yes, Delete"
-            cancelText="No"
-          >
-            <Button icon={<DeleteOutlined />} danger />
-          </Popconfirm>
+          {userRole === 'PROFESSOR' || userRole === 'ADMIN' ? (
+            <>
+              <Button type="link" onClick={() => showViewStudentModal(record)}>
+                Manage Class
+              </Button>
+              <Popconfirm
+                title="Delete this class?"
+                description="This action is permanent. Are you sure?"
+                onConfirm={() => handleDeleteClass(record.id)}
+                okText="Yes, Delete"
+                cancelText="No"
+              >
+                <Button icon={<DeleteOutlined />} danger />
+              </Popconfirm>
+            </>
+          ) : (
+            <Button type="link" onClick={() => showViewStudentModal(record)}>
+              View Students
+            </Button>
+          )}
         </Space>
       ),
     },
   ];
 
-  if (loading) return <AppLayout><Spin size="large" style={{ display: 'flex', justifyContent: 'center', marginTop: 50 }} /></AppLayout>;
+  if (status === "loading" || loading) return <AppLayout><Spin size="large" style={{ display: 'flex', justifyContent: 'center', marginTop: 50 }} /></AppLayout>;
 
   return (
     <AppLayout>
@@ -399,6 +424,14 @@ const ClassManagement = () => {
             </Button>
           </Space>
         </Card>
+
+        {userRole === 'PROFESSOR' && (
+          <Card title="Assign TAs" style={{ marginBottom: 24 }}>
+            <Button onClick={() => setIsAssignTAsModalVisible(true)}>
+              Assign TAs to Classes
+            </Button>
+          </Card>
+        )}
 
         <Card title="Filter Classes" style={{ marginBottom: 24 }}>
           <Space wrap>
@@ -440,6 +473,11 @@ const ClassManagement = () => {
           rowKey="id"
         />
 
+        <AssignTAsModal
+          visible={isAssignTAsModalVisible}
+          onCancel={() => setIsAssignTAsModalVisible(false)}
+        />
+
         {/* Modal to VIEW and MANAGE students */}
         {selectedClass && (
           <Modal
@@ -463,29 +501,35 @@ const ClassManagement = () => {
             />
 
             {/* The "Add Student" button is now placed here, below the search bar */}
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setIsAddModalVisible(true)}
-              style={{ marginBottom: 16 }}
-            >
-              Add Student
-            </Button>
+            {(userRole === 'PROFESSOR' || userRole === 'ADMIN') && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setIsAddModalVisible(true)}
+                style={{ marginBottom: 16 }}
+              >
+                Add Student
+              </Button>
+            )}
 
             <List
               dataSource={filteredStudents}
               renderItem={(student) => (
                 <List.Item
                   actions={[
-                    <Button key="move" type="link" onClick={() => showMoveModal(student)}>Move</Button>,
-                    <Popconfirm
-                      key="remove"
-                      title="Remove this student from the class?"
-                      onConfirm={() => handleRemoveStudent(student.id)}
-                    >
-                      <Button icon={<UserDeleteOutlined />} type="text" danger />
-                    </Popconfirm>,
-                  ]}
+                    (userRole === 'PROFESSOR' || userRole === 'ADMIN') && (
+                      <Button key="move" type="link" onClick={() => showMoveModal(student)}>Move</Button>
+                    ),
+                    (userRole === 'PROFESSOR' || userRole === 'ADMIN') && (
+                      <Popconfirm
+                        key="remove"
+                        title="Remove this student from the class?"
+                        onConfirm={() => handleRemoveStudent(student.id)}
+                      >
+                        <Button icon={<UserDeleteOutlined />} type="text" danger />
+                      </Popconfirm>
+                    ),
+                  ].filter(Boolean)}
                 >
                   {student.name} ({student.studentCode})
                 </List.Item>

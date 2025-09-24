@@ -1,17 +1,48 @@
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import * as XLSX from "xlsx";
-const prisma = new PrismaClient();
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
+const prisma = new PrismaClient();
 
 export async function GET(req) {
   try {
-    // Fetch all classes with their students
-    const classes = await prisma.class.findMany({
-      include: {
-        students: true, // Include related students for each class
-      },
-    });
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user) {
+      return new Response(JSON.stringify({ message: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const userRole = session.user.role;
+    const userId = session.user.id;
+
+    let classes;
+
+    if (userRole === 'TA') {
+      classes = await prisma.class.findMany({
+        where: {
+          assignedTAs: {
+            some: {
+              id: userId,
+            },
+          },
+        },
+        include: {
+          students: true,
+        },
+      });
+    } else {
+      // Fetch all classes with their students
+      classes = await prisma.class.findMany({
+        include: {
+          students: true, // Include related students for each class
+        },
+      });
+    }
 
     return new Response(JSON.stringify(classes), {
       status: 200,

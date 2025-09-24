@@ -76,6 +76,7 @@ model User {
   // New relations for tasks
   assignedTATasks         Task[]   @relation("TATasks")        // Tasks where the user is a TA
   assignedProfessorTasks  Task[]   @relation("ProfessorTasks") // Tasks where the user is a Professor
+  assignedClasses         Class[]  @relation("TAClasses")
 }
 
 
@@ -107,6 +108,7 @@ model Class {
   tasks       Task[]    @relation("TaskClasses")
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  assignedTAs User[]    @relation("TAClasses")
   @@unique([courseCode, classGroup, classType])
 }
 
