@@ -11,8 +11,8 @@ on:
   workflow_dispatch:
 
 env:
-  APPLICATION_PUBLISH_PROFILE: ${{ secrets.APP_PUBLISH_PROFILE }}
-  WEBAPP_NAME: "faculty-ta"
+  APPLICATION_PUBLISH_PROFILE: ${{ secrets.APP_PUBLISH_PROFILE_SANDBOX }}
+  WEBAPP_NAME: "faculty-ta-sandbox"
 
 jobs:
   build:
@@ -60,7 +60,7 @@ jobs:
       #     path: ./build/standalone/
       - name: npm build and test
         env:
-              DATABASE_URL: ${{ secrets.DATABASE_URL }}
+              DATABASE_URL: ${{ secrets.DATABASE_URL_SANDBOX }}
         run: |
           npm run build --if-present
           npm run test --if-present
@@ -96,7 +96,7 @@ jobs:
         with:
           app-name: 'faculty-ta'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.APP_PUBLISH_PROFILE }}
+          publish-profile: ${{ secrets.APP_PUBLISH_PROFILE_SANDBOX }}
           package: .
 
   # deploy:

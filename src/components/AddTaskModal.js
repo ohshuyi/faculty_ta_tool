@@ -201,7 +201,7 @@ const handleGenerateDetails = async () => {
       <Card title="Describe Task with AI" style={{ marginBottom: 24 }}>
         <TextArea
           rows={3}
-          placeholder="e.g., 'Grade the mid-term exams for SC2207 Lab Group 1, due next Friday'"
+          placeholder="e.g., 'Grade the mid-term exams for SC2207 Lab Group SCMA, due next Friday'"
           value={aiDescription}
           onChange={(e) => setAiDescription(e.target.value)}
         />
