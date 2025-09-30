@@ -1,13 +1,12 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy Node.js app to Azure Web App - faculty-ta
+name: Build and deploy Node.js app to Azure Web App - faculty-ta-sandbox
 
 
 on:
   push:
     branches:
-      - main
       - version2
   workflow_dispatch:
 
@@ -80,7 +79,7 @@ jobs:
     needs: build
     environment:
       name: 'Production'
-      url: https://faculty-ta.azurewebsites.net
+      url: https://faculty-ta-sandbox.azurewebsites.net
 
     steps:
       - name: Download artifact from build job
@@ -95,7 +94,7 @@ jobs:
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'faculty-ta'
+          app-name: 'faculty-ta-sandbox'
           slot-name: 'Production'
           publish-profile: ${{ secrets.APP_PUBLISH_PROFILE_SANDBOX }}
           package: .
