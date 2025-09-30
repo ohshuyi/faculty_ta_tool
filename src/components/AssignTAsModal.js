@@ -143,18 +143,19 @@ const AssignTAsModal = ({ visible, onCancel }) => {
           confirmLoading={loading}
         >
           <Alert
-            message="How to Assign and Unassign Classes"
-            description={
-              <>
-                To <b>ASSIGN</b> a class, select a class from the <b>'Available Classes'</b> list and click the <b>'&gt; Assign'</b> button.
-                <br />
-                To <b>UNASSIGN</b> a class, select a class from the <b>'Assigned Classes'</b> list and click the <b>'&lt; Unassign'</b> button.
-              </>
-            }
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
+  message="How to Assign and Unassign Classes"
+  description={
+    <>
+      To assign a class, select it from the &apos;Available&apos; list and click the &apos;Assign &gt;&apos; button.
+      <br />
+      <br />
+      To unassign, select a class from the &apos;Assigned&apos; list and click the &apos;&lt; Unassign&apos; button.
+    </>
+  }
+  type="info"
+  showIcon
+  style={{ marginBottom: 16 }}
+/>
 
           <Transfer
             dataSource={allClasses}

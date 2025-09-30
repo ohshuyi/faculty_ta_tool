@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+"use client";
+import React, { useState, useEffect, useMemo } from "react"; // Import useMemo
 import { Collapse, List, Avatar, Select } from "antd";
 
 const { Panel } = Collapse;
 const { Option } = Select;
 
-// Sample ticket data
 const ticketsData = [
   { id: 1, ticketDescription: "Fix backend issue", priority: "high", professor: "Prof. John Doe", ta: "TA Mark Lee" },
   { id: 2, ticketDescription: "Update syllabus", priority: "medium", professor: "Prof. Jane Smith", ta: "TA Anna Kim" },
@@ -14,25 +14,25 @@ const ticketsData = [
 
 const CustomDynamicGroupList = () => {
   const [grouping, setGrouping] = useState("priority");
-  const [groupedData, setGroupedData] = useState({});
 
-  // Dynamically group tickets based on the selected criterion
-  const groupTickets = () => {
-    const grouped = ticketsData.reduce((acc, ticket) => {
-      const key = ticket[grouping] || "Uncategorized";  // Group by dynamic key
+  // 1. Calculate groupedData with useMemo instead of useEffect
+  const groupedData = useMemo(() => {
+    return ticketsData.reduce((acc, ticket) => {
+      const key = ticket[grouping] || "Uncategorized";
       if (!acc[key]) {
         acc[key] = [];
       }
       acc[key].push(ticket);
       return acc;
     }, {});
-    setGroupedData(grouped);
-  };
+  }, [grouping]); // Only re-calculates when 'grouping' changes
 
-  // Re-group tickets when the user changes the grouping criteria
+  // 2. Control the active (open) panels with state for a better UX
+  const [activeKeys, setActiveKeys] = useState([]);
   useEffect(() => {
-    groupTickets();
-  }, [grouping]);
+    setActiveKeys(Object.keys(groupedData));
+  }, [groupedData]);
+
 
   return (
     <div style={{ padding: "16px" }}>
@@ -46,7 +46,7 @@ const CustomDynamicGroupList = () => {
         <Option value="ta">Teaching Assistant</Option>
       </Select>
 
-      <Collapse defaultActiveKey={Object.keys(groupedData)} ghost>
+      <Collapse activeKey={activeKeys} onChange={setActiveKeys} ghost>
         {Object.keys(groupedData).map((group) => (
           <Panel header={group} key={group}>
             <List
