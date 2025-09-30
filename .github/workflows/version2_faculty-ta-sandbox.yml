@@ -78,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: 'sandbox'
       url: https://faculty-ta-sandbox.azurewebsites.net
 
     steps:
