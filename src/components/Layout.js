@@ -37,6 +37,7 @@ const AppLayout = ({ children }) => {
     { label: <Link href="/task">Task</Link>, key: "task" },
     { label: <Link href="/ticket">Tickets</Link>, key: "ticket" },
     { label: <Link href="/history">History</Link>, key: "history" },
+    { key: 'timesheet', label: <Link href="/timesheet">Timesheet</Link> },
     { label: <Link href="/classmanagement">Management</Link>, key: "classmanagement" },
   ];
 

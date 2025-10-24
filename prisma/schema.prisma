@@ -77,6 +77,8 @@ model User {
   assignedTATasks         Task[]   @relation("TATasks")        // Tasks where the user is a TA
   assignedProfessorTasks  Task[]   @relation("ProfessorTasks") // Tasks where the user is a Professor
   assignedClasses         Class[]  @relation("TAClasses")
+
+  timesheets Timesheet[] @relation("UserTimesheets")
 }
 
 
@@ -121,4 +123,32 @@ model Student {
   classes     Class[]   @relation("ClassStudents") // Many-to-many relationship
   createdAt   DateTime  @default(now())
   tickets     Ticket[]  @relation("StudentTickets") // Relation back to Ticket
+}
+
+model Timesheet {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation("UserTimesheets", fields: [userId], references: [id], onDelete: Cascade)
+  period    String    // e.g., "AY25/26 Semester 1"
+  status    String    @default("Draft") // "Pending", "Approved"
+  totalHours Decimal  @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  entries   TimesheetEntry[]
+
+  @@unique([userId, period])
+}
+
+model TimesheetEntry {
+  id          Int      @id @default(autoincrement())
+  timesheetId Int
+  timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  date        DateTime
+  hours       Decimal
+  courseCode  String   // NEW: Store the course code (e.g., "SC2207")
+  classDetails String  // NEW: Store combined type/group (e.g., "Lab - BCG1")
+  weekNumber  Int
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
