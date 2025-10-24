@@ -16,6 +16,7 @@ import {
   Space,
   Form,
   Tabs,
+  Radio,
 } from "antd";
 import {
   UploadOutlined,
@@ -59,6 +60,11 @@ const ClassManagement = () => {
 
   const { data: session, status } = useSession();
   const userRole = session?.user?.role;
+
+  const [potentialMatches, setPotentialMatches] = useState([]);
+  const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
+  const [selectedExistingStudentId, setSelectedExistingStudentId] = useState(null);
+  const [newStudentData, setNewStudentData] = useState(null);
 
   // --- Data Fetching ---
   const fetchClasses = useCallback(async () => {
@@ -173,48 +179,162 @@ const ClassManagement = () => {
   // --- Event Handlers ---
   const handleAddStudent = async () => {
     if (!selectedClass) return;
-    let success = false;
 
-    if (addStudentTab === "existing") {
-      if (!studentToAdd) return;
-      try {
-        await fetch(`/api/classes/${selectedClass.id}/students`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ studentId: studentToAdd }),
-        });
-        message.success("Student added successfully!");
-        success = true;
-      } catch (error) {
-        message.error("Failed to add student.");
+    let success = false;
+    let studentNameAdded = ''; // Store the name for the confirmation message
+
+    try {
+      // Logic for creating and adding a new student
+      const values = await newStudentForm.validateFields();
+      setNewStudentData(values); // Store data for potential confirmation step
+
+      // Check for similar names in the same class type
+      const searchResponse = await fetch(
+        `/api/students/search?name=${encodeURIComponent(values.name)}&classType=${encodeURIComponent(selectedClass.classType)}`
+      );
+      if (!searchResponse.ok) throw new Error("Failed to check for duplicates.");
+      const matches = await searchResponse.json();
+
+      const similarNameMatches = matches.filter(s => s.studentCode.toUpperCase() !== values.studentCode.toUpperCase());
+
+      if (similarNameMatches.length > 0) {
+        // Found similar names: Show confirmation modal
+        setPotentialMatches(similarNameMatches);
+        setSelectedExistingStudentId(null);
+        setIsConfirmModalVisible(true);
+        // Do not mark as success yet, wait for confirmation modal
+      } else {
+        // No similar names found: Proceed directly to create
+        await createNewStudent(values);
+        success = true; // Mark as successful
+        studentNameAdded = values.name;
       }
-    } else { // 'new' tab
-      try {
-        const values = await newStudentForm.validateFields();
-        const response = await fetch(`/api/classes/${selectedClass.id}/students/create`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(values),
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to create student.");
+    } catch (error) {
+      // Catch errors from API calls (like duplicate check or create)
+      console.log(error.message || "An error occurred during the add process.");
+    }
+
+    // --- THIS BLOCK WAS MISSING ---
+    // If the creation was directly successful (no duplicates found)
+    if (success && !isConfirmModalVisible) {
+      await fetchClasses();
+      await fetchAllStudents();
+
+      // Show Confirmation Dialog
+      Modal.confirm({
+        title: `${studentNameAdded} added successfully!`,
+        content: 'Do you want to add another student?',
+        okText: 'Yes, Add Another',
+        cancelText: 'No, Close',
+        onOk() {
+          // Reset for adding another
+          newStudentForm.resetFields();
+          setNewStudentData(null);
+          // Keep the modal open
+        },
+        onCancel() {
+          // Close the modal and reset everything
+          handleAddModalCancel();
+        },
+      });
+    }
+  };
+
+
+  const createNewStudent = async (studentData) => {
+    try {
+      const response = await fetch(`/api/classes/${selectedClass.id}/students/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(studentData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create student.");
+      }
+      message.success("New student created and added successfully!");
+      await fetchClasses();
+      await fetchAllStudents(); // Refresh student list
+    } catch (error) {
+      throw error; // Re-throw to be caught by handleAddStudent
+    }
+  };
+
+  const handleConfirmModalOk = async () => {
+    let success = false;
+    let studentNameProcessed = '';
+
+    try {
+      if (selectedExistingStudentId) {
+        // User chose to MOVE an existing student
+        const studentToMove = potentialMatches.find(s => s.id === selectedExistingStudentId);
+        const currentClassOfStudent = studentToMove.classes[0]; // Assuming student is in only one class of this type
+
+        if (!currentClassOfStudent) {
+          message.error("Could not determine the student's current class.");
+          return;
         }
-        message.success("New student created and added successfully!");
-        success = true;
-      } catch (error) {
-        message.error(error.message);
+
+        // Call the move API
+        try {
+          await fetch(`/api/students/${selectedExistingStudentId}/move`, {
+            method: 'POST',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fromClassId: currentClassOfStudent.id,
+              toClassId: selectedClass.id,
+            }),
+          });
+          message.success(`${studentToMove.name} moved successfully!`);
+          await fetchClasses();
+          success = true;
+        } catch (error) {
+          message.error("Failed to move student.");
+        }
+
       }
+      else {
+        // User chose to CREATE NEW despite matches
+        studentNameProcessed = newStudentData.name;
+        await createNewStudent(newStudentData);
+        // Success message is inside createNewStudent
+        success = true;
+      }
+    } catch (error) {
+      // message.error is handled within createNewStudent or the move logic's catch block
+    } finally {
+      handleConfirmModalCancel(); // Always close confirm modal
     }
 
     if (success) {
       await fetchClasses();
       await fetchAllStudents();
-      handleAddModalCancel();
-      setIsAddModalVisible(false);
-      newStudentForm.resetFields();
-      setStudentToAdd(null);
+
+      // Ask if user wants to add another student AFTER the confirm modal is handled
+      Modal.confirm({
+        title: `${studentNameProcessed} processed successfully!`, // Generic success
+        content: 'Do you want to add another student?',
+        okText: 'Yes, Add Another',
+        cancelText: 'No, Close',
+        onOk() {
+          // Reset for adding another
+          newStudentForm.resetFields();
+          setNewStudentData(null);
+          setIsAddModalVisible(true); // Re-open the main add modal
+        },
+        onCancel() {
+          // Close the main add modal
+          handleAddModalCancel();
+        },
+      });
     }
+  };
+
+  const handleConfirmModalCancel = () => {
+    setIsConfirmModalVisible(false);
+    setPotentialMatches([]);
+    setNewStudentData(null);
+    setSelectedExistingStudentId(null);
   };
 
   const handleRemoveStudent = async (studentId) => {
@@ -242,11 +362,28 @@ const ClassManagement = () => {
         }),
       });
       message.success(`${studentToMove.name} moved successfully!`);
+      const studentNameMoved = studentToMove.name; // Get name before resetting
       await fetchClasses();
+
+      // --- NEW: Show Confirmation Dialog ---
+      Modal.confirm({
+        title: `${studentNameMoved} moved successfully!`,
+        content: 'Do you want to move another student from this class?',
+        okText: 'Yes, Move Another',
+        cancelText: 'No, Close',
+        onOk() {
+          // Reset for moving another (from the current class view)
+          handleMoveModalCancel(); // Close the 'Move' modal first
+          // Keep the 'View Roster' modal open (isViewModalVisible is already true)
+        },
+        onCancel() {
+          // Close both modals
+          handleMoveModalCancel();
+          setIsViewModalVisible(false); // Close the roster view as well
+        },
+      });
     } catch (error) {
       message.error("Failed to move student.");
-    } finally {
-      handleMoveModalCancel();
     }
   };
 
@@ -311,21 +448,6 @@ const ClassManagement = () => {
     setFilteredMoveGroups([]);
     setMoveTargetClassId(null);
     moveForm.resetFields();
-  };
-
-  const showAddStudentModal = () => {
-    if (!selectedClass) return;
-    // Fetch only the students relevant to the selected class type
-    fetchAllStudents(selectedClass.classType);
-    setIsAddModalVisible(true);
-  };
-
-  const handleMoveClassTypeChange = (classType) => {
-    const potentialGroups = classes.filter(
-      (cls) => cls.classType === classType && cls.id !== selectedClass?.id
-    );
-    setFilteredMoveGroups(potentialGroups);
-    setMoveTargetClassId(null);
   };
 
   const handleDeleteClass = async (classId) => {
@@ -540,49 +662,60 @@ const ClassManagement = () => {
 
         {/* Modal to ADD a student */}
         <Modal
-          title={`Add Student to ${selectedClass?.courseCode} - ${selectedClass?.classGroup}`}
+          title={`Add New Student to ${selectedClass?.courseCode} - ${selectedClass?.classGroup}`}
           open={isAddModalVisible}
-          onOk={handleAddStudent}
+          onOk={handleAddStudent} // Trigger the check logic
           onCancel={handleAddModalCancel}
-          okText="Add Student"
+          okText="Check & Add Student"
+        // Consider adding loading state feedback
         >
-          <Tabs defaultActiveKey="existing" onChange={(key) => setAddStudentTab(key)}>
-            <Tabs.TabPane tab="Add Existing Student" key="existing">
-              <Select
-                showSearch
-                placeholder="Search for an existing student to add"
-                style={{ width: "100%" }}
-                onChange={(value) => setStudentToAdd(value)}
-                filterOption={(input, option) =>
-                  (option?.children ?? "").toLowerCase().includes(input.toLowerCase())
-                }
-              >
-                {allStudents.map((student) => (
-                  <Option key={student.id} value={student.id}>
-                    {`${student.name} (${student.studentCode})`}
-                  </Option>
-                ))}
-              </Select>
-            </Tabs.TabPane>
-            <Tabs.TabPane tab="Create New Student" key="new">
-              <Form form={newStudentForm} layout="vertical">
-                <Form.Item name="name" label="Student Name" rules={[{ required: true }]}>
-                  <Input placeholder="Enter student's full name" onChange={(e) => {
-                    newStudentForm.setFieldsValue({ name: e.target.value.toUpperCase() });
-                  }} />
-                </Form.Item>
-                <Form.Item name="studentCode" label="Student Code" rules={[{ required: true }]}>
-                  <Input placeholder="Enter unique student code (e.g., KE001TAN)"
-                    onChange={(e) => {
-                      newStudentForm.setFieldsValue({ studentCode: e.target.value.toUpperCase() });
-                    }} />
-                </Form.Item>
-                <Form.Item name="prog" label="Program" rules={[{ required: true }]}>
-                  <Input placeholder="Enter student's program (e.g., CSC3, DSAI1)" />
-                </Form.Item>
-              </Form>
-            </Tabs.TabPane>
-          </Tabs>
+          {/* Only the Create New Student Form */}
+          <Form form={newStudentForm} layout="vertical">
+            <Form.Item name="name" label="Student Name" rules={[{ required: true }]}>
+              <Input placeholder="Enter student's full name" onChange={(e) => {
+                newStudentForm.setFieldsValue({ name: e.target.value.toUpperCase() });
+              }} />
+            </Form.Item>
+            <Form.Item name="studentCode" label="Student Code" rules={[{ required: true }]}>
+              <Input placeholder="Enter unique student code (e.g., KE001TAN)" onChange={(e) => {
+                newStudentForm.setFieldsValue({ studentCode: e.target.value.toUpperCase() });
+              }} />
+            </Form.Item>
+            <Form.Item name="prog" label="Program" rules={[{ required: true }]}>
+              <Input placeholder="Enter student's program (e.g., CSC3, DSAI1)" />
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* --- NEW Confirmation Modal --- */}
+        <Modal
+          title="Potential Duplicate Found"
+          open={isConfirmModalVisible}
+          onOk={handleConfirmModalOk}
+          onCancel={handleConfirmModalCancel}
+          okText={selectedExistingStudentId ? "Move Selected Student" : "Create New Student Anyway"}
+          cancelText="Cancel Add"
+        >
+          <p>We found existing students with similar names in this class type. Did you mean one of these?</p>
+          <Radio.Group
+            onChange={(e) => setSelectedExistingStudentId(e.target.value)}
+            value={selectedExistingStudentId}
+            style={{ width: '100%' }}
+          >
+            <List
+              size="small"
+              bordered
+              dataSource={potentialMatches}
+              renderItem={(student) => (
+                <List.Item>
+                  <Radio value={student.id}>
+                    {student.name} ({student.studentCode}) - Currently in: {student.classes[0]?.classGroup || 'N/A'}
+                  </Radio>
+                </List.Item>
+              )}
+            />
+          </Radio.Group>
+          <p style={{ marginTop: '10px' }}>If none match, select "Create New Student Anyway" by leaving the list unselected.</p>
         </Modal>
 
         {/* Modal to MOVE a student */}
