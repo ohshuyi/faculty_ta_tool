@@ -55,7 +55,7 @@ const TATimesheetView = ({ userId }) => {
         fetchTimesheets();
         fetchAssignedClasses();
         setAcademicYearPeriods(getAcademicYearPeriods());
-    }, [fetchTimesheets]);
+    }, [fetchTimesheets, fetchAssignedClasses]);
 
     const isApproved = currentTimesheet?.status === 'Approved';
 
@@ -304,7 +304,7 @@ const TATimesheetView = ({ userId }) => {
                             <Button danger loading={recalling}>Recall Timesheet</Button>
                         </Popconfirm>
                     )}
-                    
+
                     {currentTimesheet && (
                         <Tag color={currentTimesheet.status === 'Approved' ? 'green' : (currentTimesheet.status === 'Submitted' ? 'gold' : 'blue')}>
                             Status: {currentTimesheet.status}

@@ -715,7 +715,7 @@ const ClassManagement = () => {
               )}
             />
           </Radio.Group>
-          <p style={{ marginTop: '10px' }}>If none match, select "Create New Student Anyway" by leaving the list unselected.</p>
+          <p style={{ marginTop: '10px' }}>If none match, select &quot;Create New Student Anyway&quot; by leaving the list unselected.</p>
         </Modal>
 
         {/* Modal to MOVE a student */}
