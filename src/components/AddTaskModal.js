@@ -105,7 +105,7 @@ const handleGenerateDetails = async () => {
       const response = await fetch('/api/generate-details', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: aiDescription }),
+        body: JSON.stringify({ description: aiDescription, type: 'task'}),
       });
 
       const data = await response.json();

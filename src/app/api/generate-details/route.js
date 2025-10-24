@@ -48,95 +48,16 @@ JSON OUTPUT:
 
 
 export async function POST(req) {
+    let type = 'unknown'
     try {
-        const { description } = await req.json();
-        if (!description) {
-            return NextResponse.json({ error: "Description is required." }, { status: 400 });
+        // 1. Get the description AND the type ('task' or 'ticket')
+        const body = await req.json();
+        const { description } = body;
+        type = body.type;
+        if (!description || !type) {
+            return NextResponse.json({ error: "Description and type are required." }, { status: 400 });
         }
 
-        // --- OLLAMA LOCALHOST CONFIGURATION ---
-        // const ollamaEndpoint = process.env.OLLAMA_API_ENDPOINT;
-        // if (!ollamaEndpoint) {
-        //     throw new Error("Ollama API endpoint is not configured in .env.local");
-        // }
-
-        // // Create a detailed prompt asking for JSON output.
-        // const prompt = createOptimizedPrompt(description);
-
-        // // Send the request to your local Ollama server
-        // const response = await fetch(`${ollamaEndpoint}/api/generate`, {
-        //     method: "POST",
-        //     headers: { "Content-Type": "application/json" },
-        //     body: JSON.stringify({
-        //         model: "llama3", // Or the model you are running, e.g., "mistral"
-        //         prompt: prompt,
-        //         format: "json", // Crucial for ensuring the output is valid JSON
-        //         stream: false,
-        //     }),
-        // });
-
-        // if (!response.ok) {
-        //     throw new Error(`Ollama server responded with status ${response.status}`);
-        // }
-
-        // const ollamaData = await response.json();
-        // const structuredDetails = JSON.parse(ollamaData.response);
-
-        // return NextResponse.json(structuredDetails);
-
-
-        // --- AZURE OPENAI CODE (COMMENTED OUT) ---
-
-        // const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-        // const azureApiKey = process.env.AZURE_OPENAI_API_KEY;
-        // const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
-
-        // if (!endpoint || !azureApiKey || !deploymentName) {
-        //     throw new Error("Azure OpenAI environment variables are not set.");
-        // }
-
-        // const client = new OpenAIClient(endpoint, new AzureKeyCredential(azureApiKey));
-
-        // const taskDetailsTool = {
-        //     type: "function",
-        //     function: {
-        //         name: "extract_task_details",
-        //         description: "Extracts the details of a new task from a user's description.",
-        //         parameters: {
-        //             type: "object",
-        //             properties: {
-        //                 name: { type: "string", description: "A concise name for the task, e.g., 'Grade SC2207 Mid-Terms'." },
-        //                 dueDate: { type: "string", description: "The due date in YYYY-MM-DD format. Infer from text like 'next Friday'." },
-        //                 details: { type: "string", description: "A more detailed description of the task." },
-        //                 courseCode: { type: "string", description: "The course code, e.g., 'SC2207', or null if not mentioned." },
-        //                 classType: { type: "string", description: "The class type, which must be 'Lab' or 'Tutorial', or null if not mentioned." },
-        //                 classGroup: { type: "string", description: "The specific class group, e.g., 'BCG1', or null if not mentioned." },
-        //             },
-        //             required: ["name", "dueDate", "details"],
-        //         },
-        //     },
-        // };
-
-        // // 3. Send the request to the AI model
-        // const messages = [
-        //     { role: "system", content: "You are a helpful assistant that extracts task details from text. Today's date is " + new Date().toLocaleDateString() + "." },
-        //     { role: "user", content: description },
-        // ];
-
-        // const result = await client.getChatCompletions(deploymentName, messages, {
-        //     tools: [taskDetailsTool],
-        //     toolChoice: "auto",
-        // });
-
-        // const toolCall = result.choices[0]?.message?.toolCalls?.[0];
-        // if (toolCall?.function) {
-        //     const structuredDetails = JSON.parse(toolCall.function.arguments);
-        //     return NextResponse.json(structuredDetails);
-        // } else {
-        //     return NextResponse.json({ error: "Could not extract details." }, { status: 400 });
-        // }
-
-        // 2. Instantiate the OpenAI client, configured for AZURE
         const openai = new OpenAI({
             apiKey: process.env.AZURE_OPENAI_API_KEY,
             baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}`,
@@ -144,12 +65,12 @@ export async function POST(req) {
             defaultHeaders: { "api-key": process.env.AZURE_OPENAI_API_KEY },
         });
 
-        // 3. Define the tool (the schema is the same as before)
-        const tools = [{
+        // 2. Define the tool schemas for BOTH task and ticket
+        const taskDetailsTool = {
             type: "function",
             function: {
                 name: "extract_task_details",
-                description: "Extracts the details of a new task from a user's description.",
+                description: "Extracts details for a new task.",
                 parameters: {
                     type: "object",
                     // All parameter definitions must be nested inside this 'properties' object
@@ -162,25 +83,57 @@ export async function POST(req) {
                         classGroup: { type: "string", description: "The specific class group, e.g., 'BCG1', or null if not mentioned." },
                     },
                     // The 'required' array must be a sibling of 'properties'
-                    required: ["name", "dueDate", "details"],
+                    required: ["name", "details"],
                 },
             },
-        }];
+        };
+        const ticketDetailsTool = {
+            type: "function",
+            function: {
+                name: "extract_ticket_details",
+                description: "Extracts details for a new support ticket.",
+                parameters: {
+                    type: "object",
+                    properties: {
+                        name: { type: "string", description: "A concise name for the ticket, e.g., 'Late submission due to MC'." },
+                        ticketDescription: { type: "string", description: "A detailed description of the ticket/issue." },
+                        courseCode: { type: "string", description: "The course code, e.g., 'SC2207', or null." },
+                        // Add these two fields:
+                        classType: { type: "string", description: "The class type, either 'LAB' or 'TUT', or null.", enum: ["LAB", "TUT"] },
+                        classGroup: { type: "string", description: "The specific class group, e.g., 'BCG1', or null." },
+                        category: {
+                            type: "string",
+                            description: "The category of the ticket.",
+                            enum: ["Assignment", "Exam", "Project", "Quiz", "Lab"],
+                        },
+                        studentName: { type: "string", description: "The full name of the student involved, or null." },
+                        priority: {
+                            type: "string",
+                            description: "The priority level.",
+                            enum: ["low", "medium", "high"],
+                        },
+                        professorName: { type: "string", description: "The name of the professor involved, or null." },
+                    },
+                    required: ["name", "ticketDescription"],
+                },
+            },
+        };
+
+        // 3. Select the correct tool based on the request type
+        const selectedTool = type === 'ticket' ? ticketDetailsTool : taskDetailsTool;
 
         const messages = [
-            { role: "system", content: `You are a helpful assistant for a faculty task app. The current date is ${new Date().toLocaleDateString()}. Analyze the user's request and use the extract_task_details tool to structure the data.` },
+            { role: "system", content: `You are a helpful assistant for a faculty app. The current date is ${new Date().toLocaleDateString()}. Extract details using the ${selectedTool.function.name} tool.` },
             { role: "user", content: description },
         ];
 
-        // 4. Call the chat completions API
         const response = await openai.chat.completions.create({
-            model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME, // Must use deployment name for Azure
+            model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME,
             messages: messages,
-            tools: tools,
+            tools: [selectedTool], // Only send the relevant tool
             tool_choice: "auto",
         });
 
-        // 5. Parse the response (the structure is slightly different)
         const toolCall = response.choices[0]?.message?.tool_calls?.[0];
         if (toolCall) {
             const structuredDetails = JSON.parse(toolCall.function.arguments);
@@ -188,9 +141,8 @@ export async function POST(req) {
         } else {
             return NextResponse.json({ error: "Could not extract details." }, { status: 400 });
         }
-
     } catch (error) {
-        console.error("Error generating details:", error);
-        return NextResponse.json({ error: "Failed to generate details with AI." }, { status: 500 });
+        console.error(`Error generating ${type} details:`, error);
+        return NextResponse.json({ error: `Failed to generate ${type} details.` }, { status: 500 });
     }
 }

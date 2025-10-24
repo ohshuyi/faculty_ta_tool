@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import {
+  Card,
+  Divider,
   Modal,
   Form,
   Input,
@@ -26,6 +28,10 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
   const [filteredStudents, setFilteredStudents] = useState([]);
   const { data: session } = useSession();
   const [file, setFile] = useState(null);
+  const [allStudents, setAllStudents] = useState([]);
+
+  const [aiDescription, setAiDescription] = useState("");
+  const [generating, setGenerating] = useState(false);
 
   const filterOption = (input, option) =>
     (option?.children ?? '').toLowerCase().includes(input.toLowerCase());
@@ -54,7 +60,17 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           console.error("Error fetching classes:", error);
         }
       }
+      async function fetchAllStudents() {
+        try {
+          const response = await fetch("/api/students");
+          const data = await response.json();
+          setAllStudents(data); // Populate the complete list
+        } catch (error) {
+          console.error("Error fetching all students:", error);
+        }
+      }
 
+      fetchAllStudents();
       fetchProfessors();
       fetchClasses();
     } else {
@@ -118,6 +134,83 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
     setFile(fileList[0]);
   };
 
+  const handleGenerateDetails = async () => {
+    if (!aiDescription) {
+      return message.warning("Please describe the ticket first.");
+    }
+    if (allStudents.length === 0) {
+      return message.warning("Student list is still loading, please wait a moment.");
+    }
+    setGenerating(true);
+    try {
+      const response = await fetch('/api/generate-details', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: aiDescription, type: 'ticket' }), // Send type: 'ticket'
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "AI generation failed.");
+      }
+
+      // Find IDs based on names returned by AI
+      const student = data.studentName ? allStudents.find(s => s.name.toLowerCase() === data.studentName.toLowerCase()) : null;
+      const professor = data.professorName ? professors.find(p => p.name.toLowerCase() === data.professorName.toLowerCase()) : null;
+      const targetClass = data.courseCode && data.classGroup && data.classType
+        ? classes.find(c =>
+          c.courseCode === data.courseCode &&
+          c.classGroup === data.classGroup &&
+          c.classType === data.classType)
+        : null;
+
+      // 2. Set ALL form values in a single call
+      form.setFieldsValue({
+        name: data.name,
+        ticketDescription: data.ticketDescription,
+        category: data.category,
+        priority: data.priority,
+        studentId: student?.id,
+        professorId: professor?.id,
+        courseGroupType: data.courseCode,
+        classType: data.classType,
+        classId: targetClass?.id,
+      });
+
+      // 3. Manually update the states that control the dropdown options and enabled status
+      let tempFilteredTypes = [];
+      let tempFilteredGroups = [];
+      let tempFilteredStudents = [];
+
+      if (data.courseCode) {
+        setSelectedCourseCode(data.courseCode); // Store the selected course code
+        const courseClasses = classes.filter((cls) => cls.courseCode === data.courseCode);
+        tempFilteredTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
+      }
+
+      if (data.courseCode && data.classType) {
+        tempFilteredGroups = classes.filter(
+          (cls) => cls.courseCode === data.courseCode && cls.classType === data.classType
+        );
+      }
+
+      if (targetClass) {
+        tempFilteredStudents = targetClass.students || [];
+      }
+
+      // Update the states AFTER calculating them
+      setFilteredClassTypes(tempFilteredTypes);
+      setFilteredClassGroups(tempFilteredGroups);
+      setFilteredStudents(tempFilteredStudents);
+
+      message.success("Details generated successfully!");
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   // Handle form submission
   const onFinish = async (values) => {
     setLoading(true);
@@ -167,6 +260,25 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       footer={null}
       width={800} // Adjust modal width if necessary
     >
+      {/* --- NEW AI SECTION --- */}
+      <Card title="Describe Ticket with AI" style={{ marginBottom: 24 }}>
+        <TextArea
+          rows={3}
+          placeholder="e.g., 'Student John Doe from SCMA lab submitted assignment late for SC2207 due to MC. High priority. Assign to Prof Smith.'"
+          value={aiDescription}
+          onChange={(e) => setAiDescription(e.target.value)}
+        />
+        <Button
+          type="primary"
+          onClick={handleGenerateDetails}
+          loading={generating}
+          style={{ marginTop: 16 }}
+        >
+          Generate Details
+        </Button>
+      </Card>
+
+      <Divider>Or Fill Manually</Divider>
       <Form layout="vertical" onFinish={onFinish} form={form}>
         {/* New Name Field */}
         <Form.Item
@@ -307,7 +419,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           rules={[{ required: true, message: "Please select a professor!" }]}
           style={{ width: "100%" }}
         >
-          <Select 
+          <Select
             placeholder="Search or select a professor"
             showSearch
             filterOption={filterOption}>
