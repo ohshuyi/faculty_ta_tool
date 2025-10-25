@@ -79,6 +79,7 @@ model User {
   assignedClasses         Class[]  @relation("TAClasses")
 
   timesheets Timesheet[] @relation("UserTimesheets")
+  approvingTimesheets Timesheet[] @relation("TimesheetApprovers")
 }
 
 
@@ -130,13 +131,16 @@ model Timesheet {
   userId    Int
   user      User      @relation("UserTimesheets", fields: [userId], references: [id], onDelete: Cascade)
   period    String    // e.g., "AY25/26 Semester 1"
+  courseCode String    // NEW: e.g., "SC2207"
   status    String    @default("Draft") // "Pending", "Approved"
+  rejectionReason String?
   totalHours Decimal  @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   entries   TimesheetEntry[]
+  approvers  User[]    @relation("TimesheetApprovers")
 
-  @@unique([userId, period])
+  @@unique([userId, period, courseCode])
 }
 
 model TimesheetEntry {
@@ -145,7 +149,6 @@ model TimesheetEntry {
   timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
   date        DateTime
   hours       Decimal
-  courseCode  String   // NEW: Store the course code (e.g., "SC2207")
   classDetails String  // NEW: Store combined type/group (e.g., "Lab - BCG1")
   weekNumber  Int
   description String?

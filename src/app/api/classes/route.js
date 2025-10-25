@@ -18,9 +18,12 @@ export async function GET(req) {
     const userRole = session.user.role;
     const userId = session.user.id;
 
+    const url = new URL(req.url);
+    const fetchAll = url.searchParams.get("fetchAll") === "true";
+
     let classes;
 
-    if (userRole === 'TA') {
+    if (userRole === 'TA' && !fetchAll) {
       classes = await prisma.class.findMany({
         where: {
           assignedTAs: {

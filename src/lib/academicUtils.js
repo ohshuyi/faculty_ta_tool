@@ -39,3 +39,9 @@ export function getAcademicYearPeriods(date = new Date()) {
   const ay = getAcademicYear(date);
   return [`${ay} Semester 1`, `${ay} Semester 2`];
 }
+
+export function getPreviousAcademicPeriod(date = new Date()) {
+  // Go back 6 months to land in the previous semester
+  const prevDate = dayjs(date).subtract(6, 'month').toDate();
+  return getCurrentAcademicPeriod(prevDate);
+}

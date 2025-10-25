@@ -1,370 +1,589 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Table, Button, Modal, Form, DatePicker, InputNumber, Input, message, Select, Space, Spin, Tag, Popconfirm, Card, Cascader } from 'antd';
+import { 
+  Table, Button, Modal, Form, DatePicker, InputNumber, Input, 
+  message, Select, Space, Spin, Tag, Popconfirm, Card, Cascader, Alert, Transfer, List, Descriptions
+} from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { getAcademicYearPeriods, getCurrentAcademicPeriod } from '@/lib/academicUtils';
+import { getAcademicYear, getPreviousAcademicPeriod, getCurrentAcademicPeriod } from '@/lib/academicUtils'; // Ensure this path is correct
 
 const { Option } = Select;
 const { TextArea } = Input;
 
-// Helper to get current period (e.g., "October 2025")
-const getCurrentPeriod = () => dayjs().format('MMMM YYYY');
-
 const TATimesheetView = ({ userId }) => {
-    const [timesheets, setTimesheets] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [isModalVisible, setIsModalVisible] = useState(false);
-    const [editingEntry, setEditingEntry] = useState(null);
-    const [form] = Form.useForm();
-    const [academicYearPeriods, setAcademicYearPeriods] = useState([]);
-    const [selectedPeriod, setSelectedPeriod] = useState(getCurrentAcademicPeriod()); // Default to current semester
-    const [assignedClasses, setAssignedClasses] = useState([]);
-    const [submitting, setSubmitting] = useState(false);
-    const [recalling, setRecalling] = useState(false);
+  const [allTimesheets, setAllTimesheets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPeriod, setSelectedPeriod] = useState(getCurrentAcademicPeriod());
+  const [allClasses, setAllClasses] = useState([]); // For Class Cascader
+  const [allProfessors, setAllProfessors] = useState([]); // For Assign Modal
+  
+  // State for submitting/recalling
+  const [submittingIds, setSubmittingIds] = useState([]);
+  const [recallingIds, setRecallingIds] = useState([]);
 
-    const currentTimesheet = timesheets.find(ts => ts.period === selectedPeriod);
-    const isEditable = currentTimesheet?.status === 'Draft' || !currentTimesheet; // Allow edits if draft or not yet created
+  // State for Add Course Modal
+  const [isAddCourseModalVisible, setIsAddCourseModalVisible] = useState(false);
+  const [selectedCourseToAdd, setSelectedCourseToAdd] = useState(null);
 
-    const fetchTimesheets = useCallback(async () => {
-        setLoading(true);
-        try {
-            const response = await fetch('/api/timesheets'); // Fetches TA's own timesheets
-            const data = await response.json();
-            setTimesheets(data);
-        } catch (error) {
-            message.error("Failed to load timesheets.");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+  // State for Assign Approvers Modal
+  const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
+  const [selectedTimesheet, setSelectedTimesheet] = useState(null);
+  const [targetKeys, setTargetKeys] = useState([]);
 
-    const fetchAssignedClasses = useCallback(async () => {
-        try {
-            // Assuming /api/management returns classes scoped for the logged-in TA
-            const response = await fetch('/api/management', { credentials: 'include', cache: 'no-store' });
-            if (!response.ok) throw new Error('Failed to fetch assigned classes');
-            const data = await response.json();
-            setAssignedClasses(data);
-        } catch (error) {
-            message.error(error.message);
-        }
-    }, []);
+  // --- State for Add/Edit Entry Modal ---
+  const [isEntryModalVisible, setIsEntryModalVisible] = useState(false);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [currentTimesheet, setCurrentTimesheet] = useState(null); // Keep track of which timesheet we're adding to
+  const [form] = Form.useForm();
+  
+  // --- State for Entry Modal dropdowns ---
+  const [classTypes, setClassTypes] = useState([]);
+  const [classGroups, setClassGroups] = useState([]);
 
-    useEffect(() => {
-        fetchTimesheets();
-        fetchAssignedClasses();
-        setAcademicYearPeriods(getAcademicYearPeriods());
-    }, [fetchTimesheets, fetchAssignedClasses]);
+  // --- Data Fetching ---
+  const fetchTimesheets = useCallback(async (period) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/timesheets?period=${encodeURIComponent(period)}`, { credentials: 'include', cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to load timesheets');
+      setAllTimesheets(await response.json());
+    } catch (error) { message.error(error.message); } 
+    finally { setLoading(false); }
+  }, []);
 
-    const isApproved = currentTimesheet?.status === 'Approved';
+  const fetchAllClasses = useCallback(async () => {
+    try {
+      const response = await fetch('/api/classes?fetchAll=true', { credentials: 'include', cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to fetch class list');
+      setAllClasses(await response.json());
+    } catch (error) {
+      message.error(error.message);
+    }
+  }, []);
 
-    const classOptions = useMemo(() => {
-        const options = {};
-        assignedClasses.forEach(cls => {
-            if (!options[cls.courseCode]) {
-                options[cls.courseCode] = { value: cls.courseCode, label: cls.courseCode, children: {} };
-            }
-            if (!options[cls.courseCode].children[cls.classType]) {
-                options[cls.courseCode].children[cls.classType] = { value: cls.classType, label: cls.classType, children: [] };
-            }
-            options[cls.courseCode].children[cls.classType].children.push({
-                value: cls.id, // The final value will be the class ID
-                label: cls.classGroup,
-                classDetails: `${cls.classType} - ${cls.classGroup}`, // Store details for submission
-            });
-        });
-        // Convert nested objects to arrays for Cascader
-        return Object.values(options).map(course => ({
-            ...course,
-            children: Object.values(course.children),
-        }));
-    }, [assignedClasses]);
+  const fetchProfessors = useCallback(async () => {
+    try {
+      const response = await fetch('/api/professors', { credentials: 'include', cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to fetch professors');
+      setAllProfessors(await response.json());
+    } catch (error) {
+      message.error(error.message);
+    }
+  }, []);
 
-    const sortedEntries = useMemo(() => {
-        // Get the entries for the current period, or an empty array
-        const entries = currentTimesheet?.entries || [];
+  useEffect(() => {
+    // Fetch all data on load and when Period changes
+    fetchTimesheets(selectedPeriod);
+    fetchAllClasses();
+    fetchProfessors();
+  }, [selectedPeriod, fetchTimesheets, fetchAllClasses, fetchProfessors]);
 
-        // Sort the entries
-        return [...entries].sort((a, b) => { // Use spread (...) to avoid mutating original state
-            // 1. Primary Sort: Class Details (alphabetical)
-            const classCompare = (a.classDetails || '').localeCompare(b.classDetails || '');
-            if (classCompare !== 0) {
-                return classCompare;
-            }
-            // 2. Secondary Sort: Week Number (ascending)
-            return (a.weekNumber || 0) - (b.weekNumber || 0);
-        });
-    }, [currentTimesheet]);
+  // --- Memoized Options for Dropdowns ---
+  const periodOptions = useMemo(() => {
+    const currentPeriod = getCurrentAcademicPeriod();
+    const prevPeriod = getPreviousAcademicPeriod();
+    return [currentPeriod, prevPeriod];
+  }, []);
 
-    const showAddModal = () => {
-        setEditingEntry(null);
-        form.resetFields();
-        form.setFieldsValue({ date: dayjs() }); // Default to today
-        setIsModalVisible(true);
-    };
+  const classOptions = useMemo(() => {
+    const options = {};
+    allClasses.forEach(cls => {
+      if (!options[cls.courseCode]) {
+        options[cls.courseCode] = { value: cls.courseCode, label: cls.courseCode, children: {} };
+      }
+      if (!options[cls.courseCode].children[cls.classType]) {
+        options[cls.courseCode].children[cls.classType] = { value: cls.classType, label: cls.classType, children: [] };
+      }
+      options[cls.courseCode].children[cls.classType].children.push({
+        value: cls.id,
+        label: cls.classGroup,
+        classDetails: `${cls.classType} - ${cls.classGroup}`,
+      });
+    });
+    return Object.values(options).map(course => ({
+      ...course,
+      children: Object.values(course.children),
+    }));
+  }, [allClasses]);
 
-    const showEditModal = (entry) => {
-        setEditingEntry(entry);
-        form.setFieldsValue({
-            date: dayjs(entry.date),
-            hours: entry.hours,
-            weekNumber: entry.weekNumber,
-            description: entry.description,
-        });
-        setIsModalVisible(true);
-    };
+  const uniqueCourseCodes = useMemo(() => {
+    return [...new Set(allClasses.map(cls => cls.courseCode))];
+  }, [allClasses]);
 
-    const handleRecallTimesheet = async () => {
-        if (!currentTimesheet) return;
-        setRecalling(true);
-        try {
-            const response = await fetch(`/api/timesheets/${currentTimesheet.id}/recall`, {
-                method: 'PATCH',
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to recall.');
-            }
-            message.success("Timesheet recalled successfully! You can now make changes.");
-            fetchTimesheets(); // Refresh to update status
-        } catch (error) {
-            message.error(error.message);
-        } finally {
-            setRecalling(false);
-        }
-    };
+  const sortedTimesheets = useMemo(() => {
+    const statusOrder = { 'Draft': 1, 'Rejected': 2, 'Submitted': 3, 'Approved': 4 };
+    return [...allTimesheets].sort((a, b) => {
+      const statusA = statusOrder[a.status] || 99;
+      const statusB = statusOrder[b.status] || 99;
+      if (statusA !== statusB) return statusA - statusB;
+      return a.courseCode.localeCompare(b.courseCode);
+    });
+  }, [allTimesheets]);
+  
+  // Filter options for the entry modal
+  const filteredClassOptions = useMemo(() => {
+    if (!currentTimesheet) return [];
+    const courseData = classOptions.find(opt => opt.value === currentTimesheet.courseCode);
+    return courseData ? courseData.children : [];
+  }, [classOptions, currentTimesheet]);
 
-    const handleSubmitForApproval = async () => {
-        if (!currentTimesheet) {
-            return message.error("No timesheet exists for this period yet. Add an entry first.");
-        }
-        setSubmitting(true);
-        try {
-            const response = await fetch(`/api/timesheets/${currentTimesheet.id}/submit`, {
-                method: 'PATCH',
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to submit.');
-            }
-            message.success("Timesheet submitted for approval!");
-            fetchTimesheets(); // Refresh to update status
-        } catch (error) {
-            message.error(error.message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
+  // --- Handlers for Entry Modal ---
+  const showAddModal = (timesheet) => {
+    setCurrentTimesheet(timesheet);
+    setEditingEntry(null);
+    form.resetFields();
+    form.setFieldsValue({ date: dayjs() });
+    
+    // Populate class types for the new entry
+    const courseData = classOptions.find(opt => opt.value === timesheet.courseCode);
+    const types = (courseData ? courseData.children : []).map(type => ({label: type.label, value: type.value}));
+    setClassTypes([...new Set(types.map(t => t.value))].map(val => types.find(t => t.value === val))); // Get unique type objects
+    setClassGroups([]);
+    
+    setIsEntryModalVisible(true);
+  };
 
-    const handleCancel = () => {
-        setIsModalVisible(false);
-        setEditingEntry(null);
-        form.resetFields();
-    };
+  const showEditModal = (entry, timesheet) => {
+    setCurrentTimesheet(timesheet);
+    setEditingEntry(entry);
 
-    const handleFormSubmit = async (values) => {
-        const [courseCode, classType, classId] = values.classSelection; // Cascader returns an array
-        const selectedClassOption = classOptions
-            .find(c => c.value === courseCode)?.children
-            .find(t => t.value === classType)?.children
-            .find(g => g.value === classId);
+    const courseData = classOptions.find(opt => opt.value === timesheet.courseCode);
+    const allTypesForCourse = (courseData ? courseData.children : []).map(type => ({label: type.label, value: type.value}));
+    
+    const entryClassType = entry.classDetails.split(' - ')[0];
+    const typeData = courseData?.children.find(type => type.value === entryClassType);
+    const groupsForType = typeData ? typeData.children : [];
+    const entryClassId = typeData?.children.find(group => group.classDetails === entry.classDetails)?.value;
 
-        const apiData = {
-            date: values.date.toISOString(),
-            hours: values.hours,
-            courseCode: courseCode,
-            classDetails: selectedClassOption?.classDetails || 'Unknown',
-            weekNumber: values.weekNumber,
-            description: values.description,
-        };
+    setClassTypes([...new Set(allTypesForCourse.map(t => t.value))].map(val => allTypesForCourse.find(t => t.value === val)));
+    setClassGroups(groupsForType);
 
-        try {
-            let response;
-            if (editingEntry) {
-                // Update existing entry
-                response = await fetch(`/api/timesheet-entries/${editingEntry.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(apiData),
-                });
-            } else {
-                // Add new entry
-                response = await fetch('/api/timesheets/entries', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(apiData),
-                });
-            }
+    form.setFieldsValue({
+      classType: entryClassType,
+      classId: entryClassId,
+      date: dayjs(entry.date),
+      hours: parseFloat(entry.hours),
+      weekNumber: entry.weekNumber,
+      description: entry.description,
+    });
+    setIsEntryModalVisible(true);
+  };
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to save entry.');
-            }
+  const handleEntryCancel = () => {
+    setIsEntryModalVisible(false);
+    setEditingEntry(null);
+    setCurrentTimesheet(null);
+    form.resetFields();
+    setClassTypes([]);
+    setClassGroups([]);
+  };
 
-            message.success(`Entry ${editingEntry ? 'updated' : 'added'} successfully!`);
-            handleCancel();
-            fetchTimesheets(); // Refresh data
-        } catch (error) {
-            message.error(error.message);
-        }
-    };
+  const handleModalClassTypeChange = (selectedType) => {
+    const typeData = filteredClassOptions.find(type => type.value === selectedType);
+    setClassGroups(typeData ? typeData.children : []);
+    form.setFieldsValue({ classId: undefined });
+  };
+  
+  const handleEntryFormSubmit = async (values) => {
+    if (!currentTimesheet) return; 
 
-    const handleDeleteEntry = async (entryId) => {
-        try {
-            const response = await fetch(`/api/timesheet-entries/${entryId}`, {
-                method: 'DELETE',
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to delete entry.');
-            }
-            message.success('Entry deleted successfully!');
-            fetchTimesheets(); // Refresh
-        } catch (error) {
-            message.error(error.message);
-        }
-    };
-
-    const columns = [
-        { title: 'Date', dataIndex: 'date', key: 'date', render: (date) => dayjs(date).format('YYYY-MM-DD') },
-        { title: 'Week', dataIndex: 'weekNumber', key: 'weekNumber', width: 80 },
-        { title: 'Course Code', dataIndex: 'courseCode', key: 'courseCode' },
-        { title: 'Class Details', dataIndex: 'classDetails', key: 'classDetails' },
-        { title: 'Hours', dataIndex: 'hours', key: 'hours', render: (h) => parseFloat(h).toFixed(2) },
-        { title: 'Description', dataIndex: 'description', key: 'description' },
-        {
-            title: 'Actions',
-            key: 'actions',
-            render: (_, record) => (
-                <Space>
-                    <Button icon={<EditOutlined />} onClick={() => showEditModal(record)} disabled={!isEditable} />
-                    <Popconfirm title="Delete?" onConfirm={() => handleDeleteEntry(record.id)} disabled={!isEditable}>
-                        <Button icon={<DeleteOutlined />} danger disabled={!isEditable} />
-                    </Popconfirm>
-                </Space>
-            ),
-        },
-    ];
-
-    // Generate period options (e.g., last 3 months + current)
-    const periodOptions = Array.from({ length: 4 }).map((_, i) =>
-        dayjs().subtract(i, 'month').format('MMMM YYYY')
-    );
-    if (!periodOptions.includes(selectedPeriod)) {
-        periodOptions.unshift(selectedPeriod); // Add selected if not recent
+    let classDetailsStr = 'Unknown';
+    const typeData = filteredClassOptions.find(type => type.value === values.classType);
+    if (typeData) {
+      const groupData = typeData.children.find(group => group.value === values.classId);
+      if (groupData) { classDetailsStr = groupData.classDetails; }
     }
 
+    const apiData = {
+      date: values.date.toISOString(),
+      hours: values.hours,
+      courseCode: currentTimesheet.courseCode,
+      classDetails: classDetailsStr,
+      weekNumber: values.weekNumber,
+      description: values.description,
+    };
 
-    return (
-        <div style={{ padding: "24px" }}>
-            <Card title="My Timesheet" style={{ marginBottom: 24 }}>
-                <Space style={{ marginBottom: 16 }}>
-                    <Select
-                        value={selectedPeriod}
-                        onChange={(value) => setSelectedPeriod(value)}
-                        style={{ width: 200 }}
-                    >
-                        {academicYearPeriods.map(p => <Option key={p} value={p}>{p}</Option>)}
-                    </Select>
-                    <Button
+    try {
+      let response;
+      if (editingEntry) {
+        response = await fetch(`/api/timesheet-entries/${editingEntry.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(apiData) });
+      } else {
+        response = await fetch('/api/timesheets/entries', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(apiData) });
+      }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save entry.');
+      }
+      message.success(`Entry ${editingEntry ? 'updated' : 'added'}!`);
+      handleEntryCancel();
+      fetchTimesheets(selectedPeriod);
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const handleDeleteEntry = async (entryId) => {
+    try {
+      const response = await fetch(`/api/timesheet-entries/${entryId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete entry.');
+      message.success('Entry deleted!');
+      fetchTimesheets(selectedPeriod);
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  // --- Handlers for Main Page Actions ---
+  const handleAddCourse = async () => {
+    if (!selectedCourseToAdd) {
+      return message.error("Please select a course to add.");
+    }
+    try {
+      const response = await fetch('/api/timesheets/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Credentials': 'include' },
+        body: JSON.stringify({
+          courseCode: selectedCourseToAdd,
+          period: selectedPeriod,
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add course.');
+      }
+      message.success(`Timesheet for ${selectedCourseToAdd} created!`);
+      setIsAddCourseModalVisible(false);
+      setSelectedCourseToAdd(null);
+      fetchTimesheets(selectedPeriod);
+    } catch (error) {
+      message.error(error.message);
+    }
+  };
+
+  const handleSubmitForApproval = async (timesheetId) => {
+    setSubmittingIds(prev => [...prev, timesheetId]);
+    try {
+      const response = await fetch(`/api/timesheets/${timesheetId}/submit`, { method: 'PATCH' });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit.');
+      }
+      message.success("Timesheet submitted!");
+      fetchTimesheets(selectedPeriod);
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setSubmittingIds(prev => prev.filter(id => id !== timesheetId));
+    }
+  };
+
+  const handleRecallTimesheet = async (timesheetId) => {
+    setRecallingIds(prev => [...prev, timesheetId]);
+    try {
+      const response = await fetch(`/api/timesheets/${timesheetId}/recall`, { method: 'PATCH' });
+      if (!response.ok) {
+         const errorData = await response.json();
+         throw new Error(errorData.error || 'Failed to recall.');
+      }
+      message.success("Timesheet recalled!");
+      fetchTimesheets(selectedPeriod);
+    } catch (error) {
+      message.error(error.message);
+    } finally {
+      setRecallingIds(prev => prev.filter(id => id !== timesheetId));
+    }
+  };
+
+  const showAssignModal = (timesheet) => {
+    setSelectedTimesheet(timesheet);
+    setTargetKeys(timesheet.approvers.map(prof => prof.id));
+    setIsAssignModalVisible(true);
+  };
+
+  const handleAssignApprovers = async () => {
+    if (!selectedTimesheet) return;
+    try {
+      await fetch(`/api/timesheets/${selectedTimesheet.id}/assign-approvers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ professorIds: targetKeys }),
+      });
+      message.success("Approvers assigned!");
+      setIsAssignModalVisible(false);
+      fetchTimesheets(selectedPeriod);
+    } catch (error) {
+      message.error("Failed to assign approvers.");
+    }
+  };
+
+  // --- Main Table Columns ---
+  const timesheetColumns = [
+    { title: 'Course Code', dataIndex: 'courseCode', key: 'courseCode' },
+    { title: 'Period', dataIndex: 'period', key: 'period' },
+    { title: 'Total Hours', dataIndex: 'totalHours', key: 'totalHours', render: h => parseFloat(h).toFixed(2) },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => {
+        const color = status === 'Approved' ? 'green' : (status === 'Submitted' ? 'gold' : (status === 'Rejected' ? 'red' : 'blue'));
+        return <Tag color={color}>{status.toUpperCase()}</Tag>;
+      }
+    },
+    {
+      title: 'Approvers',
+      dataIndex: 'approvers',
+      key: 'approvers',
+      render: (approvers) => (approvers && approvers.length > 0) ?
+        approvers.map(prof => prof.name).join(', ') :
+        <Tag color="red">None Assigned</Tag>,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space>
+          {(record.status === 'Draft' || record.status === 'Rejected') && (
+            <Button size="small" onClick={() => showAssignModal(record)}>Manage Approvers</Button>
+          )}
+          {(record.status === 'Draft' || record.status === 'Rejected') && (
+            <Popconfirm
+              title={record.status === 'Rejected' ? "Resubmit Timesheet?" : "Submit Timesheet?"}
+              description={record.approvers.length === 0 ? "Please assign an approver first." : "Are you sure?"}
+              disabled={record.approvers.length === 0}
+              onConfirm={() => handleSubmitForApproval(record.id)}
+            >
+              <Button
+                type="primary"
+                loading={submittingIds.includes(record.id)}
+                style={record.status === 'Rejected' ? {} : { backgroundColor: 'orange', borderColor: 'orange' }}
+                disabled={record.approvers.length === 0}
+              >
+                {record.status === 'Rejected' ? "Resubmit" : "Submit"}
+              </Button>
+            </Popconfirm>
+          )}
+          {(record.status === 'Submitted' || record.status === 'Approved') && (
+            <Popconfirm title="Recall this timesheet?" onConfirm={() => handleRecallTimesheet(record.id)}>
+              <Button danger loading={recallingIds.includes(record.id)}>Recall</Button>
+            </Popconfirm>
+          )}
+        </Space>
+      )
+    }
+  ];
+
+  const filterOption = (input, option) =>
+    (option?.children ?? '').toLowerCase().includes(input.toLowerCase());
+
+  return (
+    <div style={{ padding: "24px" }}>
+      <Card title="My Timesheets">
+        <Space style={{ marginBottom: 16 }}>
+          <Select value={selectedPeriod} onChange={setSelectedPeriod} style={{ width: 220 }}>
+            {periodOptions.map(p => <Option key={p} value={p}>{p}</Option>)}
+          </Select>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setIsAddCourseModalVisible(true)}
+          >
+            Add Course Timesheet
+          </Button>
+        </Space>
+
+        {loading ? <Spin /> : (
+          <Table
+            columns={timesheetColumns}
+            dataSource={sortedTimesheets} // Use sortedTimesheets
+            rowKey="id"
+            expandable={{
+              expandedRowRender: (record) => {
+                const isEditable = record.status === 'Draft' || record.status === 'Rejected';
+                // Sort entries for this row
+                const sortedEntries = [...record.entries].sort((a, b) => {
+                  const classCompare = (a.classDetails || '').localeCompare(b.classDetails || '');
+                  if (classCompare !== 0) return classCompare;
+                  return (a.weekNumber || 0) - (b.weekNumber || 0);
+                });
+
+                // Define columns for the sub-table
+                const entryColumns = [
+                  { title: 'Date', dataIndex: 'date', key: 'date', render: (date) => dayjs(date).format('YYYY-MM-DD') },
+                  { title: 'Week', dataIndex: 'weekNumber', key: 'weekNumber', width: 80 },
+                  { title: 'Class Details', dataIndex: 'classDetails', key: 'classDetails' },
+                  { title: 'Hours', dataIndex: 'hours', key: 'hours', render: (h) => parseFloat(h).toFixed(2) },
+                  { title: 'Description', dataIndex: 'description', key: 'description' },
+                  {
+                    title: 'Actions',
+                    key: 'actions',
+                    render: (_, entry) => (
+                      <Space>
+                        <Button icon={<EditOutlined />} onClick={() => showEditModal(entry, record)} disabled={!isEditable} />
+                        <Popconfirm title="Delete this entry?" onConfirm={() => handleDeleteEntry(entry.id)} disabled={!isEditable}>
+                          <Button icon={<DeleteOutlined />} danger disabled={!isEditable} />
+                        </Popconfirm>
+                      </Space>
+                    ),
+                  },
+                ];
+
+                return (
+                  <div style={{ padding: '8px 24px' }}>
+                    {record.status === 'Rejected' && record.rejectionReason && (
+                      <Alert
+                        message="Timesheet Rejected"
+                        description={<><strong>Reason:</strong> {record.rejectionReason}</>}
+                        type="error"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                      />
+                    )}
+                    {isEditable ? (
+                      <Button
                         type="primary"
                         icon={<PlusOutlined />}
-                        onClick={showAddModal}
-                    >
-                        Log Hours
-                    </Button>
-                    {currentTimesheet && currentTimesheet.status === 'Draft' && (
-                        <Popconfirm
-                            title="Submit Timesheet?"
-                            description="Once submitted, you cannot make further changes unless rejected. Are you sure?"
-                            onConfirm={handleSubmitForApproval} // Call the submit function on confirm
-                            okText="Yes, Submit"
-                            cancelText="Cancel"
-                        >
-                            <Button
-                                type="primary"
-                                loading={submitting}
-                                style={{ backgroundColor: 'orange', borderColor: 'orange' }}
-                            // onClick is removed from here
-                            >
-                                Submit for Approval
-                            </Button>
-                        </Popconfirm>
-                    )}
+                        onClick={() => showAddModal(record)}
+                        style={{ marginBottom: 16 }}
+                      >
+                        Log Hours for {record.courseCode}
+                      </Button>
+                    ) : null}
+                    <Table
+                      columns={entryColumns}
+                      dataSource={sortedEntries}
+                      rowKey="id"
+                      size="small"
+                      pagination={false}
+                    />
+                  </div>
+                );
+              },
+              rowExpandable: (record) => true,
+            }}
+          />
+        )}
+      </Card>
 
-                    {currentTimesheet && (currentTimesheet.status === 'Submitted' || currentTimesheet.status === 'Approved') && (
-                        <Popconfirm
-                            title="Recall Timesheet?"
-                            description="This will change the status back to Draft, allowing you to edit it again."
-                            onConfirm={handleRecallTimesheet}
-                            okText="Yes, Recall"
-                            cancelText="Cancel"
-                        >
-                            <Button danger loading={recalling}>Recall Timesheet</Button>
-                        </Popconfirm>
-                    )}
-
-                    {currentTimesheet && (
-                        <Tag color={currentTimesheet.status === 'Approved' ? 'green' : (currentTimesheet.status === 'Submitted' ? 'gold' : 'blue')}>
-                            Status: {currentTimesheet.status}
-                        </Tag>
-                    )}
-                </Space>
-            </Card>
-
-            {loading ? <Spin /> : (
-                <Table
-                    columns={columns}
-                    dataSource={sortedEntries}
-                    rowKey="id"
-                    summary={() => (
-                        <Table.Summary.Row>
-                            <Table.Summary.Cell index={0} colSpan={1}>Total</Table.Summary.Cell>
-                            <Table.Summary.Cell index={1}>
-                                <strong>{currentTimesheet?.totalHours || 0}</strong>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={2} />
-                            <Table.Summary.Cell index={3} />
-                        </Table.Summary.Row>
-                    )}
-                />
-            )}
-
-            <Modal
-                title={editingEntry ? 'Edit Entry' : 'Add New Entry'}
-                open={isModalVisible}
-                onCancel={handleCancel}
-                onOk={() => form.submit()}
-                okText={editingEntry ? 'Update' : 'Add'}
+      {/* --- "Add Course" Modal --- */}
+      <Modal
+        title="Add New Course Timesheet"
+        open={isAddCourseModalVisible}
+        onOk={handleAddCourse}
+        onCancel={() => setIsAddCourseModalVisible(false)}
+        okText="Add"
+      >
+        <Form layout="vertical">
+          <Form.Item label="Academic Period">
+            <Input value={selectedPeriod} disabled />
+          </Form.Item>
+          <Form.Item label="Course Code" required>
+            <Select
+              showSearch
+              placeholder="Select a course to add"
+              style={{ width: "100%" }}
+              onChange={(value) => setSelectedCourseToAdd(value)}
+              filterOption={filterOption}
             >
-                <Form form={form} layout="vertical" onFinish={handleFormSubmit}>
-                    <Form.Item name="classSelection" label="Class" rules={[{ required: true }]}>
-                        <Cascader options={classOptions} placeholder="Select Course / Type / Group" />
-                    </Form.Item>
-                    <Form.Item name="date" label="Date" rules={[{ required: true }]}>
-                        <DatePicker style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item
-                        name="weekNumber"
-                        label="Academic Week"
-                        rules={[
-                            { required: true, message: 'Please enter the week number' },
-                            { type: 'number', min: 1, max: 13, message: 'Week must be between 1 and 13' } // Adjust max value
-                        ]}
-                    >
-                        <InputNumber placeholder="e.g., 5 (Week 1-13)" style={{ width: '100%' }} />
-                    </Form.Item>
-                    <Form.Item name="hours" label="Hours Worked" rules={[{ required: true, type: 'number', min: 0.1 }]}>
-                        <InputNumber style={{ width: '100%' }} step={0.5} />
-                    </Form.Item>
-                    <Form.Item name="description" label="Description (Optional)">
-                        <TextArea rows={3} />
-                    </Form.Item>
-                </Form>
-            </Modal>
-        </div>
-    );
+              {uniqueCourseCodes.map(code => (
+                <Option key={code} value={code}>{code}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* --- "Assign Approvers" Modal --- */}
+      {selectedTimesheet && (
+        <Modal
+          title={`Assign Approvers for ${selectedTimesheet.courseCode} (${selectedTimesheet.period})`}
+          open={isAssignModalVisible}
+          onOk={handleAssignApprovers}
+          onCancel={() => setIsAssignModalVisible(false)}
+          width={800}
+          okText="Save Assignments"
+        >
+          <Alert
+            message="How to Assign Approvers"
+            description="Select professors from 'Available' and use the '>' button to move them to 'Assigned'."
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+          <Transfer
+            dataSource={allProfessors.map(prof => ({ key: prof.id, title: prof.name }))}
+            targetKeys={targetKeys}
+            onChange={setTargetKeys}
+            render={item => item.title}
+            listStyle={{ width: '100%', height: 300 }}
+            titles={['Available Professors', 'Assigned Approvers']}
+            operations={['Assign >', '< Unassign']}
+          />
+        </Modal>
+      )}
+
+      {/* --- Add/Edit Entry Modal --- */}
+      <Modal
+        title={editingEntry ? 'Edit Entry' : `Log Hours for ${currentTimesheet?.courseCode}`}
+        open={isEntryModalVisible}
+        onCancel={handleEntryCancel}
+        onOk={() => form.submit()}
+        okText={editingEntry ? 'Update' : 'Add'}
+      >
+        <Form form={form} layout="vertical" onFinish={handleEntryFormSubmit}>
+          <Form.Item name="classType" label="Class Type" rules={[{ required: true }]}>
+            <Select 
+              placeholder="Search or select Type" 
+              onChange={handleModalClassTypeChange}
+              showSearch
+              filterOption={filterOption}
+            >
+              {classTypes.map(type => (
+                <Option key={type.value} value={type.value}>{type.label}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="classId" label="Class Group" rules={[{ required: true }]}>
+            <Select 
+              placeholder="Search or select Group" 
+              disabled={classGroups.length === 0}
+              showSearch
+              filterOption={filterOption}
+            >
+              {classGroups.map(group => (
+                <Option key={group.value} value={group.value}>{group.label}</Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item name="date" label="Date" rules={[{ required: true }]}>
+            <DatePicker 
+              style={{ width: '100%' }}
+              disabledDate={(current) => current && current > dayjs().endOf('day')}
+            />
+          </Form.Item>
+          <Form.Item
+            name="weekNumber"
+            label="Academic Week"
+            rules={[
+              { required: true, message: 'Please enter the week number' },
+              { type: 'number', min: 1, max: 13, message: 'Week must be between 1 and 13' }
+            ]}
+          >
+            <InputNumber placeholder="e.g., 5 (Week 1-13)" style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="hours" label="Hours Worked" rules={[{ required: true, type: 'number', min: 0.1 }]}>
+            <InputNumber style={{ width: '100%' }} step={0.5} />
+          </Form.Item>
+          <Form.Item name="description" label="Description (Optional)">
+            <TextArea rows={3} />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
 };
 
 export default TATimesheetView;

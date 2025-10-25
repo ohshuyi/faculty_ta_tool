@@ -29,22 +29,31 @@ export async function POST(req) {
         const newEntry = await prisma.$transaction(async (tx) => {
             // Find or create the timesheet for the given user and period
             const timesheet = await tx.timesheet.upsert({
-                where: { userId_period: { userId, period } },
-                update: {}, // No update needed here
-                create: { userId, period, status: 'Draft' },
+                where: {
+                    userId_period_courseCode: { // <-- FIX: Use new 3-field key
+                        userId: userId,
+                        period: period,
+                        courseCode: courseCode
+                    }
+                },
+                update: {}, // No update needed if it exists
+                create: {
+                    userId: userId,
+                    period: period,
+                    courseCode: courseCode, // <-- FIX: Add courseCode to the create block
+                    status: 'Draft'
+                },
             });
 
-            if (timesheet.status !== 'Draft') {
-                throw new Error("Cannot add entries to a non-draft timesheet.");
+            if (timesheet.status !== 'Draft' && timesheet.status !== 'Rejected') {
+                throw new Error("Cannot add entries. Please recall the timesheet first.");
             }
 
-            // Create the new entry
             const entry = await tx.timesheetEntry.create({
                 data: {
                     timesheetId: timesheet.id,
-                    date: new Date(date),
+                    date: entryDate,
                     hours: hoursDecimal,
-                    courseCode: courseCode,
                     classDetails: classDetails,
                     weekNumber: parseInt(weekNumber),
                     description,
@@ -63,11 +72,10 @@ export async function POST(req) {
                 where: { id: timesheet.id },
                 data: {
                     totalHours: newTotalHours,
-                    // If it was approved, set it back to Pending
-                    status: timesheet.status === 'Approved' ? 'Pending' : timesheet.status,
+                    status: 'Draft',
+                    rejectionReason: null, // Clear reason
                 },
             });
-
             return entry;
         });
 

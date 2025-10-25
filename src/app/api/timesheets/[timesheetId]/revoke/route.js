@@ -18,7 +18,7 @@ export async function PATCH(req, { params }) {
     // Update the status back to 'Pending'
     const updatedTimesheet = await prisma.timesheet.update({
       where: { id: timesheetId },
-      data: { status: "Pending" },
+      data: { status: "Submitted" },
     });
 
     return NextResponse.json(updatedTimesheet);

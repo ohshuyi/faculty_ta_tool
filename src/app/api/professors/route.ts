@@ -5,7 +5,14 @@ import prisma from "@/lib/prisma"; // Adjust the path to your prisma client
 export async function GET() {
   try {
     const professors = await prisma.user.findMany({
-      where: { role: "PROFESSOR" }, // Assuming the role field distinguishes professors
+      where: { role: "PROFESSOR" },
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: 'asc',
+      }, // Assuming the role field distinguishes professors
     });
     return NextResponse.json(professors);
   } catch (error) {
