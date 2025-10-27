@@ -8,21 +8,20 @@ export async function PUT(
   const { userid } = params;
 
   try {
-    // Parse the request body
     const body = await req.json();
-    const { role } = body;
+    // 1. Get BOTH 'role' and 'labId' from the request body
+    const { role, labId } = body;
 
-    // Validate the role
-    const validRoles = ["USER", "TA", "PROFESSOR", "ADMIN"];
+    // 2. Add "LAB_TECH" to the valid roles
+    const validRoles = ["USER", "TA", "PROFESSOR", "ADMIN", "LAB_TECH"];
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { error: "Invalid role provided" },
         { status: 400 }
       );
     }
-    // Convert userid to an integer
-    const userIdInt = parseInt(userid, 10);
 
+    const userIdInt = parseInt(userid, 10);
     if (isNaN(userIdInt)) {
       return NextResponse.json(
         { error: "Invalid user ID format" },
@@ -30,10 +29,27 @@ export async function PUT(
       );
     }
 
-    // Update the user's role in the database
+    // 3. Build the data for the update
+    const dataToUpdate: { role: string, labId: number | null } = {
+      role: role,
+      labId: null, // Default to null (disconnect from lab)
+    };
+
+    if (role === 'LAB_TECH') {
+      // If the new role is LAB_TECH, the labId is required
+      if (!labId) {
+        return NextResponse.json(
+          { error: "A Lab ID is required for the LAB_TECH role" },
+          { status: 400 }
+        );
+      }
+      dataToUpdate.labId = parseInt(labId, 10);
+    }
+    
+    // 4. Update the user in the database with the new data
     const updatedUser = await prisma.user.update({
-      where: { id: userIdInt }, // Use the converted integer
-      data: { role },
+      where: { id: userIdInt },
+      data: dataToUpdate, // Use the new data object
     });
 
     // Return success response
@@ -55,7 +71,6 @@ export async function PUT(
     );
   }
 }
-
 export async function DELETE(
   req: Request,
   { params }: { params: { userid: string } }

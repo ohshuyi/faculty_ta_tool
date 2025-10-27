@@ -80,6 +80,11 @@ model User {
 
   timesheets Timesheet[] @relation("UserTimesheets")
   approvingTimesheets Timesheet[] @relation("TimesheetApprovers")
+
+  labId Int?
+  lab   Lab?    @relation("LabAssignments", fields: [labId], references: [id], onDelete: SetNull)
+
+  createdLabIssues LabIssue[] @relation("CreatedIssues")
 }
 
 
@@ -99,6 +104,7 @@ enum Role {
   TA
   PROFESSOR
   ADMIN
+  LAB_TECH
 }
 
 model Class {
@@ -154,4 +160,27 @@ model TimesheetEntry {
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model Lab {
+  id    Int     @id @default(autoincrement())
+  name  String  @unique // e.g., "HW Lab 1", "Network Lab"
+  
+  assignedTechs User[]  @relation("LabAssignments")
+  issues        LabIssue[]
+}
+
+model LabIssue {
+  id              Int      @id @default(autoincrement())
+  title           String
+  description     String
+  status          String   @default("Open") // e.g., "Open", "In Progress", "Resolved"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  labId           Int
+  lab             Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  createdByUserId Int
+  createdByUser   User     @relation("CreatedIssues", fields: [createdByUserId], references: [id], onDelete: Cascade)
 }

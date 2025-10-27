@@ -20,12 +20,12 @@ const AppLayout = ({ children }) => {
     // test
     // Debugging
     console.log("Signing out...");
-  
+
     await signOut({ callbackUrl: "/" })
       .then(() => console.log("User signed out successfully"))
       .catch((err) => console.error("Error signing out:", err));
   };
-  
+
 
   const handleCancel = () => {
     setIsModalVisible(false);
@@ -36,6 +36,7 @@ const AppLayout = ({ children }) => {
     { label: <Link href="/dashboard">Dashboard</Link>, key: "dashboard" },
     { label: <Link href="/task">Task</Link>, key: "task" },
     { label: <Link href="/ticket">Tickets</Link>, key: "ticket" },
+    { key: 'lab-issues', label: <Link href="/lab-issues">Lab Issues</Link> },
     { label: <Link href="/history">History</Link>, key: "history" },
     { key: 'timesheet', label: <Link href="/timesheet">Timesheet</Link> },
     { label: <Link href="/classmanagement">Management</Link>, key: "classmanagement" },
@@ -43,7 +44,14 @@ const AppLayout = ({ children }) => {
 
   const adminItems = [
     { label: <Link href="/admin">Admin Management</Link>, key: "adminmanagement" },
+    { label: <Link href="/admin/labs">Manage Labs</Link>, key: "adminmanagement" },
   ];
+
+  const labTechItems = [
+    { label: <Link href="/dashboard">Dashboard</Link>, key: "dashboard" },
+    { key: 'lab-issues', label: <Link href="/lab-issues">Lab Issues</Link> },
+    { label: <Link href="/history">History</Link>, key: "history" },
+  ]
 
   const logoutItem = {
     label: (
@@ -54,14 +62,16 @@ const AppLayout = ({ children }) => {
     key: "logout",
   };
 
-  // Check if the user is an admin
-  const isAdmin = session?.user?.role === "ADMIN"; // Assuming `role` is stored in the session
+  const userRole = session?.user?.role;
 
-  // Determine the menu items to display
-
-  const menuItems = isAdmin
-    ? [...adminItems, logoutItem]
-    : [...commonItems, logoutItem];
+  let menuItems;
+  if (userRole === "ADMIN") {
+    menuItems = [...adminItems, logoutItem];
+  } else if (userRole === "LAB_TECH") {
+    menuItems = [...labTechItems, logoutItem];
+  } else {
+    menuItems = [...commonItems, logoutItem];
+  }
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -72,7 +82,7 @@ const AppLayout = ({ children }) => {
           justifyContent: "space-between",
         }}
       >
-       {/* <Image src="/ntu.png" width={160} height={10} alt="NT U" />¬ */}
+        {/* <Image src="/ntu.png" width={160} height={10} alt="NT U" />¬ */}
 
         <Menu
           theme="dark"

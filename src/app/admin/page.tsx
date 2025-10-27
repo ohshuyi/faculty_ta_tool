@@ -21,11 +21,13 @@ const AdminPage = () => {
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [labs, setLabs] = useState([]);
+  const [selectedRole, setSelectedRole] = useState("USER");
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/users");
+      const response = await fetch("/api/users", { cache: 'no-store' });
       const data = await response.json();
       setUsers(data);
       setFilteredUsers(data);
@@ -44,12 +46,23 @@ const AdminPage = () => {
     fetchUsers();
   }, [session, status, router, fetchUsers]);
 
-  const handleRoleChange = async (userId, newRole) => {
+  useEffect(() => {
+    const fetchLabs = async () => {
+      try {
+        const response = await fetch('/api/labs');
+        setLabs(await response.json());
+      } catch (e) {
+        message.error("Failed to load labs list");
+      }
+    };
+    fetchLabs();
+  }, []);
+  const handleRoleChange = async (userId, data) => {
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: newRole }),
+        body: JSON.stringify(data), // Send the entire object
       });
 
       if (!response.ok) {
@@ -57,16 +70,7 @@ const AdminPage = () => {
       }
 
       message.success("Role updated successfully");
-      setUsers((prevUsers) =>
-        prevUsers.map((user) =>
-          user.id === userId ? { ...user, role: newRole } : user
-        )
-      );
-      setFilteredUsers((prevFilteredUsers) =>
-        prevFilteredUsers.map((user) =>
-          user.id === userId ? { ...user, role: newRole } : user
-        )
-      );
+      fetchUsers();
     } catch (error) {
       console.error("Error updating role:", error);
       message.error("Failed to update role");
@@ -129,7 +133,11 @@ const AdminPage = () => {
 
   const handleUpdateClick = (user) => {
     setSelectedUser(user);
-    form.setFieldsValue({ role: user.role }); // Set initial role in the form
+    setSelectedRole(user.role);
+    form.setFieldsValue({ 
+      role: user.role,
+      labId: user.labId 
+    });
     setIsUpdateModalVisible(true);
   };
 
@@ -140,8 +148,8 @@ const AdminPage = () => {
 
   const handleUpdateModalOk = async () => {
     try {
-      const { role } = form.getFieldsValue();
-      await handleRoleChange(selectedUser.id, role); // Update the user's role
+      const values = form.getFieldsValue();
+      await handleRoleChange(selectedUser.id, values);
       setIsUpdateModalVisible(false);
       setSelectedUser(null);
     } catch (error) {
@@ -185,6 +193,14 @@ const AdminPage = () => {
       title: "Role",
       dataIndex: "role",
       key: "role",
+      render: (role, record) => {
+        if (role === 'LAB_TECH') {
+          // Find the lab name from the state
+          const labName = labs.find(lab => lab.id === record.labId)?.name;
+          return `LAB_TECH (${labName || 'No lab assigned'})`;
+        }
+        return role; // Return the role name for all other roles
+      },
     },
     {
       title: "Actions",
@@ -278,19 +294,33 @@ const AdminPage = () => {
             rules={[{ required: true, message: "Please select a role" }]}
             initialValue="USER"
           >
-            <Select>
-              <Option value="USER">USER</Option>
-              <Option value="TA">TA</Option>
-              <Option value="PROFESSOR">PROFESSOR</Option>
-              <Option value="ADMIN">ADMIN</Option>
-            </Select>
+            <Select onChange={(value) => setSelectedRole(value)}>
+                <Option value="USER">USER</Option>
+                <Option value="TA">TA</Option>
+                <Option value="PROFESSOR">PROFESSOR</Option>
+                <Option value="ADMIN">ADMIN</Option>
+                <Option value="LAB_TECH">LAB_TECH</Option>
+              </Select>
           </Form.Item>
+          {selectedRole === 'LAB_TECH' && (
+            <Form.Item
+              name="labId"
+              label="Assigned Lab"
+              rules={[{ required: true, message: "Please assign a lab" }]}
+            >
+              <Select placeholder="Select a lab">
+                {labs.map(lab => (
+                  <Option key={lab.id} value={lab.id}>{lab.name}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          )}
         </Form>
       </Modal>
       {/* Modal for Update */}
       <Modal
         title="Update User Role"
-        visible={isUpdateModalVisible}
+        open={isUpdateModalVisible}
         onOk={handleUpdateModalOk}
         onCancel={handleModalCancel}
         okText="Update"
@@ -309,20 +339,34 @@ const AdminPage = () => {
               label="Role"
               rules={[{ required: true, message: "Please select a role" }]}
             >
-              <Select>
+              <Select onChange={(value) => setSelectedRole(value)}>
                 <Option value="USER">USER</Option>
                 <Option value="TA">TA</Option>
                 <Option value="PROFESSOR">PROFESSOR</Option>
                 <Option value="ADMIN">ADMIN</Option>
+                <Option value="LAB_TECH">LAB_TECH</Option>
               </Select>
             </Form.Item>
+            {selectedRole === 'LAB_TECH' && (
+              <Form.Item
+                name="labId"
+                label="Assigned Lab"
+                rules={[{ required: true, message: "Please assign a lab" }]}
+              >
+                <Select placeholder="Select a lab">
+                  {labs.map(lab => (
+                    <Option key={lab.id} value={lab.id}>{lab.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            )}
           </Form>
         )}
       </Modal>
       {/* Modal for Delete */}
       <Modal
         title="Confirm Delete"
-        visible={isDeleteModalVisible}
+        open={isDeleteModalVisible}
         onOk={handleDeleteModalOk}
         onCancel={handleModalCancel}
         okText="Delete"
