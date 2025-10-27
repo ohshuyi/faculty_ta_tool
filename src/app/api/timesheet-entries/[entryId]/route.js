@@ -51,7 +51,10 @@ export async function PUT(req, { params }) {
             });
 
             await recalculateTotalHours(tx, entry.timesheetId);
-            const aggregate = await tx.timesheetEntry.aggregate({ /* ... */ });
+            const aggregate = await tx.timesheetEntry.aggregate({
+                _sum: { hours: true },
+                where: { timesheetId },
+            });
             const newTotalHours = aggregate._sum.hours || 0;
             await tx.timesheet.update({
                 where: { id: entry.timesheetId },
