@@ -4,7 +4,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Prisma } from '@prisma/client';
 
-// Helper function to recalculate and update total hours
 async function recalculateTotalHours(tx, timesheetId) {
     const aggregate = await tx.timesheetEntry.aggregate({
         _sum: { hours: true },
@@ -16,7 +15,6 @@ async function recalculateTotalHours(tx, timesheetId) {
     });
 }
 
-// PUT handler to update an entry
 export async function PUT(req, { params }) {
     try {
         const session = await getServerSession(authOptions);
@@ -28,7 +26,6 @@ export async function PUT(req, { params }) {
         }
         const hoursDecimal = new Prisma.Decimal(hours);
 
-        // Verify ownership and timesheet status in transaction
         const updatedEntry = await prisma.$transaction(async (tx) => {
             const entry = await tx.timesheetEntry.findUnique({
                 where: { id: entryId },
@@ -36,11 +33,11 @@ export async function PUT(req, { params }) {
             });
 
             if (!entry || entry.timesheet.userId !== session?.user?.id) {
-                throw new Error("Entry not found or unauthorized"); // Will result in 404/403 below
+                throw new Error("Entry not found or unauthorized");
             }
 
-            if (entry.timesheet.status !== 'Draft') {
-                throw new Error("Cannot modify entries of a non-draft timesheet.");
+            if (entry.timesheet.status !== 'Draft' || entry.timesheet.status != "Rejected") {
+                throw new Error("Only Draft or Rejected timesheets can be submitted.");
             }
 
             const updated = await tx.timesheetEntry.update({
@@ -60,7 +57,6 @@ export async function PUT(req, { params }) {
                 where: { id: entry.timesheetId },
                 data: {
                     totalHours: newTotalHours,
-                    // --- NEW LOGIC: Revert status if it was approved ---
                     status: entry.timesheet.status === 'Approved' ? 'Pending' : entry.timesheet.status,
                 },
             });
@@ -90,7 +86,6 @@ export async function DELETE(req, { params }) {
         }
 
         await prisma.$transaction(async (tx) => {
-            // 1. Find the entry and verify ownership
             const entry = await tx.timesheetEntry.findUnique({
                 where: { id: entryId },
                 include: { timesheet: true },
@@ -99,33 +94,27 @@ export async function DELETE(req, { params }) {
             if (!entry || entry.timesheet.userId !== session?.user?.id) {
                 throw new Error("Entry not found or unauthorized");
             }
-            if (entry.timesheet.status !== 'Draft') {
-                throw new Error("Cannot modify entries of a non-draft timesheet.");
+            if (entry.timesheet.status !== 'Draft' || entry.timesheet.status != "Rejected") {
+                throw new Error("Only Draft or Rejected timesheets can be submitted.");
             }
 
-            // 2. Delete the entry
             await tx.timesheetEntry.delete({ where: { id: entryId } });
 
-            // --- START: UPDATED LOGIC ---
-            // 3. Check for remaining entries on the parent timesheet
             const remainingEntries = await tx.timesheetEntry.count({
                 where: { timesheetId: entry.timesheetId },
             });
 
             if (remainingEntries > 0) {
-                // 4a. If entries remain, just update the total hours
                 const newTotalHours = await recalculateTotalHours(tx, entry.timesheetId);
                 await tx.timesheet.update({
                     where: { id: entry.timesheetId },
                     data: { totalHours: newTotalHours },
                 });
             } else {
-                // 4b. If no entries remain, delete the parent timesheet
                 await tx.timesheet.delete({
                     where: { id: entry.timesheetId },
                 });
             }
-            // --- END: UPDATED LOGIC ---
         });
 
         return NextResponse.json({ message: "Entry deleted successfully" }, { status: 200 });
