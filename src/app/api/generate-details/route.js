@@ -61,7 +61,7 @@ export async function POST(req) {
         const openai = new OpenAI({
             apiKey: process.env.AZURE_OPENAI_API_KEY,
             baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}`,
-            defaultQuery: { "api-version": "2024-02-01" }, // Use a recent, stable API version
+            defaultQuery: { "api-version": "2024-02-01" },
             defaultHeaders: { "api-key": process.env.AZURE_OPENAI_API_KEY },
         });
 
@@ -73,7 +73,6 @@ export async function POST(req) {
                 description: "Extracts details for a new task.",
                 parameters: {
                     type: "object",
-                    // All parameter definitions must be nested inside this 'properties' object
                     properties: {
                         name: { type: "string", description: "A concise name for the task, e.g., 'Grade SC2207 Mid-Terms'." },
                         dueDate: { type: "string", description: "The due date in YYYY-MM-DD format. Infer from text like 'next Friday'." },
@@ -82,7 +81,6 @@ export async function POST(req) {
                         classType: { type: "string", description: "The class type, which must be 'LAB' or 'TUT', or null if not mentioned." },
                         classGroup: { type: "string", description: "The specific class group, e.g., 'BCG1', or null if not mentioned." },
                     },
-                    // The 'required' array must be a sibling of 'properties'
                     required: ["name", "details"],
                 },
             },
@@ -98,7 +96,6 @@ export async function POST(req) {
                         name: { type: "string", description: "A concise name for the ticket, e.g., 'Late submission due to MC'." },
                         ticketDescription: { type: "string", description: "A detailed description of the ticket/issue." },
                         courseCode: { type: "string", description: "The course code, e.g., 'SC2207', or null." },
-                        // Add these two fields:
                         classType: { type: "string", description: "The class type, either 'LAB' or 'TUT', or null.", enum: ["LAB", "TUT"] },
                         classGroup: { type: "string", description: "The specific class group, e.g., 'BCG1', or null." },
                         category: {
@@ -130,7 +127,7 @@ export async function POST(req) {
         const response = await openai.chat.completions.create({
             model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME,
             messages: messages,
-            tools: [selectedTool], // Only send the relevant tool
+            tools: [selectedTool],
             tool_choice: "auto",
         });
 
