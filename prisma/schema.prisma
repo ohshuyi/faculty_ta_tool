@@ -233,3 +233,14 @@ model LabIssue {
   createdByUserId Int
   createdByUser   User     @relation("CreatedIssues", fields: [createdByUserId], references: [id], onDelete: Cascade)
 }
+
+model TimesheetLog {
+  id          Int       @id @default(autoincrement())
+  timesheetId Int
+  timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  
+  timestamp   DateTime  @default(now())
+  actorName   String    // e.g., "John Doe (TA)" or "Jane Smith (Professor)"
+  action      String    // e.g., "Submitted", "Approved", "Entry Deleted"
+  details     String?   // e.g., "Logged 2.5 hours" or "Reason: Week 5 incorrect."
+}
