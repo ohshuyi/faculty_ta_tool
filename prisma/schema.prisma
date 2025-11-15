@@ -166,29 +166,6 @@ model TimesheetEntry {
   updatedAt   DateTime @updatedAt
 }
 
-model Lab {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique // e.g., "HW Lab 1", "Network Lab"
-  
-  assignedTechs User[]  @relation("LabAssignments")
-  issues        LabIssue[]
-}
-
-model LabIssue {
-  id              Int      @id @default(autoincrement())
-  title           String
-  description     String
-  status          String   @default("Open") // e.g., "Open", "In Progress", "Resolved"
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  labId           Int
-  lab             Lab      @relation(fields: [labId], references: [id], onDelete: Cascade)
-
-  createdByUserId Int
-  createdByUser   User     @relation("CreatedIssues", fields: [createdByUserId], references: [id], onDelete: Cascade)
-}
-
 model TimesheetLog {
   id          Int       @id @default(autoincrement())
   timesheetId Int
