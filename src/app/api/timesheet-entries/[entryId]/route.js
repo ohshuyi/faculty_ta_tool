@@ -36,8 +36,8 @@ export async function PUT(req, { params }) {
                 throw new Error("Entry not found or unauthorized");
             }
 
-            if (entry.timesheet.status !== 'Draft' || entry.timesheet.status != "Rejected") {
-                throw new Error("Only Draft or Rejected timesheets can be submitted.");
+            if (entry.timesheet.status !== 'Draft' && entry.timesheet.status !== 'Rejected') {
+                throw new Error("Only Draft or Rejected timesheets can be edited.");
             }
 
             const updated = await tx.timesheetEntry.update({
@@ -51,18 +51,7 @@ export async function PUT(req, { params }) {
             });
 
             await recalculateTotalHours(tx, entry.timesheetId);
-            const aggregate = await tx.timesheetEntry.aggregate({
-                _sum: { hours: true },
-                where: { timesheetId },
-            });
-            const newTotalHours = aggregate._sum.hours || 0;
-            await tx.timesheet.update({
-                where: { id: entry.timesheetId },
-                data: {
-                    totalHours: newTotalHours,
-                    status: entry.timesheet.status === 'Approved' ? 'Pending' : entry.timesheet.status,
-                },
-            });
+
             return updated;
         });
 
@@ -97,8 +86,8 @@ export async function DELETE(req, { params }) {
             if (!entry || entry.timesheet.userId !== session?.user?.id) {
                 throw new Error("Entry not found or unauthorized");
             }
-            if (entry.timesheet.status !== 'Draft' || entry.timesheet.status != "Rejected") {
-                throw new Error("Only Draft or Rejected timesheets can be submitted.");
+            if (entry.timesheet.status !== 'Draft' && entry.timesheet.status !== 'Rejected') {
+                throw new Error("Only Draft or Rejected timesheets can be deleted.");
             }
 
             await tx.timesheetEntry.delete({ where: { id: entryId } });
@@ -108,11 +97,7 @@ export async function DELETE(req, { params }) {
             });
 
             if (remainingEntries > 0) {
-                const newTotalHours = await recalculateTotalHours(tx, entry.timesheetId);
-                await tx.timesheet.update({
-                    where: { id: entry.timesheetId },
-                    data: { totalHours: newTotalHours },
-                });
+                await recalculateTotalHours(tx, entry.timesheetId);
             } else {
                 await tx.timesheet.delete({
                     where: { id: entry.timesheetId },

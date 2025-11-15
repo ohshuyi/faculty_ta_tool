@@ -31,6 +31,21 @@ export async function POST(req, { params }) {
       },
     });
 
+    const profs = await prisma.user.findMany({ 
+      where: { id: { in: professorIds } },
+      select: { name: true }
+    });
+    const profNames = profs.map(p => p.name).join(', ') || 'None';
+
+    await prisma.timesheetLog.create({
+      data: {
+        timesheetId: timesheetId,
+        actorName: `${session.user.name} (TA)`,
+        action: "Approvers Assigned",
+        details: `Set approvers to: ${profNames}`
+      }
+    });
+
     return NextResponse.json({ message: "Approvers assigned successfully." });
   } catch (error) {
     console.error("Error assigning approvers:", error);

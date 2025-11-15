@@ -32,6 +32,14 @@ export async function PATCH(req, { params }) {
       data: { status: "Draft" },
     });
 
+    await prisma.timesheetLog.create({
+      data: {
+        timesheetId: timesheetId,
+        actorName: `${session.user.name} (TA)`,
+        action: "Recalled",
+      }
+    });
+
     return NextResponse.json(updatedTimesheet);
   } catch (error) {
     console.error("Error recalling timesheet:", error);

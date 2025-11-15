@@ -4,6 +4,7 @@ export async function sendEmail(recipientAddress, subject, htmlContent) {
   try {
     const connectionString = process.env.COMMUNICATION_SERVICES_CONNECTION_STRING;
     const senderAddress = process.env.EMAIL_SENDER_ADDRESS;
+    const adminCcAddress = process.env.ADMIN_EMAIL_ADDRESS;
 
     if (!connectionString || !senderAddress) {
       console.error("Email service environment variables are not configured.");
@@ -15,7 +16,9 @@ export async function sendEmail(recipientAddress, subject, htmlContent) {
     const message = {
       senderAddress,
       content: { subject, html: htmlContent },
-      recipients: { to: [{ address: recipientAddress }] },
+      recipients: { 
+        to: [{ address: recipientAddress }], 
+        cc: adminCcAddress ? [{ address: adminCcAddress }] : [], },
     };
 
     const poller = await emailClient.beginSend(message);

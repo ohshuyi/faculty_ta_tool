@@ -6,7 +6,8 @@ import {
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { getAcademicYear, getPreviousAcademicPeriod, getCurrentAcademicPeriod } from '@/lib/academicUtils'; // Ensure this path is correct
+import { getAcademicYear, getPreviousAcademicPeriod, getCurrentAcademicPeriod } from '@/lib/academicUtils';
+import TimesheetLogList from '@/components/TimesheetLogList';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -15,8 +16,8 @@ const TATimesheetView = ({ userId }) => {
   const [allTimesheets, setAllTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentAcademicPeriod());
-  const [allClasses, setAllClasses] = useState([]); // For Class Cascader
-  const [allProfessors, setAllProfessors] = useState([]); // For Assign Modal
+  const [allClasses, setAllClasses] = useState([]);
+  const [allProfessors, setAllProfessors] = useState([]);
   
   // State for submitting/recalling
   const [submittingIds, setSubmittingIds] = useState([]);
@@ -350,15 +351,18 @@ const TATimesheetView = ({ userId }) => {
           {(record.status === 'Draft' || record.status === 'Rejected') && (
             <Popconfirm
               title={record.status === 'Rejected' ? "Resubmit Timesheet?" : "Submit Timesheet?"}
-              description={record.approvers.length === 0 ? "Please assign an approver first." : "Are you sure?"}
-              disabled={record.approvers.length === 0}
+              description={
+                record.approvers.length === 0 ? "Please assign an approver first." :
+                (record.totalHours <= 0 ? "You cannot submit a timesheet with 0 hours." : "Are you sure?")
+              }
+              disabled={record.approvers.length === 0 || record.totalHours <= 0}
               onConfirm={() => handleSubmitForApproval(record.id)}
             >
               <Button
                 type="primary"
                 loading={submittingIds.includes(record.id)}
                 style={record.status === 'Rejected' ? {} : { backgroundColor: 'orange', borderColor: 'orange' }}
-                disabled={record.approvers.length === 0}
+                disabled={record.approvers.length === 0 || record.totalHours <= 0}
               >
                 {record.status === 'Rejected' ? "Resubmit" : "Submit"}
               </Button>
@@ -457,6 +461,7 @@ const TATimesheetView = ({ userId }) => {
                       size="small"
                       pagination={false}
                     />
+                    <TimesheetLogList logs={record.logs} />
                   </div>
                 );
               },

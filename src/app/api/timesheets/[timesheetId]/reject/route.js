@@ -43,6 +43,15 @@ export async function PATCH(req, { params }) {
             },
         });
 
+        await prisma.timesheetLog.create({
+            data: {
+                timesheetId: timesheetId,
+                actorName: `${session.user.name} (Professor)`,
+                action: "Rejected",
+                details: reason, // Store the rejection reason
+            }
+        });
+
         // 3. Send notification email to the TA
         if (timesheet.user && timesheet.user.email) {
             const baseUrl = process.env.NEXTAUTH_URL;
