@@ -266,16 +266,53 @@ const ClassManagement = () => {
 
     try {
       if (selectedExistingStudentId) {
-        // User chose to MOVE an existing student
-        const studentToMove = potentialMatches.find(s => s.id === selectedExistingStudentId);
-        const currentClassOfStudent = studentToMove.classes[0]; // Assuming student is in only one class of this type
+        const studentToProcess = potentialMatches.find(s => s.id === selectedExistingStudentId);
+        const isAlreadyInClass = studentToProcess.classes.some(c => c.id === selectedClass.id);
+
+        if (isAlreadyInClass) {
+          handleConfirmModalCancel(); // Close the selection modal
+          Modal.confirm({
+            title: 'Student Already in Class',
+            content: `"${studentToProcess.name}" is already in this class. Would you like to create the new student profile you originally entered instead?`,
+            okText: 'Yes, Create New',
+            cancelText: 'No, Cancel',
+            onOk: async () => {
+              try {
+                await createNewStudent(newStudentData);
+                Modal.confirm({
+                  title: `"${newStudentData.name}" created successfully!`,
+                  content: 'Do you want to add another student?',
+                  okText: 'Yes, Add Another',
+                  cancelText: 'No, Close',
+                  onOk: () => {
+                    newStudentForm.resetFields();
+                    setNewStudentData(null);
+                    setIsAddModalVisible(true);
+                  },
+                  onCancel: () => {
+                    handleAddModalCancel();
+                  }
+                });
+              } catch (error) {
+                // Error is handled in createNewStudent
+              }
+            },
+            onCancel: () => {
+              handleAddModalCancel();
+            }
+          });
+          return; // Stop execution
+        }
+
+        // If not in class, proceed with original move logic
+        const studentToMove = studentToProcess;
+        const currentClassOfStudent = studentToMove.classes[0];
 
         if (!currentClassOfStudent) {
           message.error("Could not determine the student's current class.");
           return;
         }
 
-        // Call the move API
         try {
           await fetch(`/api/students/${selectedExistingStudentId}/move`, {
             method: 'POST',
@@ -286,44 +323,41 @@ const ClassManagement = () => {
             }),
           });
           message.success(`${studentToMove.name} moved successfully!`);
-          await fetchClasses();
+          studentNameProcessed = studentToMove.name;
           success = true;
         } catch (error) {
           message.error("Failed to move student.");
         }
 
-      }
-      else {
+      } else {
         // User chose to CREATE NEW despite matches
         studentNameProcessed = newStudentData.name;
         await createNewStudent(newStudentData);
-        // Success message is inside createNewStudent
         success = true;
       }
     } catch (error) {
-      // message.error is handled within createNewStudent or the move logic's catch block
+      // Errors are handled in their respective blocks
     } finally {
-      handleConfirmModalCancel(); // Always close confirm modal
+      if (success) {
+        handleConfirmModalCancel(); // Close confirm modal only on success
+      }
     }
 
     if (success) {
       await fetchClasses();
       await fetchAllStudents();
 
-      // Ask if user wants to add another student AFTER the confirm modal is handled
       Modal.confirm({
-        title: `${studentNameProcessed} processed successfully!`, // Generic success
+        title: `${studentNameProcessed} processed successfully!`,
         content: 'Do you want to add another student?',
         okText: 'Yes, Add Another',
         cancelText: 'No, Close',
         onOk() {
-          // Reset for adding another
           newStudentForm.resetFields();
           setNewStudentData(null);
-          setIsAddModalVisible(true); // Re-open the main add modal
+          setIsAddModalVisible(true);
         },
         onCancel() {
-          // Close the main add modal
           handleAddModalCancel();
         },
       });
