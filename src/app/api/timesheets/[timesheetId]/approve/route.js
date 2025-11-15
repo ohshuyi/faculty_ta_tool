@@ -40,6 +40,14 @@ export async function PATCH(req, { params }) {
             data: { status: "Approved" },
         });
 
+        await prisma.timesheetLog.create({
+            data: {
+                timesheetId: timesheetId,
+                actorName: `${session.user.name} (Professor)`,
+                action: "Approved",
+            }
+        });
+
         if (timesheet.user && timesheet.user.email) {
             const baseUrl = process.env.NEXTAUTH_URL;
             const timesheetLink = `${baseUrl}/timesheet`;

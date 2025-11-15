@@ -41,6 +41,14 @@ export async function PATCH(req, { params }) {
             }
         });
 
+        await prisma.timesheetLog.create({
+            data: {
+                timesheetId: timesheetId,
+                actorName: `${session.user.name} (TA)`,
+                action: "Submitted",
+            }
+        });
+
         try {
             const baseUrl = process.env.NEXTAUTH_URL; // Your app's URL
             const timesheetLink = `${baseUrl}/timesheet`; // Link to the timesheet page

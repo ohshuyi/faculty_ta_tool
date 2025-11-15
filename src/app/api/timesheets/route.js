@@ -42,6 +42,9 @@ export async function GET(req) {
                     }
                 },
                 entries: true,
+                logs: {
+                    orderBy: { timestamp: 'desc' },
+                }
             },
             orderBy: [{ courseCode: 'asc' }],
         });

@@ -15,18 +15,25 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: "Invalid timesheet ID" }, { status: 400 });
     }
 
-    // Update the status back to 'Pending'
     const updatedTimesheet = await prisma.timesheet.update({
       where: { id: timesheetId },
       data: { status: "Submitted" },
     });
 
+    await prisma.timesheetLog.create({
+      data: {
+        timesheetId: timesheetId,
+        actorName: `${session.user.name} (Professor)`,
+        action: "Revoke timesheet approval",
+      }
+    });
+
     return NextResponse.json(updatedTimesheet);
   } catch (error) {
     console.error("Error revoking timesheet approval:", error);
-     if (error.code === 'P2025') {
-        return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
-     }
+    if (error.code === 'P2025') {
+      return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
+    }
     return NextResponse.json({ error: "Failed to revoke approval" }, { status: 500 });
   }
 }

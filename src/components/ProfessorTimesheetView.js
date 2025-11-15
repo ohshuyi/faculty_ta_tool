@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Table, Button, message, Spin, Tag, Popconfirm, Select, Card, Space, Collapse, Descriptions, List, Modal, Form, Input } from 'antd';
 import dayjs from 'dayjs';
 import { getAcademicYear, getCurrentAcademicPeriod, getPreviousAcademicPeriod } from '@/lib/academicUtils';
+import TimesheetLogList from '@/components/TimesheetLogList';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -21,7 +22,7 @@ const ProfessorTimesheetView = () => {
 
     const fetchTAs = useCallback(async () => {
         try {
-            const response = await fetch('/api/tas'); // Assuming you have this endpoint
+            const response = await fetch('/api/tas');
             if (!response.ok) throw new Error('Failed to fetch TAs');
             setTas(await response.json());
         } catch (error) {
@@ -362,6 +363,7 @@ const ProfessorTimesheetView = () => {
                             }, {});
 
                             return (
+                                <div>
                                 <Collapse accordion ghost>
                                     {/* 2. Use the correct variable name: [classDetailString, classData] */}
                                     {Object.entries(entriesByClassDetails).map(([classDetailString, classData]) => {
@@ -396,6 +398,8 @@ const ProfessorTimesheetView = () => {
                                         );
                                     })}
                                 </Collapse>
+                                <TimesheetLogList logs={record.logs} />
+                                </div>
                             );
                         },
                         rowExpandable: (record) => record.entries?.length > 0,

@@ -38,6 +38,14 @@ export async function PATCH(req, { params }) {
       },
     });
 
+    await prisma.timesheetLog.create({
+      data: {
+        timesheetId: timesheetId,
+        actorName: `${session.user.name} (Professor)`,
+        action: "Undo rejection",
+      }
+    });
+
     return NextResponse.json(updatedTimesheet);
   } catch (error) {
     console.error("Error undoing rejection:", error);
