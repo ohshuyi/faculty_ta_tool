@@ -25,7 +25,6 @@ export async function PATCH(
       where: { id: parseInt(taskId) },
       data: {
         status: "completed",
-        createdAt: new Date(),
       },
       include: {
         professor: true,

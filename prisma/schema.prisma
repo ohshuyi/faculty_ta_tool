@@ -22,6 +22,8 @@ model Task {
   
   classes     Class[]   @relation("TaskClasses") // Many-to-many relationship
   createdAt      DateTime @default(now()) // Automatically set the creation date
+  updatedAt      DateTime @updatedAt      // Automatically update the timestamp
+  lastFollowUpAt DateTime?                // Track when the last follow-up email was sent
   files          File[]   // Relation to uploaded files
   comments       Comment[] // Relation to comments
 }
@@ -35,6 +37,7 @@ model Ticket {
   status           String   @default("open")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  lastFollowUpAt   DateTime? // Track when the last follow-up email was sent
 
   classes          Class[]   @relation("TicketClasses")
 
