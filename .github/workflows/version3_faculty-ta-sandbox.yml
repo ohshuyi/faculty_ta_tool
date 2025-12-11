@@ -7,7 +7,7 @@ name: Build and deploy Node.js app to Azure Web App - faculty-ta-sandbox
 on:
   push:
     branches:
-      - version2
+      - version3
   workflow_dispatch:
 
 env:
