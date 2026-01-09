@@ -595,7 +595,21 @@ const ClassManagement = () => {
   ];
 
   const taColumns = [
-    { title: "TA Name", dataIndex: "name", key: "name" },
+    {
+      title: "TA Name",
+      dataIndex: "name",
+      key: "name",
+      render: (text, record) => (
+        <div>
+          <div>{text}</div>
+          {record.email && (
+            <div style={{ fontSize: '12px', color: '#888' }}>
+              ({record.email})
+            </div>
+          )}
+        </div>
+      )
+    },
     {
       title: "Assigned Classes",
       dataIndex: "assignedClasses",
