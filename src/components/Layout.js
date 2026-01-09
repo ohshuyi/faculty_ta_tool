@@ -20,12 +20,12 @@ const AppLayout = ({ children }) => {
     // test
     // Debugging
     console.log("Signing out...");
-  
+
     await signOut({ callbackUrl: "/" })
       .then(() => console.log("User signed out successfully"))
       .catch((err) => console.error("Error signing out:", err));
   };
-  
+
 
   const handleCancel = () => {
     setIsModalVisible(false);
@@ -48,7 +48,7 @@ const AppLayout = ({ children }) => {
   const logoutItem = {
     label: (
       <Button type="link" style={{ color: "white" }} onClick={showLogoutModal}>
-        Logout
+        Logout {session?.user?.email ? `(${session.user.email})` : ""}
       </Button>
     ),
     key: "logout",
@@ -72,7 +72,7 @@ const AppLayout = ({ children }) => {
           justifyContent: "space-between",
         }}
       >
-       {/* <Image src="/ntu.png" width={160} height={10} alt="NT U" />¬ */}
+        {/* <Image src="/ntu.png" width={160} height={10} alt="NT U" />¬ */}
 
         <Menu
           theme="dark"

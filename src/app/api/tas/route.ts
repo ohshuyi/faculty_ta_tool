@@ -12,6 +12,14 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        assignedClasses: {
+          select: {
+            id: true,
+            courseCode: true,
+            classGroup: true,
+            classType: true,
+          }
+        }
       },
     });
 

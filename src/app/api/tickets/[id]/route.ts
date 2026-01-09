@@ -72,11 +72,14 @@ export async function PATCH(
       );
     }
 
-    // Update the status to 'completed'
+    const body = await req.json();
+    const status = body.status || "completed";
+
+    // Update the status
     const updatedTicket = await prisma.ticket.update({
       where: { id: Number(id) },
       data: {
-        status: "completed",
+        status: status,
         updatedAt: new Date(),
       },
       include: {
@@ -86,7 +89,7 @@ export async function PATCH(
     });
 
     const subject = `Ticket Status Updated: ${updatedTicket.name}`;
-    const body = `
+    const emailBody = `
       <html>
         <body>
           <p>The status of ticket "<strong>${updatedTicket.name}</strong>" has been updated to <strong>${updatedTicket.status.toUpperCase()}</strong>.</p>
@@ -100,12 +103,12 @@ export async function PATCH(
 
     // Send email to the professor
     if (updatedTicket.professor?.email) {
-      await sendEmail(updatedTicket.professor.email, subject, body);
+      await sendEmail(updatedTicket.professor.email, subject, emailBody);
     }
 
     // Send email to the TA
     if (updatedTicket.ta?.email) {
-      await sendEmail(updatedTicket.ta.email, subject, body);
+      await sendEmail(updatedTicket.ta.email, subject, emailBody);
     }
 
     return NextResponse.json(

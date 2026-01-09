@@ -58,6 +58,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       },
     });
 
+    // Update the ticket's updatedAt timestamp
+    await prisma.ticket.update({
+      where: { id: ticket.id },
+      data: { updatedAt: new Date() },
+    });
+
     if (ticket) {
       const subject = `New Comment on Ticket: ${ticket.name}`;
       const body = `

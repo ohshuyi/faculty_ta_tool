@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Table, Button, Modal, Form, DatePicker, InputNumber, Input, 
+import {
+  Table, Button, Modal, Form, DatePicker, InputNumber, Input,
   message, Select, Space, Spin, Tag, Popconfirm, Card, Cascader, Alert, Transfer, List, Descriptions
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
@@ -18,7 +18,10 @@ const TATimesheetView = ({ userId }) => {
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentAcademicPeriod());
   const [allClasses, setAllClasses] = useState([]);
   const [allProfessors, setAllProfessors] = useState([]);
-  
+
+  // State for expanded rows
+  const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+
   // State for submitting/recalling
   const [submittingIds, setSubmittingIds] = useState([]);
   const [recallingIds, setRecallingIds] = useState([]);
@@ -37,7 +40,7 @@ const TATimesheetView = ({ userId }) => {
   const [editingEntry, setEditingEntry] = useState(null);
   const [currentTimesheet, setCurrentTimesheet] = useState(null); // Keep track of which timesheet we're adding to
   const [form] = Form.useForm();
-  
+
   // --- State for Entry Modal dropdowns ---
   const [classTypes, setClassTypes] = useState([]);
   const [classGroups, setClassGroups] = useState([]);
@@ -49,7 +52,7 @@ const TATimesheetView = ({ userId }) => {
       const response = await fetch(`/api/timesheets?period=${encodeURIComponent(period)}`, { credentials: 'include', cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to load timesheets');
       setAllTimesheets(await response.json());
-    } catch (error) { message.error(error.message); } 
+    } catch (error) { message.error(error.message); }
     finally { setLoading(false); }
   }, []);
 
@@ -121,7 +124,7 @@ const TATimesheetView = ({ userId }) => {
       return a.courseCode.localeCompare(b.courseCode);
     });
   }, [allTimesheets]);
-  
+
   // Filter options for the entry modal
   const filteredClassOptions = useMemo(() => {
     if (!currentTimesheet) return [];
@@ -129,19 +132,27 @@ const TATimesheetView = ({ userId }) => {
     return courseData ? courseData.children : [];
   }, [classOptions, currentTimesheet]);
 
+  // Handle row expansion manually
+  const handleExpand = (expanded, record) => {
+    const keys = expanded
+      ? [...expandedRowKeys, record.id]
+      : expandedRowKeys.filter(k => k !== record.id);
+    setExpandedRowKeys(keys);
+  };
+
   // --- Handlers for Entry Modal ---
   const showAddModal = (timesheet) => {
     setCurrentTimesheet(timesheet);
     setEditingEntry(null);
     form.resetFields();
     form.setFieldsValue({ date: dayjs() });
-    
+
     // Populate class types for the new entry
     const courseData = classOptions.find(opt => opt.value === timesheet.courseCode);
-    const types = (courseData ? courseData.children : []).map(type => ({label: type.label, value: type.value}));
+    const types = (courseData ? courseData.children : []).map(type => ({ label: type.label, value: type.value }));
     setClassTypes([...new Set(types.map(t => t.value))].map(val => types.find(t => t.value === val))); // Get unique type objects
     setClassGroups([]);
-    
+
     setIsEntryModalVisible(true);
   };
 
@@ -150,8 +161,8 @@ const TATimesheetView = ({ userId }) => {
     setEditingEntry(entry);
 
     const courseData = classOptions.find(opt => opt.value === timesheet.courseCode);
-    const allTypesForCourse = (courseData ? courseData.children : []).map(type => ({label: type.label, value: type.value}));
-    
+    const allTypesForCourse = (courseData ? courseData.children : []).map(type => ({ label: type.label, value: type.value }));
+
     const entryClassType = entry.classDetails.split(' - ')[0];
     const typeData = courseData?.children.find(type => type.value === entryClassType);
     const groupsForType = typeData ? typeData.children : [];
@@ -185,9 +196,9 @@ const TATimesheetView = ({ userId }) => {
     setClassGroups(typeData ? typeData.children : []);
     form.setFieldsValue({ classId: undefined });
   };
-  
+
   const handleEntryFormSubmit = async (values) => {
-    if (!currentTimesheet) return; 
+    if (!currentTimesheet) return;
 
     let classDetailsStr = 'Unknown';
     const typeData = filteredClassOptions.find(type => type.value === values.classType);
@@ -253,10 +264,17 @@ const TATimesheetView = ({ userId }) => {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to add course.');
       }
+
+      const newTimesheet = await response.json();
       message.success(`Timesheet for ${selectedCourseToAdd} created!`);
+
       setIsAddCourseModalVisible(false);
       setSelectedCourseToAdd(null);
-      fetchTimesheets(selectedPeriod);
+
+      // Refresh list AND expand the new row
+      await fetchTimesheets(selectedPeriod);
+      setExpandedRowKeys(prev => [...prev, newTimesheet.id]);
+
     } catch (error) {
       message.error(error.message);
     }
@@ -284,8 +302,8 @@ const TATimesheetView = ({ userId }) => {
     try {
       const response = await fetch(`/api/timesheets/${timesheetId}/recall`, { method: 'PATCH' });
       if (!response.ok) {
-         const errorData = await response.json();
-         throw new Error(errorData.error || 'Failed to recall.');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to recall.');
       }
       message.success("Timesheet recalled!");
       fetchTimesheets(selectedPeriod);
@@ -353,7 +371,7 @@ const TATimesheetView = ({ userId }) => {
               title={record.status === 'Rejected' ? "Resubmit Timesheet?" : "Submit Timesheet?"}
               description={
                 record.approvers.length === 0 ? "Please assign an approver first." :
-                (record.totalHours <= 0 ? "You cannot submit a timesheet with 0 hours." : "Are you sure?")
+                  (record.totalHours <= 0 ? "You cannot submit a timesheet with 0 hours." : "Are you sure?")
               }
               disabled={record.approvers.length === 0 || record.totalHours <= 0}
               onConfirm={() => handleSubmitForApproval(record.id)}
@@ -403,6 +421,8 @@ const TATimesheetView = ({ userId }) => {
             dataSource={sortedTimesheets} // Use sortedTimesheets
             rowKey="id"
             expandable={{
+              expandedRowKeys: expandedRowKeys,
+              onExpand: handleExpand,
               expandedRowRender: (record) => {
                 const isEditable = record.status === 'Draft' || record.status === 'Rejected';
                 // Sort entries for this row
@@ -538,8 +558,8 @@ const TATimesheetView = ({ userId }) => {
       >
         <Form form={form} layout="vertical" onFinish={handleEntryFormSubmit}>
           <Form.Item name="classType" label="Class Type" rules={[{ required: true }]}>
-            <Select 
-              placeholder="Search or select Type" 
+            <Select
+              placeholder="Search or select Type"
               onChange={handleModalClassTypeChange}
               showSearch
               filterOption={filterOption}
@@ -551,8 +571,8 @@ const TATimesheetView = ({ userId }) => {
           </Form.Item>
 
           <Form.Item name="classId" label="Class Group" rules={[{ required: true }]}>
-            <Select 
-              placeholder="Search or select Group" 
+            <Select
+              placeholder="Search or select Group"
               disabled={classGroups.length === 0}
               showSearch
               filterOption={filterOption}
@@ -564,7 +584,7 @@ const TATimesheetView = ({ userId }) => {
           </Form.Item>
 
           <Form.Item name="date" label="Date" rules={[{ required: true }]}>
-            <DatePicker 
+            <DatePicker
               style={{ width: '100%' }}
               disabledDate={(current) => current && current > dayjs().endOf('day')}
             />

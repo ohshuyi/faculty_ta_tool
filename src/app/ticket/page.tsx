@@ -13,7 +13,7 @@ import {
   message,
   Divider,
 } from "antd";
-import { FileOutlined } from "@ant-design/icons"; 
+import { FileOutlined } from "@ant-design/icons";
 import { useSession } from "next-auth/react";
 import AppLayout from "@/components/Layout";
 import TwoColumnsLayout from "@/components/TwoColumnsLayout";
@@ -44,7 +44,7 @@ export default function TicketPage() {
     try {
       const response = await fetch(`/api/tickets?status=${status}`);
       const data = await response.json();
-      
+
       if (data.length > 0) {
         setTickets(data);
         setSelectedTicket(data[0]);
@@ -52,14 +52,14 @@ export default function TicketPage() {
         setTickets([]);
         setSelectedTicket(null);
       }
-  
+
       setLoading(false);
     } catch (error) {
       console.error("Error fetching tickets:", error);
       setLoading(false);
     }
   };
-  
+
   const fetchComments = async (ticketId: number) => {
     setComments([]); // Clear comments before fetching new ones
     try {
@@ -135,7 +135,7 @@ export default function TicketPage() {
         }}
       >
         <h2 style={{ fontWeight: "bold" }}>
-          Ticket Details: {ticket.id}
+          Ticket Details: {ticket.name}
         </h2>
 
         {session?.user?.role === "PROFESSOR" && (
@@ -149,15 +149,23 @@ export default function TicketPage() {
         )}
       </div>
       <Descriptions bordered>
-        
+
         <Descriptions.Item label="Course Group">
-        {ticket.classes?.length > 0 ? ticket.classes[0].courseCode : "N/A"}
-      </Descriptions.Item>
+          {ticket.classes?.length > 0 ? ticket.classes[0].courseCode : "N/A"}
+        </Descriptions.Item>
         <Descriptions.Item label="Category">
           {ticket.category || "N/A"}
         </Descriptions.Item>
         <Descriptions.Item label="Student">
-          {ticket.student?.name || "N/A"}
+          {ticket.student?.name ? (
+            <>
+              {ticket.student.name} (
+              {ticket.student.studentCode}@e.ntu.edu.sg,{" "}
+              {ticket.classes?.[0]?.classGroup || "Unknown Group"})
+            </>
+          ) : (
+            "N/A"
+          )}
         </Descriptions.Item>
         <Descriptions.Item label="Professor">
           {ticket.professor?.name || "N/A"}
@@ -252,6 +260,10 @@ export default function TicketPage() {
     try {
       const response = await fetch(`/api/tickets/${id}`, {
         method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "completed" }),
       });
 
       if (response.ok) {
@@ -294,32 +306,32 @@ export default function TicketPage() {
       />
     );
   }
-  
+
   return (
     <AppLayout>
-      
-        <TwoColumnsLayout
-          items={tickets.map((ticket) => ({
-            key: ticket.id, // d
-            title: ticket.name, // d
-            descriptions: ticket.ticketDescription,
-            category: ticket.category, // d
-            priority: ticket.priority, // d
-            professor: {id: ticket.professor.id, name: ticket.professor.name}, // d
-            student: ticket.student.id,
-            courseCode: ticket.classes[0].courseCode, // d
-          }))}
-          renderContent={(key) => {
-            const ticket = tickets.find((ticket) => ticket.id == key);
-            if (ticket) {
-              setSelectedTicket(ticket);
-              return renderTicketDetails(ticket);
-            }
-          }}
-          onAdd={showModal}
-          type={"ticket"}
-          userRole={session?.user?.role}
-        />
+
+      <TwoColumnsLayout
+        items={tickets.map((ticket) => ({
+          key: ticket.id, // d
+          title: ticket.name, // d
+          descriptions: ticket.ticketDescription,
+          category: ticket.category, // d
+          priority: ticket.priority, // d
+          professor: { id: ticket.professor.id, name: ticket.professor.name }, // d
+          student: ticket.student.id,
+          courseCode: ticket.classes[0].courseCode, // d
+        }))}
+        renderContent={(key) => {
+          const ticket = tickets.find((ticket) => ticket.id == key);
+          if (ticket) {
+            setSelectedTicket(ticket);
+            return renderTicketDetails(ticket);
+          }
+        }}
+        onAdd={showModal}
+        type={"ticket"}
+        userRole={session?.user?.role}
+      />
 
       <AddTicketModal
         isVisible={isModalVisible}

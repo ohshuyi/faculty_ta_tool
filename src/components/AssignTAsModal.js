@@ -4,7 +4,7 @@ import { Modal, Select, Button, message, Transfer, Alert } from 'antd';
 
 const { Option } = Select;
 
-const AssignTAsModal = ({ visible, onCancel }) => {
+const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
   const [tas, setTAs] = useState([]);
   const [allClasses, setAllClasses] = useState([]);
   const [selectedTa, setSelectedTa] = useState(null);
@@ -17,7 +17,17 @@ const AssignTAsModal = ({ visible, onCancel }) => {
       // Fetch TAs
       fetch('/api/tas')
         .then(res => res.json())
-        .then(data => setTAs(data))
+        .then(data => {
+          setTAs(data);
+          // If initialTaId is provided, auto-select and open modal
+          if (initialTaId) {
+            const ta = data.find(t => t.id === initialTaId);
+            if (ta) {
+              setSelectedTa(initialTaId);
+              setIsAssignmentModalVisible(true);
+            }
+          }
+        })
         .catch(() => message.error('Failed to fetch TAs'));
 
       // Fetch all Classes for the Transfer component
@@ -33,8 +43,12 @@ const AssignTAsModal = ({ visible, onCancel }) => {
           setAllClasses(formattedClasses);
         })
         .catch(() => message.error('Failed to fetch classes'));
+    } else {
+      // Reset state when modal closes
+      setSelectedTa(null);
+      setIsAssignmentModalVisible(false);
     }
-  }, [visible]);
+  }, [visible, initialTaId]);
 
   useEffect(() => {
     if (selectedTa && isAssignmentModalVisible) {
@@ -92,6 +106,10 @@ const AssignTAsModal = ({ visible, onCancel }) => {
     setIsAssignmentModalVisible(false);
     setSelectedTa(null);
     setTargetKeys([]);
+    // If we opened in "direct edit" mode, closing this modal should close the whole thing
+    if (initialTaId) {
+      onCancel();
+    }
   };
 
   const filterOption = (inputValue, option) => {
@@ -104,7 +122,7 @@ const AssignTAsModal = ({ visible, onCancel }) => {
     <>
       <Modal
         title="Select TA to Assign Classes"
-        visible={visible}
+        visible={visible && !initialTaId} // Hide this modal if we are in direct edit mode
         onCancel={onCancel}
         closable={false}
         footer={[
@@ -143,19 +161,19 @@ const AssignTAsModal = ({ visible, onCancel }) => {
           confirmLoading={loading}
         >
           <Alert
-  message="How to Assign and Unassign Classes"
-  description={
-    <>
-      To assign a class, select it from the &apos;Available&apos; list and click the &apos;Assign &gt;&apos; button.
-      <br />
-      <br />
-      To unassign, select a class from the &apos;Assigned&apos; list and click the &apos;&lt; Unassign&apos; button.
-    </>
-  }
-  type="info"
-  showIcon
-  style={{ marginBottom: 16 }}
-/>
+            message="How to Assign and Unassign Classes"
+            description={
+              <>
+                To assign a class, select it from the &apos;Available&apos; list and click the &apos;Assign &gt;&apos; button.
+                <br />
+                <br />
+                To unassign, select a class from the &apos;Assigned&apos; list and click the &apos;&lt; Unassign&apos; button.
+              </>
+            }
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
 
           <Transfer
             dataSource={allClasses}

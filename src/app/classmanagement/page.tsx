@@ -57,6 +57,8 @@ const ClassManagement = () => {
   const [courseCodeFilter, setCourseCodeFilter] = useState(null);
   const [classTypeFilter, setClassTypeFilter] = useState(null);
   const [isAssignTAsModalVisible, setIsAssignTAsModalVisible] = useState(false);
+  const [tas, setTAs] = useState<any[]>([]);
+  const [selectedTaIdForEdit, setSelectedTaIdForEdit] = useState(null);
 
   const { data: session, status } = useSession();
   const userRole = session?.user?.role;
@@ -121,10 +123,21 @@ const ClassManagement = () => {
     }
   }, []);
 
+  const fetchTAs = useCallback(async () => {
+    try {
+      const response = await fetch("/api/tas");
+      if (response.ok) {
+        setTAs(await response.json());
+      }
+    } catch (error) {
+      console.error("Failed to fetch TAs", error);
+    }
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchClasses(), fetchAllStudents()]);
+      await Promise.all([fetchClasses(), fetchAllStudents(), fetchTAs()]);
       setLoading(false);
     };
 
@@ -134,7 +147,7 @@ const ClassManagement = () => {
       // Handle unauthenticated state, e.g., redirect to login
       setLoading(false); // Stop loading if unauthenticated
     }
-  }, [fetchClasses, fetchAllStudents, status]);
+  }, [fetchClasses, fetchAllStudents, fetchTAs, status]);
 
   useEffect(() => {
     // If no class is selected, do nothing.
@@ -502,6 +515,26 @@ const ClassManagement = () => {
     }
   };
 
+  const handleUnassignAllClasses = async (taId) => {
+    try {
+      const res = await fetch(`/api/tas/${taId}/classes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ classIds: [] }), // Empty array to unassign all
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to unassign classes");
+      }
+
+      message.success("All classes unassigned successfully!");
+      fetchTAs(); // Refresh the TA list
+    } catch (error) {
+      console.error("Error unassigning classes:", error);
+      message.error("Failed to unassign classes.");
+    }
+  };
+
   const filterOption = (input, option) =>
     (option?.children ?? '').toLowerCase().includes(input.toLowerCase());
 
@@ -561,6 +594,59 @@ const ClassManagement = () => {
     },
   ];
 
+  const taColumns = [
+    { title: "TA Name", dataIndex: "name", key: "name" },
+    {
+      title: "Assigned Classes",
+      dataIndex: "assignedClasses",
+      key: "assignedClasses",
+      render: (classes) => (
+        classes && classes.length > 0 ? (
+          <ul style={{ paddingLeft: 20, margin: 0 }}>
+            {classes.map(c => (
+              <li key={c.id}>{c.courseCode} - {c.classGroup} ({c.classType})</li>
+            ))}
+          </ul>
+        ) : <span style={{ color: '#999' }}>No classes assigned</span>
+      )
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="primary"
+            ghost
+            size="small"
+            onClick={() => {
+              setSelectedTaIdForEdit(record.id);
+              setIsAssignTAsModalVisible(true);
+            }}
+          >
+            Edit Assignments
+          </Button>
+          {record.assignedClasses && record.assignedClasses.length > 0 && (
+            <Popconfirm
+              title="Unassign all classes?"
+              description={`Are you sure you want to remove all classes from ${record.name}?`}
+              onConfirm={() => handleUnassignAllClasses(record.id)}
+              okText="Yes, Unassign All"
+              cancelText="No"
+            >
+              <Button
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                title="Unassign All Classes"
+              />
+            </Popconfirm>
+          )}
+        </Space>
+      )
+    }
+  ];
+
   if (status === "loading" || loading) return <AppLayout><Spin size="large" style={{ display: 'flex', justifyContent: 'center', marginTop: 50 }} /></AppLayout>;
 
   return (
@@ -583,9 +669,21 @@ const ClassManagement = () => {
 
         {userRole === 'PROFESSOR' && (
           <Card title="Assign TAs" style={{ marginBottom: 24 }}>
-            <Button onClick={() => setIsAssignTAsModalVisible(true)}>
-              Assign TAs to Classes
-            </Button>
+            <div style={{ marginBottom: 16 }}>
+              <Button onClick={() => {
+                setSelectedTaIdForEdit(null);
+                setIsAssignTAsModalVisible(true);
+              }}>
+                Assign TAs to Classes
+              </Button>
+            </div>
+            <Table
+              columns={taColumns}
+              dataSource={tas.filter(ta => ta.assignedClasses && ta.assignedClasses.length > 0)}
+              rowKey="id"
+              pagination={false}
+              size="small"
+            />
           </Card>
         )}
 
@@ -631,7 +729,12 @@ const ClassManagement = () => {
 
         <AssignTAsModal
           visible={isAssignTAsModalVisible}
-          onCancel={() => setIsAssignTAsModalVisible(false)}
+          onCancel={() => {
+            setIsAssignTAsModalVisible(false);
+            setSelectedTaIdForEdit(null);
+            fetchTAs(); // Refresh list on close
+          }}
+          initialTaId={selectedTaIdForEdit}
         />
 
         {/* Modal to VIEW and MANAGE students */}

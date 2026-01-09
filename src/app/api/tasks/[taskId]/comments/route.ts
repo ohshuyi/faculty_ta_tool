@@ -33,6 +33,12 @@ export async function POST(req: Request, { params }: { params: { taskId: string 
       },
     });
 
+    // Update the task's updatedAt timestamp
+    await prisma.task.update({
+      where: { id: task.id },
+      data: { updatedAt: new Date() },
+    });
+
     if (task) {
       const subject = `New Comment on Task: ${task.name}`;
       const body = `
