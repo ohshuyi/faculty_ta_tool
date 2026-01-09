@@ -20,11 +20,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    // Update the status to 'completed'
+    const body = await req.json();
+    const status = body.status || "completed";
+
+    // Update the status
     const updatedTask = await prisma.task.update({
       where: { id: parseInt(taskId) },
       data: {
-        status: "completed",
+        status: status,
       },
       include: {
         professor: true,

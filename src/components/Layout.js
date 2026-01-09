@@ -56,7 +56,7 @@ const AppLayout = ({ children }) => {
   const logoutItem = {
     label: (
       <Button type="link" style={{ color: "white" }} onClick={showLogoutModal}>
-        Logout
+        Logout {session?.user?.email ? `(${session.user.email})` : ""}
       </Button>
     ),
     key: "logout",

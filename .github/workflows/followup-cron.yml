@@ -1,0 +1,15 @@
+name: Daily Follow-up Check
+
+on:
+  schedule:
+    # Run at 09:00 AM UTC every day
+    - cron: '0 9 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  trigger-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Follow-up API
+        run: |
+          curl -X GET https://faculty-ta.azurewebsites.net/api/cron/follow-up

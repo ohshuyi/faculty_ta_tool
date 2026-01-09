@@ -118,6 +118,10 @@ export default function TaskPage() {
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "completed" }),
       });
 
       if (response.ok) {
@@ -171,7 +175,7 @@ export default function TaskPage() {
             marginBottom: "16px",
           }}
         >
-          <h2 style={{ fontWeight: "bold" }}>Task ID: {task.id}</h2>
+          <h2 style={{ fontWeight: "bold" }}>Task Details: {task.name}</h2>
 
           {task.status !== "completed" && (
             <Button
