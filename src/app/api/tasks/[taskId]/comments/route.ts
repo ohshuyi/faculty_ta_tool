@@ -8,7 +8,7 @@ export async function POST(req: Request, { params }: { params: { taskId: string 
     const { content, author } = await req.json(); // Extract content and author from the request body
     const { taskId } = params;
 
-    const baseUrl = "https://faculty-ta.azurewebsites.net"
+    const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
     // Check if the task exists
     const task = await prisma.task.findUnique({

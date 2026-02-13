@@ -31,7 +31,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const { id } = params;
   const body = await req.json();
 
-  const baseUrl = "https://faculty-ta.azurewebsites.net"
+  const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
   const { author, content } = body;
 

@@ -29,11 +29,16 @@ const HistoryPage = () => {
     try {
       const response = await fetch("/api/tasks?status=completed");
       const data = await response.json();
-      setTasks(data);
-      setSelectedTask(data[0] || null);
+      if (Array.isArray(data)) {
+        setTasks(data);
+        setSelectedTask(data[0] || null);
+      } else {
+        setTasks([]);
+      }
       setLoadingTasks(false);
     } catch (error) {
       console.error("Error fetching tasks:", error);
+      setTasks([]);
       setLoadingTasks(false);
     }
   };
@@ -43,11 +48,16 @@ const HistoryPage = () => {
     try {
       const response = await fetch("/api/tickets?status=completed");
       const data = await response.json();
-      setTickets(data);
-      setSelectedTicket(data[0] || null);
+      if (Array.isArray(data)) {
+        setTickets(data);
+        setSelectedTicket(data[0] || null);
+      } else {
+        setTickets([]);
+      }
       setLoadingTickets(false);
     } catch (error) {
       console.error("Error fetching tickets:", error);
+      setTickets([]);
       setLoadingTickets(false);
     }
   };

@@ -25,9 +25,10 @@ export async function POST(req) {
     const details = formData.get("details");
     const professorId = parseInt(formData.get("professorId"), 10);
     const taId = parseInt(formData.get("taId"), 10);
+    const studentId = formData.get("studentId") ? parseInt(formData.get("studentId"), 10) : null;
     const courseCode = formData.get("courseCode"); // Accept a single courseCode
     const file = formData.get("file");
-    const baseUrl = "https://faculty-ta.azurewebsites.net"
+    const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
     let fileUrl = null;
 
@@ -86,6 +87,7 @@ export async function POST(req) {
         classes: {
           connect: classIds.map((id) => ({ id })), // Connect the task to multiple classes
         },
+        ...(studentId && { student: { connect: { id: studentId } } }),
         ...(fileUrl && {
           files: {
             create: [
@@ -96,6 +98,12 @@ export async function POST(req) {
             ],
           },
         }),
+        comments: {
+          create: {
+            author: "System",
+            content: "Task created.",
+          },
+        },
       },
       include: {
         ta: true,
@@ -143,6 +151,11 @@ export async function POST(req) {
         name: newTask.ta.name,
         email: newTask.ta.email,
       },
+      student: newTask.student ? {
+        id: newTask.student.id,
+        name: newTask.student.name,
+        studentCode: newTask.student.studentCode,
+      } : null,
       classes: newTask.classes.map((cls) => ({
         id: cls.id,
         courseCode: cls.courseCode,
@@ -201,6 +214,7 @@ export async function GET(req) {
           comments: true,
           files: true,
           classes: true,
+          student: true,
         },
       });
     } else if (userRole === "PROFESSOR") {
@@ -216,6 +230,7 @@ export async function GET(req) {
           comments: true,
           files: true,
           classes: true,
+          student: true,
         },
       });
     }

@@ -2,13 +2,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma"; // Ensure you have Prisma client setup
 import { sendEmail } from "@/lib/email";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export async function PATCH(
   req: Request,
   { params }: { params: { taskId: string } }
 ) {
   const { taskId } = params;
-  const baseUrl = "https://faculty-ta.azurewebsites.net"
+  const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
   try {
     // Find the task first
@@ -23,11 +25,20 @@ export async function PATCH(
     const body = await req.json();
     const status = body.status || "completed";
 
+    const session = await getServerSession(authOptions);
+    const authorName = session?.user?.name || "System";
+
     // Update the status
     const updatedTask = await prisma.task.update({
       where: { id: parseInt(taskId) },
       data: {
         status: status,
+        comments: {
+          create: {
+            author: authorName,
+            content: `Task marked as ${status} by ${authorName}.`,
+          },
+        },
       },
       include: {
         professor: true,

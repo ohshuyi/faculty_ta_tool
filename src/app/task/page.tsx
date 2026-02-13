@@ -234,11 +234,19 @@ export default function TaskPage() {
         <h3>Comments</h3>
         <List
           dataSource={comments}
-          renderItem={(comment) => (
+          renderItem={(comment: any) => (
             <List.Item>
-              <div>
-                <strong>{comment.author}:</strong> {comment.content}
-              </div>
+              <List.Item.Meta
+                title={
+                  <span>
+                    <strong>{comment.author}</strong>&nbsp;
+                    <span style={{ color: "#888", fontSize: "12px" }}>
+                      {new Date(comment.createdAt).toLocaleString()}
+                    </span>
+                  </span>
+                }
+                description={comment.content}
+              />
             </List.Item>
           )}
         />
