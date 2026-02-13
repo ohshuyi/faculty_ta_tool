@@ -17,7 +17,7 @@ const AZURE_STORAGE_ACCOUNT_KEY = process.env.AZURE_STORAGE_ACCOUNT_KEY;
 export async function POST(req) {
   try {
     const formData = await req.formData();
-    const baseUrl = "https://faculty-ta.azurewebsites.net"
+    const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
     const data = {
       name: formData.get("name"), // Get the name field
@@ -120,6 +120,12 @@ export async function POST(req) {
             ],
           },
         }),
+        comments: {
+          create: {
+            author: "System",
+            content: "Ticket created.",
+          },
+        },
       },
       include: { // Include relations needed for the email
         professor: true,

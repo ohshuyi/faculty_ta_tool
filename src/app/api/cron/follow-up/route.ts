@@ -61,7 +61,7 @@ export async function GET(req: Request) {
 async function processItem(item: any, type: string, professor: any, ta: any) {
     const now = new Date();
     const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-    const baseUrl = "https://faculty-ta.azurewebsites.net";
+    const baseUrl = "https://faculty-ta-v2.azurewebsites.net";
 
     let lastActivityAt = new Date(item.updatedAt);
     let lastActorName = null;

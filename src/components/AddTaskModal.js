@@ -29,6 +29,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   const [selectedCourseCode, setSelectedCourseCode] = useState(null);
   const [filteredClassGroups, setFilteredClassGroups] = useState([]);
   const [filteredClassTypes, setFilteredClassTypes] = useState([]);
+  const [students, setStudents] = useState([]);
 
   const [aiDescription, setAiDescription] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -93,10 +94,24 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
     setFilteredClassGroups(groupsForType);
 
     // Clear the dependent class group field
-    form.setFieldsValue({ classId: undefined });
+    form.setFieldsValue({ classId: undefined, studentId: undefined });
+    setStudents([]);
   };
 
-const handleGenerateDetails = async () => {
+  const handleClassGroupChange = async (classId) => {
+    // Clear dependent student field
+    form.setFieldsValue({ studentId: undefined });
+    try {
+      const response = await fetch(`/api/students?classId=${classId}`);
+      const data = await response.json();
+      setStudents(data);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      setStudents([]);
+    }
+  };
+
+  const handleGenerateDetails = async () => {
     if (!aiDescription) {
       return message.warning("Please describe the task in the text box first.");
     }
@@ -105,7 +120,7 @@ const handleGenerateDetails = async () => {
       const response = await fetch('/api/generate-details', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: aiDescription, type: 'task'}),
+        body: JSON.stringify({ description: aiDescription, type: 'task' }),
       });
 
       const data = await response.json();
@@ -114,10 +129,10 @@ const handleGenerateDetails = async () => {
       }
 
       console.log(data);
-      
+
       // 1. Find the target class ID from the AI-generated data
-      const targetClass = data.classGroup 
-        ? classes.find(c => c.courseCode === data.courseCode && c.classGroup === data.classGroup) 
+      const targetClass = data.classGroup
+        ? classes.find(c => c.courseCode === data.courseCode && c.classGroup === data.classGroup)
         : null;
 
       // 2. Set ALL form values in a single, reliable call
@@ -165,6 +180,9 @@ const handleGenerateDetails = async () => {
       formData.append("details", values.details);
       formData.append("professorId", session.user.id);
       formData.append("taId", values.taId);
+      if (values.studentId) {
+        formData.append("studentId", values.studentId);
+      }
 
       if (file) {
         formData.append("file", file.originFileObj);
@@ -277,11 +295,32 @@ const handleGenerateDetails = async () => {
             placeholder="Search or select a class group"
             disabled={filteredClassGroups.length === 0}
             showSearch
+            onChange={handleClassGroupChange}
             filterOption={filterOption}
           >
             {filteredClassGroups.map((cls) => (
               <Option key={cls.id} value={cls.id}>
                 {cls.classGroup}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          label="Student (Optional)"
+          name="studentId"
+          style={{ width: "100%" }}
+        >
+          <Select
+            placeholder="Search or select a student"
+            showSearch
+            allowClear
+            disabled={students.length === 0}
+            filterOption={filterOption}
+          >
+            {students.map((student) => (
+              <Option key={student.id} value={student.id}>
+                {student.name} ({student.studentCode})
               </Option>
             ))}
           </Select>

@@ -215,11 +215,19 @@ export default function TicketPage() {
       <h3 style={{ fontSize: "20px", fontWeight: "bold" }}>Comments</h3>
       <List
         dataSource={comments}
-        renderItem={(comment) => (
+        renderItem={(comment: any) => (
           <List.Item>
-            <div>
-              {comment.author}: {comment.content}
-            </div>
+            <List.Item.Meta
+              title={
+                <span>
+                  <strong>{comment.author}</strong>&nbsp;
+                  <span style={{ color: "#888", fontSize: "12px" }}>
+                    {new Date(comment.createdAt).toLocaleString()}
+                  </span>
+                </span>
+              }
+              description={comment.content}
+            />
           </List.Item>
         )}
       />

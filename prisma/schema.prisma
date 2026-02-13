@@ -26,6 +26,9 @@ model Task {
   lastFollowUpAt DateTime?                // Track when the last follow-up email was sent
   files          File[]   // Relation to uploaded files
   comments       Comment[] // Relation to comments
+  
+  studentId      Int?     // Optional foreign key for the associated Student
+  student        Student? @relation("StudentTasks", fields: [studentId], references: [id], onDelete: SetNull)
 }
 
 model Ticket {
@@ -127,6 +130,7 @@ model Student {
   classes     Class[]   @relation("ClassStudents") // Many-to-many relationship
   createdAt   DateTime  @default(now())
   tickets     Ticket[]  @relation("StudentTickets") // Relation back to Ticket
+  tasks       Task[]    @relation("StudentTasks")
 }
 
 model Timesheet {

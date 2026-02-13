@@ -6,6 +6,7 @@ export async function GET(req) {
   try {
     const url = new URL(req.url);
     const classType = url.searchParams.get("classType"); // Check for a classType filter
+    const classId = url.searchParams.get("classId");
 
     const whereCondition = {};
 
@@ -20,11 +21,19 @@ export async function GET(req) {
       };
     }
 
+    if (classId) {
+      whereCondition.classes = {
+        some: {
+          id: parseInt(classId),
+        },
+      };
+    }
+
     const students = await prisma.student.findMany({
       where: whereCondition,
       orderBy: { name: 'asc' },
     });
-    
+
     return NextResponse.json(students);
   } catch (error) {
     console.error("Error fetching students:", error);
