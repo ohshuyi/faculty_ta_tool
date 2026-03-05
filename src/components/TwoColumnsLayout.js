@@ -100,7 +100,7 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
       <Sider
         width={450}
         style={{ background: "#fff", padding: "16px", overflow: "auto" }}
-        
+
         // --- Add these responsive props ---
         breakpoint="md" // The screen width at which the sidebar will collapse (md = 768px)
         collapsedWidth="0" // Hides the sidebar completely and shows a trigger button
@@ -120,8 +120,8 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
         </div>
 
         {showAddButton &&
-          ((type === "task" && userRole === "PROFESSOR") ||
-            (type === "ticket" && userRole === "TA")) && (
+          ((type === "task" && (userRole === "PROFESSOR" || userRole === "COURSE_COORDINATOR" || userRole === "ADMIN")) ||
+            (type === "ticket" && (userRole === "TA" || userRole === "TUTOR"))) && (
             <Button type="primary" icon={<PlusOutlined />} block onClick={onAdd}>
               Add New {type === "task" ? "Task" : "Ticket"}
             </Button>

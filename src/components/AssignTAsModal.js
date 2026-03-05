@@ -1,10 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Select, Button, message, Transfer, Alert } from 'antd';
+import { useCourse } from '@/context/CourseContext';
 
 const { Option } = Select;
 
 const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
+  const { activeCourseCode } = useCourse();
   const [tas, setTAs] = useState([]);
   const [allClasses, setAllClasses] = useState([]);
   const [selectedTa, setSelectedTa] = useState(null);
@@ -15,7 +17,8 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
   useEffect(() => {
     if (visible) {
       // Fetch TAs
-      fetch('/api/tas')
+      const tasUrl = activeCourseCode ? `/api/tas?courseCode=${activeCourseCode}` : '/api/tas';
+      fetch(tasUrl)
         .then(res => res.json())
         .then(data => {
           setTAs(data);
@@ -31,7 +34,8 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
         .catch(() => message.error('Failed to fetch TAs'));
 
       // Fetch all Classes for the Transfer component
-      fetch('/api/management/classes')
+      const classesUrl = activeCourseCode ? `/api/management/classes?courseCode=${activeCourseCode}` : '/api/management/classes';
+      fetch(classesUrl)
         .then(res => res.json())
         .then(data => {
           // Format classes for Transfer component
@@ -48,7 +52,7 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
       setSelectedTa(null);
       setIsAssignmentModalVisible(false);
     }
-  }, [visible, initialTaId]);
+  }, [visible, initialTaId, activeCourseCode]);
 
   useEffect(() => {
     if (selectedTa && isAssignmentModalVisible) {
@@ -145,9 +149,15 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
             option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
           }
         >
-          {tas.map(ta => (
-            <Option key={ta.id} value={ta.id}>{ta.name}</Option>
-          ))}
+          {tas.map(ta => {
+            const courseRole = ta.courseRoles?.find(cr => cr.courseCode === activeCourseCode)?.role;
+            const displayRole = courseRole || ta.role;
+            return (
+              <Option key={ta.id} value={ta.id}>
+                {ta.name} ({displayRole.replace('_', ' ')})
+              </Option>
+            );
+          })}
         </Select>
       </Modal>
 

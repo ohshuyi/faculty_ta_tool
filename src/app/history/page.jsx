@@ -4,6 +4,7 @@ import { Tabs, Spin, Alert, Descriptions, Tag, List, Button, message } from "ant
 import { useSession } from "next-auth/react";
 import TwoColumnsLayout from "@/components/TwoColumnsLayout";
 import AppLayout from "@/components/Layout";
+import { useCourse } from "@/context/CourseContext";
 
 const { TabPane } = Tabs;
 
@@ -23,11 +24,13 @@ const HistoryPage = () => {
   const [tickets, setTickets] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const { activeCourseCode, activeCourseRole } = useCourse();
 
   const fetchCompletedTasks = async () => {
+    if (!activeCourseCode) return;
     setLoadingTasks(true);
     try {
-      const response = await fetch("/api/tasks?status=completed");
+      const response = await fetch(`/api/tasks?status=completed&courseCode=${activeCourseCode}`);
       const data = await response.json();
       if (Array.isArray(data)) {
         setTasks(data);
@@ -44,9 +47,10 @@ const HistoryPage = () => {
   };
 
   const fetchCompletedTickets = async () => {
+    if (!activeCourseCode) return;
     setLoadingTickets(true);
     try {
-      const response = await fetch("/api/tickets?status=completed");
+      const response = await fetch(`/api/tickets?status=completed&courseCode=${activeCourseCode}`);
       const data = await response.json();
       if (Array.isArray(data)) {
         setTickets(data);
@@ -63,11 +67,11 @@ const HistoryPage = () => {
   };
 
   useEffect(() => {
-    if (sessionStatus === "authenticated") {
+    if (sessionStatus === "authenticated" && activeCourseCode) {
       fetchCompletedTasks();
       fetchCompletedTickets();
     }
-  }, [sessionStatus]);
+  }, [sessionStatus, activeCourseCode]);
 
   const handleReopenTask = async (taskId) => {
     try {
@@ -187,7 +191,7 @@ const HistoryPage = () => {
                   );
                 }}
                 type="history"
-                userRole={session?.user?.role}
+                userRole={activeCourseRole}
                 showAddButton={false}
               />
             )}
@@ -272,7 +276,7 @@ const HistoryPage = () => {
                     </div>
                   );
                 }}
-                userRole={session?.user?.role}
+                userRole={activeCourseRole}
                 showAddButton={false}
               />
             )}

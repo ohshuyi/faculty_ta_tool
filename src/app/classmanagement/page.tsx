@@ -17,6 +17,7 @@ import {
   Form,
   Tabs,
   Radio,
+  Tag,
 } from "antd";
 import {
   UploadOutlined,
@@ -29,6 +30,7 @@ import AppLayout from "@/components/Layout";
 import * as XLSX from "xlsx";
 import AssignTAsModal from "@/components/AssignTAsModal";
 import { useSession } from "next-auth/react";
+import { useCourse } from "@/context/CourseContext";
 
 const { confirm } = Modal;
 const { Option } = Select;
@@ -62,6 +64,11 @@ const ClassManagement = () => {
 
   const { data: session, status } = useSession();
   const userRole = session?.user?.role;
+  const { activeCourseCode, activeCourseRole } = useCourse();
+
+  // Determine effective role for this view.
+  // Prioritize course role, fallback to global role.
+  const effectiveRole = activeCourseRole || userRole;
 
   const [potentialMatches, setPotentialMatches] = useState([]);
   const [isConfirmModalVisible, setIsConfirmModalVisible] = useState(false);
@@ -72,7 +79,11 @@ const ClassManagement = () => {
   const fetchClasses = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/management");
+      const queryParams = new URLSearchParams();
+      if (activeCourseCode) queryParams.append('courseCode', activeCourseCode);
+      const url = `/api/management?${queryParams.toString()}`;
+
+      const response = await fetch(url);
       let data = await response.json();
 
       // Ensure data is an array before sorting
@@ -112,27 +123,29 @@ const ClassManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [activeCourseCode]);
 
   const fetchAllStudents = useCallback(async () => {
     try {
-      const response = await fetch("/api/students");
+      const url = activeCourseCode ? `/api/students?courseCode=${activeCourseCode}` : "/api/students";
+      const response = await fetch(url);
       setAllStudents(await response.json());
     } catch (error) {
       message.error("Failed to fetch student list.");
     }
-  }, []);
+  }, [activeCourseCode]);
 
   const fetchTAs = useCallback(async () => {
     try {
-      const response = await fetch("/api/tas");
+      const url = activeCourseCode ? `/api/tas?courseCode=${activeCourseCode}` : "/api/tas";
+      const response = await fetch(url);
       if (response.ok) {
         setTAs(await response.json());
       }
     } catch (error) {
       console.error("Failed to fetch TAs", error);
     }
-  }, []);
+  }, [activeCourseCode]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -147,7 +160,7 @@ const ClassManagement = () => {
       // Handle unauthenticated state, e.g., redirect to login
       setLoading(false); // Stop loading if unauthenticated
     }
-  }, [fetchClasses, fetchAllStudents, fetchTAs, status]);
+  }, [fetchClasses, fetchAllStudents, fetchTAs, status, activeCourseCode]);
 
   useEffect(() => {
     // If no class is selected, do nothing.
@@ -446,16 +459,25 @@ const ClassManagement = () => {
 
   const handleUpload = async () => {
     if (!file) return message.error("Please select a file first.");
+    if (!activeCourseCode) return message.error("Please select an active course to upload a class list.");
+
     const formData = new FormData();
     formData.append("file", file);
+    formData.append("activeCourseCode", activeCourseCode);
+
     try {
       const res = await fetch("/api/management", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Upload failed");
+      }
+
       message.success("Class list synced successfully!");
       handleClearFile();
       await fetchClasses();
     } catch (error) {
-      message.error("Failed to process file.");
+      message.error(error.message || "Failed to process file.");
     }
   };
 
@@ -569,7 +591,7 @@ const ClassManagement = () => {
       align: 'left',
       render: (_, record) => (
         <Space size="middle">
-          {userRole === 'PROFESSOR' || userRole === 'ADMIN' ? (
+          {effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR' ? (
             <>
               <Button type="link" onClick={() => showViewStudentModal(record)}>
                 Manage Class
@@ -596,19 +618,28 @@ const ClassManagement = () => {
 
   const taColumns = [
     {
-      title: "TA Name",
+      title: "TA/Tutor Name",
       dataIndex: "name",
       key: "name",
-      render: (text, record) => (
-        <div>
-          <div>{text}</div>
-          {record.email && (
-            <div style={{ fontSize: '12px', color: '#888' }}>
-              ({record.email})
-            </div>
-          )}
-        </div>
-      )
+      render: (text, record: any) => {
+        const courseRole = record.courseRoles?.find((cr: any) => cr.courseCode === activeCourseCode);
+        const roleToShow = courseRole ? courseRole.role : record.role;
+        const tagColor = roleToShow === 'TUTOR' ? 'blue' : 'green';
+
+        return (
+          <div>
+            <Space>
+              <span>{text}</span>
+              <Tag color={tagColor} style={{ fontSize: '10px' }}>{roleToShow}</Tag>
+            </Space>
+            {record.email && (
+              <div style={{ fontSize: '12px', color: '#888' }}>
+                ({record.email})
+              </div>
+            )}
+          </div>
+        );
+      }
     },
     {
       title: "Assigned Classes",
@@ -666,29 +697,32 @@ const ClassManagement = () => {
   return (
     <AppLayout>
       <div style={{ padding: "24px" }}>
-        <Card title="Upload New Class Roster" style={{ marginBottom: 24 }}>
-          <Space>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx, .xls"
-              onChange={handleFileChange}
-            />
-            {file && <Button icon={<DeleteOutlined />} onClick={handleClearFile} danger />}
-            <Button icon={<UploadOutlined />} onClick={handleUpload} type="primary" disabled={!file}>
-              Upload and Sync
-            </Button>
-          </Space>
-        </Card>
+        {(effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR') && (
+          <Card title="Upload New Class Roster" style={{ marginBottom: 24 }}>
+            <Space>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleFileChange}
+              />
+              {file && <Button icon={<DeleteOutlined />} onClick={handleClearFile} danger />}
+              <Button icon={<UploadOutlined />} onClick={handleUpload} type="primary" disabled={!file}>
+                Upload and Sync
+              </Button>
+            </Space>
+          </Card>
+        )}
 
-        {userRole === 'PROFESSOR' && (
-          <Card title="Assign TAs" style={{ marginBottom: 24 }}>
+        {/* Currently, PROFESSOR, ADMIN, and COURSE_COORDINATOR handle TA assignments */}
+        {(effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR') && (
+          <Card title="Assign TAs/Tutors" style={{ marginBottom: 24 }}>
             <div style={{ marginBottom: 16 }}>
               <Button onClick={() => {
                 setSelectedTaIdForEdit(null);
                 setIsAssignTAsModalVisible(true);
               }}>
-                Assign TAs to Classes
+                Assign TAs/Tutors to Classes
               </Button>
             </div>
             <Table
@@ -774,7 +808,7 @@ const ClassManagement = () => {
             />
 
             {/* The "Add Student" button is now placed here, below the search bar */}
-            {(userRole === 'PROFESSOR' || userRole === 'ADMIN') && (
+            {(effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR') && (
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
@@ -790,10 +824,10 @@ const ClassManagement = () => {
               renderItem={(student) => (
                 <List.Item
                   actions={[
-                    (userRole === 'PROFESSOR' || userRole === 'ADMIN') && (
+                    (effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR') && (
                       <Button key="move" type="link" onClick={() => showMoveModal(student)}>Move</Button>
                     ),
-                    (userRole === 'PROFESSOR' || userRole === 'ADMIN') && (
+                    (effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR') && (
                       <Popconfirm
                         key="remove"
                         title="Remove this student from the class?"

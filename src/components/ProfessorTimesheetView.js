@@ -4,11 +4,13 @@ import { Table, Button, message, Spin, Tag, Popconfirm, Select, Card, Space, Col
 import dayjs from 'dayjs';
 import { getAcademicYear, getCurrentAcademicPeriod, getPreviousAcademicPeriod } from '@/lib/academicUtils';
 import TimesheetLogList from '@/components/TimesheetLogList';
+import { useCourse } from '@/context/CourseContext';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
 const ProfessorTimesheetView = () => {
+    const { activeCourseCode } = useCourse();
     const [allTimesheets, setAllTimesheets] = useState([]);
     const [tas, setTas] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -21,19 +23,21 @@ const ProfessorTimesheetView = () => {
     const [selectedTimesheetForAction, setSelectedTimesheetForAction] = useState(null);
 
     const fetchTAs = useCallback(async () => {
+        if (!activeCourseCode) return;
         try {
-            const response = await fetch('/api/tas');
+            const response = await fetch(`/api/tas?courseCode=${activeCourseCode}`);
             if (!response.ok) throw new Error('Failed to fetch TAs');
             setTas(await response.json());
         } catch (error) {
             message.error(error.message);
         }
-    }, []);
+    }, [activeCourseCode]);
 
     const fetchTimesheets = useCallback(async (period) => { // Accept AY parameter
+        if (!activeCourseCode) return;
         setLoading(true);
         try {
-            const response = await fetch(`/api/timesheets?period=${encodeURIComponent(period)}`, {
+            const response = await fetch(`/api/timesheets?period=${encodeURIComponent(period)}&courseCode=${activeCourseCode}`, {
                 credentials: 'include',
                 cache: 'no-store'
             });
@@ -49,7 +53,7 @@ const ProfessorTimesheetView = () => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [activeCourseCode]);
 
     useEffect(() => {
         fetchTAs();
@@ -342,7 +346,11 @@ const ProfessorTimesheetView = () => {
                 </Space>
             </Card>
 
-            {loading ? <Spin /> : (
+            {!activeCourseCode ? (
+                <Alert message="Please select a course to view submitted timesheets." type="info" showIcon />
+            ) : loading ? (
+                <Spin />
+            ) : (
                 <Table
                     rowSelection={rowSelection}
                     columns={columns}
@@ -364,41 +372,41 @@ const ProfessorTimesheetView = () => {
 
                             return (
                                 <div>
-                                <Collapse accordion ghost>
-                                    {/* 2. Use the correct variable name: [classDetailString, classData] */}
-                                    {Object.entries(entriesByClassDetails).map(([classDetailString, classData]) => {
+                                    <Collapse accordion ghost>
+                                        {/* 2. Use the correct variable name: [classDetailString, classData] */}
+                                        {Object.entries(entriesByClassDetails).map(([classDetailString, classData]) => {
 
-                                        // 3. Sort the entries within this group by week number
-                                        const sortedEntries = classData.entries.sort((a, b) => {
-                                            return (a.weekNumber || 0) - (b.weekNumber || 0);
-                                        });
+                                            // 3. Sort the entries within this group by week number
+                                            const sortedEntries = classData.entries.sort((a, b) => {
+                                                return (a.weekNumber || 0) - (b.weekNumber || 0);
+                                            });
 
-                                        return (
-                                            <Collapse.Panel
-                                                // 4. Use the correct variable for the header
-                                                header={`${classDetailString} (Total: ${classData.totalHours.toFixed(2)} hours)`}
-                                                key={classDetailString} // Use the class detail string as the key
-                                            >
-                                                <List
-                                                    size="small"
-                                                    dataSource={sortedEntries}
-                                                    renderItem={item => (
-                                                        <List.Item>
-                                                            {/* 5. Display fields in your requested order */}
-                                                            <Descriptions size="small" column={4}>
-                                                                <Descriptions.Item label="Date">{dayjs(item.date).format('YYYY-MM-DD')}</Descriptions.Item>
-                                                                <Descriptions.Item label="Week">{item.weekNumber || 'N/A'}</Descriptions.Item>
-                                                                <Descriptions.Item label="Hours">{parseFloat(item.hours).toFixed(2)}</Descriptions.Item>
-                                                                <Descriptions.Item label="Desc" span={4}>{item.description|| 'N/A'}</Descriptions.Item>
-                                                            </Descriptions>
-                                                        </List.Item>
-                                                    )}
-                                                />
-                                            </Collapse.Panel>
-                                        );
-                                    })}
-                                </Collapse>
-                                <TimesheetLogList logs={record.logs} />
+                                            return (
+                                                <Collapse.Panel
+                                                    // 4. Use the correct variable for the header
+                                                    header={`${classDetailString} (Total: ${classData.totalHours.toFixed(2)} hours)`}
+                                                    key={classDetailString} // Use the class detail string as the key
+                                                >
+                                                    <List
+                                                        size="small"
+                                                        dataSource={sortedEntries}
+                                                        renderItem={item => (
+                                                            <List.Item>
+                                                                {/* 5. Display fields in your requested order */}
+                                                                <Descriptions size="small" column={4}>
+                                                                    <Descriptions.Item label="Date">{dayjs(item.date).format('YYYY-MM-DD')}</Descriptions.Item>
+                                                                    <Descriptions.Item label="Week">{item.weekNumber || 'N/A'}</Descriptions.Item>
+                                                                    <Descriptions.Item label="Hours">{parseFloat(item.hours).toFixed(2)}</Descriptions.Item>
+                                                                    <Descriptions.Item label="Desc" span={4}>{item.description || 'N/A'}</Descriptions.Item>
+                                                                </Descriptions>
+                                                            </List.Item>
+                                                        )}
+                                                    />
+                                                </Collapse.Panel>
+                                            );
+                                        })}
+                                    </Collapse>
+                                    <TimesheetLogList logs={record.logs} />
                                 </div>
                             );
                         },

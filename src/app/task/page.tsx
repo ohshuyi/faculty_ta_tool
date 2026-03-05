@@ -20,6 +20,7 @@ import TwoColumnsLayout from "@/components/TwoColumnsLayout";
 import AddTaskModal from "@/components/AddTaskModal"; // Modal for adding tasks
 import TextArea from "antd/es/input/TextArea"; // Ant Design TextArea for comments
 import { Task } from "@/lib/types"; // Assuming Task type is defined
+import { useCourse } from "@/context/CourseContext";
 
 // Function to get the status tag (for the task)
 const getStatusTag = (status: string) => {
@@ -42,12 +43,14 @@ export default function TaskPage() {
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [closingTask, setClosingTask] = useState(false);
+  const { activeCourseCode, activeCourseRole } = useCourse();
 
   // Fetch tasks from the API
   const fetchTasks = async (status = "open") => {
+    if (!activeCourseCode) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/tasks?status=${status}`);
+      const response = await fetch(`/api/tasks?status=${status}&courseCode=${activeCourseCode}`);
       const data = await response.json();
 
       if (data.length > 0) {
@@ -150,12 +153,12 @@ export default function TaskPage() {
   };
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status === "authenticated" && activeCourseCode) {
       fetchTasks();
-    } else {
+    } else if (status === "unauthenticated") {
       setLoading(false);
     }
-  }, [status]);
+  }, [status, activeCourseCode]);
 
   // Fetch comments when selectedTask changes
   useEffect(() => {
@@ -322,7 +325,7 @@ export default function TaskPage() {
         }}
         onAdd={showModal}
         type={"task"}
-        userRole={session?.user?.role}
+        userRole={activeCourseRole}
       />
       <AddTaskModal
         isVisible={isModalVisible}

@@ -20,6 +20,7 @@ import TwoColumnsLayout from "@/components/TwoColumnsLayout";
 import AddTicketModal from "@/components/AddTicketModal";
 import { Ticket } from "@/lib/types";
 import TextArea from "antd/es/input/TextArea";
+import { useCourse } from "@/context/CourseContext";
 
 const getPriorityTag = (priority: string) => {
   const color =
@@ -38,11 +39,13 @@ export default function TicketPage() {
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [closingTicket, setClosingTicket] = useState(false);
+  const { activeCourseCode, activeCourseRole } = useCourse();
 
   const fetchTickets = async (status = "open") => {
+    if (!activeCourseCode) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/tickets?status=${status}`);
+      const response = await fetch(`/api/tickets?status=${status}&courseCode=${activeCourseCode}`);
       const data = await response.json();
 
       if (data.length > 0) {
@@ -111,12 +114,12 @@ export default function TicketPage() {
   };
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (status === "authenticated" && activeCourseCode) {
       fetchTickets();
-    } else {
+    } else if (status === "unauthenticated") {
       setLoading(false);
     }
-  }, [status]);
+  }, [status, activeCourseCode]);
 
   useEffect(() => {
     if (selectedTicket?.id) {
@@ -138,7 +141,7 @@ export default function TicketPage() {
           Ticket Details: {ticket.name}
         </h2>
 
-        {session?.user?.role === "PROFESSOR" && (
+        {(activeCourseRole === "PROFESSOR" || activeCourseRole === "COURSE_COORDINATOR") && (
           <Button
             type="primary"
             danger
@@ -338,7 +341,7 @@ export default function TicketPage() {
         }}
         onAdd={showModal}
         type={"ticket"}
-        userRole={session?.user?.role}
+        userRole={activeCourseRole}
       />
 
       <AddTicketModal

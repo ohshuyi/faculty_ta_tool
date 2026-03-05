@@ -8,11 +8,13 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { getAcademicYear, getPreviousAcademicPeriod, getCurrentAcademicPeriod } from '@/lib/academicUtils';
 import TimesheetLogList from '@/components/TimesheetLogList';
+import { useCourse } from '@/context/CourseContext';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
 const TATimesheetView = ({ userId }) => {
+  const { activeCourseCode } = useCourse();
   const [allTimesheets, setAllTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentAcademicPeriod());
@@ -47,34 +49,37 @@ const TATimesheetView = ({ userId }) => {
 
   // --- Data Fetching ---
   const fetchTimesheets = useCallback(async (period) => {
+    if (!activeCourseCode) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/timesheets?period=${encodeURIComponent(period)}`, { credentials: 'include', cache: 'no-store' });
+      const response = await fetch(`/api/timesheets?period=${encodeURIComponent(period)}&courseCode=${activeCourseCode}`, { credentials: 'include', cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to load timesheets');
       setAllTimesheets(await response.json());
     } catch (error) { message.error(error.message); }
     finally { setLoading(false); }
-  }, []);
+  }, [activeCourseCode]);
 
   const fetchAllClasses = useCallback(async () => {
+    if (!activeCourseCode) return;
     try {
-      const response = await fetch('/api/classes?fetchAll=true', { credentials: 'include', cache: 'no-store' });
+      const response = await fetch(`/api/classes?courseCode=${activeCourseCode}&fetchAll=true`, { credentials: 'include', cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch class list');
       setAllClasses(await response.json());
     } catch (error) {
       message.error(error.message);
     }
-  }, []);
+  }, [activeCourseCode]);
 
   const fetchProfessors = useCallback(async () => {
+    if (!activeCourseCode) return;
     try {
-      const response = await fetch('/api/professors', { credentials: 'include', cache: 'no-store' });
+      const response = await fetch(`/api/professors?courseCode=${activeCourseCode}`, { credentials: 'include', cache: 'no-store' });
       if (!response.ok) throw new Error('Failed to fetch professors');
       setAllProfessors(await response.json());
     } catch (error) {
       message.error(error.message);
     }
-  }, []);
+  }, [activeCourseCode]);
 
   useEffect(() => {
     // Fetch all data on load and when Period changes
@@ -247,8 +252,9 @@ const TATimesheetView = ({ userId }) => {
   };
 
   // --- Handlers for Main Page Actions ---
-  const handleAddCourse = async () => {
-    if (!selectedCourseToAdd) {
+  const handleAddCourse = async (courseOverride) => {
+    const courseToUse = courseOverride || selectedCourseToAdd;
+    if (!courseToUse) {
       return message.error("Please select a course to add.");
     }
     try {
@@ -256,7 +262,7 @@ const TATimesheetView = ({ userId }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Credentials': 'include' },
         body: JSON.stringify({
-          courseCode: selectedCourseToAdd,
+          courseCode: courseToUse,
           period: selectedPeriod,
         }),
       });
@@ -266,7 +272,7 @@ const TATimesheetView = ({ userId }) => {
       }
 
       const newTimesheet = await response.json();
-      message.success(`Timesheet for ${selectedCourseToAdd} created!`);
+      message.success(`Timesheet for ${courseToUse} created!`);
 
       setIsAddCourseModalVisible(false);
       setSelectedCourseToAdd(null);
@@ -410,12 +416,17 @@ const TATimesheetView = ({ userId }) => {
             type="primary"
             icon={<PlusOutlined />}
             onClick={() => setIsAddCourseModalVisible(true)}
+            disabled={!activeCourseCode || allTimesheets.some(ts => ts.courseCode === activeCourseCode)}
           >
             Add Course Timesheet
           </Button>
         </Space>
 
-        {loading ? <Spin /> : (
+        {!activeCourseCode ? (
+          <Alert message="Please select a course to view timesheets." type="info" showIcon />
+        ) : loading ? (
+          <Spin />
+        ) : (
           <Table
             columns={timesheetColumns}
             dataSource={sortedTimesheets} // Use sortedTimesheets
@@ -493,28 +504,23 @@ const TATimesheetView = ({ userId }) => {
 
       {/* --- "Add Course" Modal --- */}
       <Modal
-        title="Add New Course Timesheet"
+        title={`Add New Course Timesheet for ${activeCourseCode}`}
         open={isAddCourseModalVisible}
-        onOk={handleAddCourse}
-        onCancel={() => setIsAddCourseModalVisible(false)}
+        onOk={() => {
+          handleAddCourse(activeCourseCode);
+        }}
+        onCancel={() => {
+          setIsAddCourseModalVisible(false);
+          setSelectedCourseToAdd(null);
+        }}
         okText="Add"
       >
         <Form layout="vertical">
           <Form.Item label="Academic Period">
             <Input value={selectedPeriod} disabled />
           </Form.Item>
-          <Form.Item label="Course Code" required>
-            <Select
-              showSearch
-              placeholder="Select a course to add"
-              style={{ width: "100%" }}
-              onChange={(value) => setSelectedCourseToAdd(value)}
-              filterOption={filterOption}
-            >
-              {uniqueCourseCodes.map(code => (
-                <Option key={code} value={code}>{code}</Option>
-              ))}
-            </Select>
+          <Form.Item label="Course Code">
+            <Input value={activeCourseCode} disabled />
           </Form.Item>
         </Form>
       </Modal>
@@ -537,7 +543,12 @@ const TATimesheetView = ({ userId }) => {
             style={{ marginBottom: 16 }}
           />
           <Transfer
-            dataSource={allProfessors.map(prof => ({ key: prof.id, title: prof.name }))}
+            dataSource={allProfessors.map(prof => {
+              const roleInfo = prof.courseRoles?.find(r => r.courseCode === selectedTimesheet.courseCode);
+              const displayRole = roleInfo ? roleInfo.role.replace("_", " ") : "COURSE COORDINATOR";
+              const title = `${prof.name} (${displayRole} - ${selectedTimesheet.courseCode})`;
+              return { key: prof.id, title };
+            })}
             targetKeys={targetKeys}
             onChange={setTargetKeys}
             render={item => item.title}

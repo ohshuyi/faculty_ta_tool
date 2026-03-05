@@ -7,66 +7,64 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 model Task {
-  id             Int      @id @default(autoincrement())
-  name           String   @default("Untitled Task") // Provide a default value
-  dueDate        DateTime
-  details        String
-  status         String   @default("pending") // Set default status to "pending"
-  
-  professor      User     @relation("ProfessorTasks", fields: [professorId], references: [id], onDelete: Cascade)
-  professorId    Int
-  ta             User     @relation("TATasks", fields: [taId], references: [id], onDelete: Cascade)
-  taId           Int
-  
-  classes     Class[]   @relation("TaskClasses") // Many-to-many relationship
-  createdAt      DateTime @default(now()) // Automatically set the creation date
-  updatedAt      DateTime @updatedAt      // Automatically update the timestamp
-  lastFollowUpAt DateTime?                // Track when the last follow-up email was sent
-  files          File[]   // Relation to uploaded files
+  id      Int      @id @default(autoincrement())
+  name    String   @default("Untitled Task") // Provide a default value
+  dueDate DateTime
+  details String
+  status  String   @default("pending") // Set default status to "pending"
+
+  professor   User @relation("ProfessorTasks", fields: [professorId], references: [id], onDelete: Cascade)
+  professorId Int
+  ta          User @relation("TATasks", fields: [taId], references: [id], onDelete: Cascade)
+  taId        Int
+
+  classes        Class[]   @relation("TaskClasses") // Many-to-many relationship
+  createdAt      DateTime  @default(now()) // Automatically set the creation date
+  updatedAt      DateTime  @updatedAt // Automatically update the timestamp
+  lastFollowUpAt DateTime? // Track when the last follow-up email was sent
+  files          File[] // Relation to uploaded files
   comments       Comment[] // Relation to comments
-  
-  studentId      Int?     // Optional foreign key for the associated Student
-  student        Student? @relation("StudentTasks", fields: [studentId], references: [id], onDelete: SetNull)
+
+  studentId Int? // Optional foreign key for the associated Student
+  student   Student? @relation("StudentTasks", fields: [studentId], references: [id], onDelete: SetNull)
 }
 
 model Ticket {
-  id               Int      @id @default(autoincrement())
-  name             String   // Name field added
+  id                Int       @id @default(autoincrement())
+  name              String // Name field added
   ticketDescription String
-  category         String
-  priority         String
-  status           String   @default("open")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  lastFollowUpAt   DateTime? // Track when the last follow-up email was sent
+  category          String
+  priority          String
+  status            String    @default("open")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastFollowUpAt    DateTime? // Track when the last follow-up email was sent
 
-  classes          Class[]   @relation("TicketClasses")
+  classes Class[] @relation("TicketClasses")
 
-  taId             Int
-  ta               User     @relation("TATickets", fields: [taId], references: [id], onDelete: Cascade)
+  taId Int
+  ta   User @relation("TATickets", fields: [taId], references: [id], onDelete: Cascade)
 
-  professorId      Int
-  professor        User     @relation("ProfessorTickets", fields: [professorId], references: [id], onDelete: Cascade)
+  professorId Int
+  professor   User @relation("ProfessorTickets", fields: [professorId], references: [id], onDelete: Cascade)
 
-  studentId        Int?     // Foreign key for the associated Student
-  student          Student? @relation("StudentTickets", fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int? // Foreign key for the associated Student
+  student   Student? @relation("StudentTickets", fields: [studentId], references: [id], onDelete: Cascade)
 
-  comments         Comment[]
-  files            File[]
+  comments Comment[]
+  files    File[]
 }
 
 model File {
-  id        Int      @id @default(autoincrement())
-  url       String
-  fileName  String
-  ticket    Ticket?  @relation(fields: [ticketId], references: [id])
-  ticketId  Int?     // Optional foreign key for ticket
-  task      Task?    @relation(fields: [taskId], references: [id])
-  taskId    Int?     // Optional foreign key for task
+  id       Int     @id @default(autoincrement())
+  url      String
+  fileName String
+  ticket   Ticket? @relation(fields: [ticketId], references: [id])
+  ticketId Int? // Optional foreign key for ticket
+  task     Task?   @relation(fields: [taskId], references: [id])
+  taskId   Int? // Optional foreign key for task
 }
-
 
 model User {
   id        Int      @id @default(autoincrement())
@@ -76,32 +74,27 @@ model User {
   createdAt DateTime @default(now())
 
   // Existing relations
-  assignedTATickets       Ticket[] @relation("TATickets")
+  assignedTATickets        Ticket[] @relation("TATickets")
   assignedProfessorTickets Ticket[] @relation("ProfessorTickets")
 
   // New relations for tasks
-  assignedTATasks         Task[]   @relation("TATasks")        // Tasks where the user is a TA
-  assignedProfessorTasks  Task[]   @relation("ProfessorTasks") // Tasks where the user is a Professor
-  assignedClasses         Class[]  @relation("TAClasses")
+  assignedTATasks        Task[]           @relation("TATasks") // Tasks where the user is a TA
+  assignedProfessorTasks Task[]           @relation("ProfessorTasks") // Tasks where the user is a Professor
+  assignedClasses        Class[]          @relation("TAClasses")
+  courseRoles            UserCourseRole[] @relation("UserCourseRoles")
 
-  timesheets Timesheet[] @relation("UserTimesheets")
+  timesheets          Timesheet[] @relation("UserTimesheets")
   approvingTimesheets Timesheet[] @relation("TimesheetApprovers")
-
-  labId Int?
-  lab   Lab?    @relation("LabAssignments", fields: [labId], references: [id], onDelete: SetNull)
-
-  createdLabIssues LabIssue[] @relation("CreatedIssues")
 }
-
 
 model Comment {
   id        Int      @id @default(autoincrement())
   author    String
   content   String
   ticket    Ticket?  @relation(fields: [ticketId], references: [id])
-  ticketId  Int?     // Optional foreign key for ticket
+  ticketId  Int? // Optional foreign key for ticket
   task      Task?    @relation(fields: [taskId], references: [id])
-  taskId    Int?     // Optional foreign key for task
+  taskId    Int? // Optional foreign key for task
   createdAt DateTime @default(now())
 }
 
@@ -110,7 +103,6 @@ enum Role {
   TA
   PROFESSOR
   ADMIN
-  LAB_TECH
 }
 
 model Class {
@@ -124,59 +116,82 @@ model Class {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   assignedTAs User[]    @relation("TAClasses")
+
   @@unique([courseCode, classGroup, classType])
 }
 
-
 model Student {
-  id          Int       @id @default(autoincrement())
-  name        String    // Student's name
-  studentCode String    @unique // Unique student identifier
+  id          Int      @id @default(autoincrement())
+  name        String // Student's name
+  studentCode String   @unique // Unique student identifier
   prog        String
-  classes     Class[]   @relation("ClassStudents") // Many-to-many relationship
-  createdAt   DateTime  @default(now())
-  tickets     Ticket[]  @relation("StudentTickets") // Relation back to Ticket
-  tasks       Task[]    @relation("StudentTasks")
+  classes     Class[]  @relation("ClassStudents") // Many-to-many relationship
+  createdAt   DateTime @default(now())
+  tickets     Ticket[] @relation("StudentTickets") // Relation back to Ticket
+  tasks       Task[]   @relation("StudentTasks")
 }
 
 model Timesheet {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  user      User      @relation("UserTimesheets", fields: [userId], references: [id], onDelete: Cascade)
-  period    String    // e.g., "AY25/26 Semester 1"
-  courseCode String    // NEW: e.g., "SC2207"
-  status    String    @default("Draft") // "Pending", "Approved"
+  id              Int              @id @default(autoincrement())
+  userId          Int
+  user            User             @relation("UserTimesheets", fields: [userId], references: [id], onDelete: Cascade)
+  period          String // e.g., "AY25/26 Semester 1"
+  courseCode      String // NEW: e.g., "SC2207"
+  status          String           @default("Draft") // "Pending", "Approved"
   rejectionReason String?
-  totalHours Decimal  @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  entries   TimesheetEntry[]
-  approvers  User[]    @relation("TimesheetApprovers")
-  logs      TimesheetLog[]
+  totalHours      Decimal          @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  entries         TimesheetEntry[]
+  approvers       User[]           @relation("TimesheetApprovers")
+  logs            TimesheetLog[]
 
   @@unique([userId, period, courseCode])
 }
 
 model TimesheetEntry {
-  id          Int      @id @default(autoincrement())
-  timesheetId Int
-  timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-  date        DateTime
-  hours       Decimal
-  classDetails String  // NEW: Store combined type/group (e.g., "Lab - BCG1")
-  weekNumber  Int
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           Int       @id @default(autoincrement())
+  timesheetId  Int
+  timesheet    Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  date         DateTime
+  hours        Decimal
+  classDetails String // NEW: Store combined type/group (e.g., "Lab - BCG1")
+  weekNumber   Int
+  description  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model TimesheetLog {
   id          Int       @id @default(autoincrement())
   timesheetId Int
   timesheet   Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
-  
-  timestamp   DateTime  @default(now())
-  actorName   String    // e.g., "John Doe (TA)" or "Jane Smith (Professor)"
-  action      String    // e.g., "Submitted", "Approved", "Entry Deleted"
-  details     String?   // e.g., "Logged 2.5 hours" or "Reason: Week 5 incorrect."
+
+  timestamp DateTime @default(now())
+  actorName String // e.g., "John Doe (TA)" or "Jane Smith (Professor)"
+  action    String // e.g., "Submitted", "Approved", "Entry Deleted"
+  details   String? // e.g., "Logged 2.5 hours" or "Reason: Week 5 incorrect."
+}
+
+model Course {
+  id         Int      @id @default(autoincrement())
+  courseCode String   @unique
+  name       String?
+  createdAt  DateTime @default(now())
+}
+
+enum CourseRole {
+  COURSE_COORDINATOR
+  TUTOR
+  TA
+}
+
+model UserCourseRole {
+  id         Int        @id @default(autoincrement())
+  userId     Int
+  user       User       @relation("UserCourseRoles", fields: [userId], references: [id], onDelete: Cascade)
+  courseCode String
+  role       CourseRole
+
+  @@unique([userId, courseCode])
 }

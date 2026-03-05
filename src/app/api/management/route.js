@@ -1,10 +1,9 @@
-import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import * as XLSX from "xlsx";
+import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import * as XLSX from "xlsx";
 
-const prisma = new PrismaClient();
 
 export async function GET(req) {
   try {
@@ -19,12 +18,74 @@ export async function GET(req) {
 
     const userRole = session.user.role;
     const userId = session.user.id;
+    const courseRoles = session.user.courseRoles || [];
+
+    // Extract courseCode from the request URL
+    const { searchParams } = new URL(req.url);
+    const courseCode = searchParams.get('courseCode');
+
+    console.log("DEBUG Management API:", { userId, userRole, courseCode, courseRolesCount: courseRoles.length });
 
     let classes;
 
-    if (userRole === 'TA') {
+    // Determine the active role for the requested course
+    let activeRole = userRole; // Default to global
+    if (courseCode) {
+      const specificRoleRecord = courseRoles.find(cr => cr.courseCode === courseCode);
+      if (specificRoleRecord) {
+        activeRole = specificRoleRecord.role;
+      } else if (userRole !== 'ADMIN') {
+        console.log("DEBUG Management API: Unauthorized for course", courseCode);
+        // If not an admin and no role for this course, they shouldn't see anything
+        return new Response(JSON.stringify({ message: "Unauthorized for this course" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    console.log("DEBUG Management API: Determined activeRole", activeRole);
+
+    if (!courseCode && userRole !== 'ADMIN') {
+      // Intelligently fetch classes based on user's course roles
+      const coordinatorCourses = courseRoles
+        .filter(cr => cr.role === 'COURSE_COORDINATOR')
+        .map(cr => cr.courseCode);
+
+      const taCourses = courseRoles
+        .filter(cr => cr.role === 'TA' || cr.role === 'TUTOR')
+        .map(cr => cr.courseCode);
+
+      const orConditions = [];
+      if (coordinatorCourses.length > 0) {
+        orConditions.push({ courseCode: { in: coordinatorCourses } });
+      }
+      if (taCourses.length > 0) {
+        orConditions.push({
+          courseCode: { in: taCourses },
+          assignedTAs: { some: { id: userId } }
+        });
+      }
+
+      if (orConditions.length > 0) {
+        classes = await prisma.class.findMany({
+          where: { OR: orConditions },
+          include: { students: true },
+        });
+      } else {
+        classes = [];
+      }
+
+      return new Response(JSON.stringify(classes), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (activeRole === 'TA' || activeRole === 'TUTOR') {
       classes = await prisma.class.findMany({
         where: {
+          courseCode: courseCode, // Must be course specific
           assignedTAs: {
             some: {
               id: userId,
@@ -36,10 +97,13 @@ export async function GET(req) {
         },
       });
     } else {
-      // Fetch all classes with their students
+      // Fetch all classes for PROFESSOR or COURSE_COORDINATOR (or ADMIN)
       classes = await prisma.class.findMany({
+        where: {
+          ...(courseCode ? { courseCode } : {}),
+        },
         include: {
-          students: true, // Include related students for each class
+          students: true,
         },
       });
     }
@@ -54,8 +118,6 @@ export async function GET(req) {
       JSON.stringify({ message: "Failed to fetch classes", error: error.message }),
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -77,10 +139,17 @@ export async function POST(req) {
       return NextResponse.json({ error: "No valid class groups found in file." }, { status: 400 });
     }
 
+    const activeCourseCode = formData.get("activeCourseCode");
     const uploadScope = {
       courseCode: classGroupsInFile[0].courseCode,
       classType: classGroupsInFile[0].classType,
     };
+
+    if (activeCourseCode && uploadScope.courseCode !== activeCourseCode) {
+      return NextResponse.json({
+        error: `Mismatched course codes: the uploaded file is for ${uploadScope.courseCode}, but your active course is ${activeCourseCode}.`
+      }, { status: 400 });
+    }
 
     await prisma.$transaction(async (tx) => {
       // 1. Get all students and classes from the file

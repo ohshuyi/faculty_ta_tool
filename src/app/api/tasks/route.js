@@ -27,6 +27,7 @@ export async function POST(req) {
     const taId = parseInt(formData.get("taId"), 10);
     const studentId = formData.get("studentId") ? parseInt(formData.get("studentId"), 10) : null;
     const courseCode = formData.get("courseCode"); // Accept a single courseCode
+    const classId = formData.get("classId") ? parseInt(formData.get("classId"), 10) : null;
     const file = formData.get("file");
     const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
@@ -62,16 +63,22 @@ export async function POST(req) {
 
     // Explicitly set the status
     const status = "open";
-    // Find the class matching the courseCode
-    const classes = await prisma.class.findMany({
-      where: {
-        courseCode, // Filter by courseCode
-      },
-      select: { id: true }, // Select only the `id` field
-    });
 
-    // Extract an array of IDs
-    const classIds = classes.map(cls => cls.id);
+    let classIds = [];
+    if (classId) {
+      classIds = [classId];
+    } else if (courseCode) {
+      // Find the class matching the courseCode
+      const classes = await prisma.class.findMany({
+        where: {
+          courseCode, // Filter by courseCode
+        },
+        select: { id: true }, // Select only the `id` field
+      });
+
+      // Extract an array of IDs
+      classIds = classes.map(cls => cls.id);
+    }
 
 
     // Create the task and link to multiple classes
@@ -187,8 +194,16 @@ export async function GET(req) {
     }
 
     // Get the logged-in user's role and ID
-    const userRole = session.user.role;
     const userId = session.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { courseRoles: true }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     // Parse the `status` query parameter from the URL
     const url = new URL(req.url);
@@ -199,41 +214,44 @@ export async function GET(req) {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
-    let tasks;
-
-    if (userRole === "TA") {
-      // Fetch tasks based on the `status` for the TA
-      tasks = await prisma.task.findMany({
-        where: {
-          taId: userId,
-          status: statusParam, // Filter by the dynamic status parameter
-        },
-        include: {
-          professor: true,
-          ta: true,
-          comments: true,
-          files: true,
-          classes: true,
-          student: true,
-        },
-      });
-    } else if (userRole === "PROFESSOR") {
-      // Fetch tasks based on the `status` for the professor
-      tasks = await prisma.task.findMany({
-        where: {
-          professorId: userId,
-          status: statusParam, // Filter by the dynamic status parameter
-        },
-        include: {
-          professor: true,
-          ta: true,
-          comments: true,
-          files: true,
-          classes: true,
-          student: true,
-        },
-      });
+    const courseCode = url.searchParams.get("courseCode");
+    let effectiveRole = user.role;
+    if (courseCode) {
+      const courseRoleRecord = user.courseRoles.find(r => r.courseCode === courseCode);
+      if (courseRoleRecord) {
+        effectiveRole = courseRoleRecord.role;
+      } else {
+        return NextResponse.json({ error: "Unauthorized for this course" }, { status: 403 });
+      }
     }
+
+    let whereCondition = {
+      status: statusParam,
+    };
+
+    if (courseCode) {
+      whereCondition.classes = { some: { courseCode } };
+    }
+
+    if (effectiveRole === "TA" || effectiveRole === "TUTOR") {
+      whereCondition.taId = userId;
+    } else if (effectiveRole === "PROFESSOR" || effectiveRole === "COURSE_COORDINATOR") {
+      whereCondition.professorId = userId;
+    } else {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
+
+    const tasks = await prisma.task.findMany({
+      where: whereCondition,
+      include: {
+        professor: true,
+        ta: true,
+        comments: true,
+        files: true,
+        classes: true,
+        student: true,
+      },
+    });
 
     return NextResponse.json(tasks, { status: 200 });
   } catch (error) {

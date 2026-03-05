@@ -5,28 +5,37 @@ import { NextResponse } from "next/server";
 export async function GET(req) {
   try {
     const url = new URL(req.url);
-    const classType = url.searchParams.get("classType"); // Check for a classType filter
+    const classType = url.searchParams.get("classType");
     const classId = url.searchParams.get("classId");
+    const courseCode = url.searchParams.get("courseCode");
 
     const whereCondition = {};
 
-    // If a classType is provided, add a filter to the query
-    if (classType) {
-      whereCondition.classes = {
-        some: { // Find students who have at least one class that matches
-          classType: {
-            equals: classType,
-          },
-        },
-      };
-    }
-
-    if (classId) {
+    if (courseCode) {
       whereCondition.classes = {
         some: {
-          id: parseInt(classId),
-        },
+          courseCode: courseCode,
+          ...(classType ? { classType } : {}),
+          ...(classId ? { id: parseInt(classId) } : {}),
+        }
       };
+    } else {
+      // Fallback to legacy filtering if no courseCode is provided
+      if (classType) {
+        whereCondition.classes = {
+          some: {
+            classType: classType,
+          },
+        };
+      }
+
+      if (classId) {
+        whereCondition.classes = {
+          some: {
+            id: parseInt(classId),
+          },
+        };
+      }
     }
 
     const students = await prisma.student.findMany({

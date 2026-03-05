@@ -9,11 +9,11 @@ export async function PUT(
 
   try {
     const body = await req.json();
-    // 1. Get BOTH 'role' and 'labId' from the request body
-    const { role, labId } = body;
+    // 1. Get 'role' and 'courseRoles' from the request body
+    const { role, courseRoles } = body;
 
-    // 2. Add "LAB_TECH" to the valid roles
-    const validRoles = ["USER", "TA", "PROFESSOR", "ADMIN", "LAB_TECH"];
+    // 2. Add valid roles
+    const validRoles = ["USER", "TA", "PROFESSOR", "ADMIN"];
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { error: "Invalid role provided" },
@@ -30,27 +30,54 @@ export async function PUT(
     }
 
     // 3. Build the data for the update
-    const dataToUpdate: { role: string, labId: number | null } = {
+    const dataToUpdate: any = {
       role: role,
-      labId: null, // Default to null (disconnect from lab)
     };
 
-    if (role === 'LAB_TECH') {
-      // If the new role is LAB_TECH, the labId is required
-      if (!labId) {
-        return NextResponse.json(
-          { error: "A Lab ID is required for the LAB_TECH role" },
-          { status: 400 }
-        );
-      }
-      dataToUpdate.labId = parseInt(labId, 10);
-    }
-    
     // 4. Update the user in the database with the new data
-    const updatedUser = await prisma.user.update({
-      where: { id: userIdInt },
-      data: dataToUpdate, // Use the new data object
-    });
+    // We must also handle courseRoles if provided
+    let updatedUser;
+    if (courseRoles && Array.isArray(courseRoles)) {
+      // Validate Course Roles against Global Role
+      if (role === 'TA') {
+        const hasInvalidRole = courseRoles.some((cr: any) => cr.role === 'COURSE_COORDINATOR' || cr.role === 'TUTOR');
+        if (hasInvalidRole) {
+          return NextResponse.json(
+            { error: "A TA cannot be assigned as a COURSE_COORDINATOR or TUTOR." },
+            { status: 400 }
+          );
+        }
+      } else if (role === 'PROFESSOR') {
+        const hasInvalidRole = courseRoles.some((cr: any) => cr.role === 'TA');
+        if (hasInvalidRole) {
+          return NextResponse.json(
+            { error: "A PROFESSOR cannot be assigned as a TA." },
+            { status: 400 }
+          );
+        }
+      }
+
+      updatedUser = await prisma.user.update({
+        where: { id: userIdInt },
+        data: {
+          ...dataToUpdate,
+          courseRoles: {
+            deleteMany: {}, // First remove all existing
+            create: courseRoles.map((cr: any) => ({
+              courseCode: cr.courseCode,
+              role: cr.role,
+            })),
+          },
+        } as any,
+        include: { courseRoles: true } as any,
+      }) as any;
+    } else {
+      updatedUser = await prisma.user.update({
+        where: { id: userIdInt },
+        data: dataToUpdate,
+        include: { courseRoles: true } as any,
+      }) as any;
+    }
 
     // Return success response
     return NextResponse.json({

@@ -23,30 +23,36 @@ export async function POST(req) {
       name: formData.get("name"), // Get the name field
       ticketDescription: formData.get("ticketDescription"),
       courseCode: formData.get("courseGroupType"), // Accept a single courseCode
+      classId: formData.get("classId") ? parseInt(formData.get("classId") as string, 10) : null,
       category: formData.get("category"),
-      studentId: parseInt(formData.get("studentId")),
+      studentId: parseInt(formData.get("studentId") as string),
       priority: formData.get("priority"),
-      professorId: parseInt(formData.get("professorId")),
-      taId: parseInt(formData.get("taId")),
+      professorId: parseInt(formData.get("professorId") as string),
+      taId: parseInt(formData.get("taId") as string),
     };
 
-    // Find the class matching the courseCode
-    const classes = await prisma.class.findMany({
-      where: {
-        courseCode: data?.courseCode, // Filter by courseCode
-      },
-      select: { id: true }, // Select only the `id` field
-    });
+    let classIds: number[] = [];
+    if (data.classId) {
+      classIds = [data.classId];
+    } else if (data.courseCode) {
+      // Find the class matching the courseCode
+      const classes = await prisma.class.findMany({
+        where: {
+          courseCode: data.courseCode as string, // Filter by courseCode
+        },
+        select: { id: true }, // Select only the `id` field
+      });
 
-    if (!classes || classes.length === 0) {
-      return NextResponse.json(
-        { error: "Class not found for the specified courseGroupType" },
-        { status: 404 }
-      );
+      if (!classes || classes.length === 0) {
+        return NextResponse.json(
+          { error: "Class not found for the specified courseGroupType" },
+          { status: 404 }
+        );
+      }
+
+      // Extract an array of class IDs
+      classIds = classes.map((cls) => cls.id);
     }
-
-    // Extract an array of class IDs
-    const classIds = classes.map((cls) => cls.id);
 
     const file = formData.get("file");
     let fileUrl = null;
@@ -171,27 +177,42 @@ export async function GET(req: Request) {
   try {
     const userEmail = session.user?.email;
 
-    // Parse query parameters for status (default to 'open')
     const url = new URL(req.url);
     const status = url.searchParams.get("status") || "open";
+    const courseCode = url.searchParams.get("courseCode");
 
     // Find the user by email
     const user = await prisma.user.findUnique({
       where: { email: userEmail },
-    });
+      include: { courseRoles: true } as any,
+    }) as any;
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Define the condition based on the user's role
-    let whereCondition = {
+    let whereCondition: any = {
       status, // Include the status condition
     };
 
-    if (user.role === "TA") {
+    if (courseCode) {
+      whereCondition.classes = { some: { courseCode } };
+    }
+
+    let effectiveRole = user.role;
+    if (courseCode) {
+      const courseRoleRecord = user.courseRoles.find((r: any) => r.courseCode === courseCode);
+      if (courseRoleRecord) {
+        effectiveRole = courseRoleRecord.role;
+      } else {
+        return NextResponse.json({ error: "Unauthorized for this course" }, { status: 403 });
+      }
+    }
+
+    if (effectiveRole === "TA" || effectiveRole === "TUTOR") {
       whereCondition.taId = user.id;
-    } else if (user.role === "PROFESSOR") {
+    } else if (effectiveRole === "PROFESSOR" || effectiveRole === "COURSE_COORDINATOR") {
       whereCondition.professorId = user.id;
     } else {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

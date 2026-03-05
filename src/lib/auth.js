@@ -57,21 +57,23 @@ export const authOptions = {
     },
 
     async session({ session, token }) {
-  
+
 
       if (token?.accessToken) {
         session.accessToken = token.accessToken; // Assign accessToken from token to session
       }
-    
+
       const dbUser = await prisma.user.findUnique({
         where: { email: session.user.email },
+        include: { courseRoles: true },
       });
-    
+
       if (dbUser) {
         session.user.id = dbUser.id;
         session.user.role = dbUser.role;
+        session.user.courseRoles = dbUser.courseRoles;
       }
-    
+
       return session;
     },
 
@@ -80,12 +82,12 @@ export const authOptions = {
       if (account) {
         token.accessToken = account.access_token; // Store access token in token
       }
-    
+
       if (user) {
         token.id = user.id;
         token.role = user.role;
       }
-    
+
       return token;
     }
   },

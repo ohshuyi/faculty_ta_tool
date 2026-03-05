@@ -6,6 +6,7 @@ import TATimesheetView from '@/components/TATimesheetView';
 import ProfessorTimesheetView from '@/components/ProfessorTimesheetView';
 import { Spin, Alert } from 'antd';
 import { useRouter } from 'next/navigation';
+import { useCourse } from '@/context/CourseContext';
 
 const TimesheetPage: React.FC = () => {
   // Specify the type for session data if you have custom session properties
@@ -36,16 +37,16 @@ const TimesheetPage: React.FC = () => {
   }
 
   // Ensure session.user exists and has properties before accessing them
-  const userId = session.user?.id;
-  const userRole = session.user?.role;
+  const userId = (session.user as any)?.id;
+  const { activeCourseRole } = useCourse();
 
   // Render different components based on role
   return (
     <AppLayout>
-      {userRole === 'TA' && userId && <TATimesheetView userId={userId} />}
-      {userRole === 'PROFESSOR' && <ProfessorTimesheetView />}
-      {(userRole !== 'TA' && userRole !== 'PROFESSOR') && (
-        <Alert message="You do not have permission to view this page." type="warning" />
+      {(activeCourseRole === 'TA' || activeCourseRole === 'TUTOR') && userId && <TATimesheetView userId={userId} />}
+      {(activeCourseRole === 'COURSE_COORDINATOR') && <ProfessorTimesheetView />}
+      {(!activeCourseRole) && (
+        <Alert message="Please select a course to view timesheets." type="info" showIcon />
       )}
     </AppLayout>
   );

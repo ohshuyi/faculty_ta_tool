@@ -14,6 +14,7 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useSession } from "next-auth/react";
+import { useCourse } from "@/context/CourseContext";
 import dayjs from 'dayjs';
 
 const { TextArea } = Input;
@@ -25,6 +26,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   const [tas, setTAs] = useState([]);
   const [classes, setClasses] = useState([]); // State for classes (course groups)
   const { data: session } = useSession();
+  const { activeCourseCode } = useCourse();
   const [file, setFile] = useState(null);
   const [selectedCourseCode, setSelectedCourseCode] = useState(null);
   const [filteredClassGroups, setFilteredClassGroups] = useState([]);
@@ -40,9 +42,11 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   // Fetch TAs and Classes when the modal is visible
   useEffect(() => {
     if (isVisible) {
+
       async function fetchTAs() {
         try {
-          const response = await fetch("/api/tas");
+          const url = activeCourseCode ? `/api/tas?courseCode=${activeCourseCode}` : "/api/tas";
+          const response = await fetch(url);
           const data = await response.json();
           setTAs(data);
         } catch (error) {
@@ -52,9 +56,25 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
 
       async function fetchClasses() {
         try {
-          const response = await fetch("/api/classes"); // Replace with your API endpoint
+          const response = await fetch("/api/classes");
           const data = await response.json();
-          setClasses(data);
+
+          // Filter classes by active course code for strict isolation
+          const filteredClasses = activeCourseCode
+            ? data.filter(cls => cls.courseCode === activeCourseCode)
+            : data;
+
+          setClasses(filteredClasses);
+
+          // Pre-fill logic when modal opens
+          if (activeCourseCode) {
+            form.setFieldsValue({ courseCode: activeCourseCode });
+            // Manually trigger handleCourseChange logic for initialization
+            setSelectedCourseCode(activeCourseCode);
+            const courseClasses = data.filter((cls) => cls.courseCode === activeCourseCode);
+            const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
+            setFilteredClassTypes(uniqueTypes);
+          }
         } catch (error) {
           console.error("Error fetching classes:", error);
         }
@@ -62,8 +82,17 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
 
       fetchTAs();
       fetchClasses();
+    } else {
+      // Reset logic when modal closes
+      if (!isVisible) {
+        setSelectedCourseCode(null);
+        setFilteredClassTypes([]);
+        setFilteredClassGroups([]);
+        setStudents([]);
+        form.resetFields();
+      }
     }
-  }, [isVisible]);
+  }, [isVisible, activeCourseCode]);
 
   // Handle file selection
   const handleFileChange = ({ fileList }) => {
@@ -136,21 +165,23 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
         : null;
 
       // 2. Set ALL form values in a single, reliable call
+      const finalCourseCode = activeCourseCode || data.courseCode;
+
       form.setFieldsValue({
         name: data.name,
         details: data.details,
-        courseCode: data.courseCode,
+        courseCode: finalCourseCode,
         classType: data.classType,
         classId: targetClass?.id, // Use the ID we found
         dueDate: data.dueDate ? dayjs(data.dueDate, 'YYYY-MM-DD') : null,
       });
 
       // 3. Manually update the states that populate the dropdown OPTIONS
-      if (data.courseCode) {
-        const courseClasses = classes.filter((cls) => cls.courseCode === data.courseCode);
+      if (finalCourseCode) {
+        const courseClasses = classes.filter((cls) => cls.courseCode === finalCourseCode);
         const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
         setFilteredClassTypes(uniqueTypes);
-        setSelectedCourseCode(data.courseCode); // Also update the selected course code state
+        setSelectedCourseCode(finalCourseCode); // Also update the selected course code state
       }
       if (data.courseCode && data.classType) {
         const groupsForType = classes.filter(
@@ -255,12 +286,19 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
             loading={classes.length === 0}
             showSearch
             filterOption={filterOption}
+            disabled={!!activeCourseCode} // Disable if pre-filled
           >
-            {[...new Set(classes.map((cls) => cls.courseCode))].map((code) => (
-              <Option key={code} value={code}>
-                {code}
+            {activeCourseCode ? (
+              <Option key={activeCourseCode} value={activeCourseCode}>
+                {activeCourseCode}
               </Option>
-            ))}
+            ) : (
+              [...new Set(classes.map((cls) => cls.courseCode))].map((code) => (
+                <Option key={code} value={code}>
+                  {code}
+                </Option>
+              ))
+            )}
           </Select>
         </Form.Item>
 
@@ -327,20 +365,24 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
         </Form.Item>
 
         <Form.Item
-          label="Assign To (TA)"
+          label="Assign To (TA/Tutor)"
           name="taId"
-          rules={[{ required: true, message: "Please select a TA!" }]}
+          rules={[{ required: true, message: "Please select a TA/Tutor!" }]}
           style={{ width: "100%" }}
         >
           <Select
-            placeholder="Search or select a TA"
+            placeholder="Search or select a TA/Tutor"
             showSearch
             filterOption={filterOption}>
-            {tas.map((ta) => (
-              <Option key={ta.id} value={ta.id}>
-                {ta.name}
-              </Option>
-            ))}
+            {tas.map((ta) => {
+              const courseRole = ta.courseRoles?.find(cr => cr.courseCode === activeCourseCode)?.role;
+              const displayRole = courseRole || ta.role;
+              return (
+                <Option key={ta.id} value={ta.id}>
+                  {ta.name} ({displayRole.replace('_', ' ')})
+                </Option>
+              );
+            })}
           </Select>
         </Form.Item>
 

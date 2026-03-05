@@ -4,7 +4,9 @@ import { NextResponse } from "next/server";
 export async function GET(req: Request) {
   console.log("API Route Hit: Fetching fresh data");  // For debugging
 
-  const users = await prisma.user.findMany();  // Always query fresh data
+  const users = await prisma.user.findMany({
+    include: { courseRoles: true } as any,
+  }) as any;  // Always query fresh data
   console.log()
   // Disable caching completely in the API response
   const response = NextResponse.json(users);
@@ -17,7 +19,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { name, email: rawEmail, role } = await req.json();
+    const { name, email: rawEmail, role, courseRoles } = await req.json();
 
     if (!name || !rawEmail || !role) {
       return NextResponse.json(
@@ -42,13 +44,44 @@ export async function POST(req: Request) {
     }
 
     // Create the user with the lowercase email
+    let userData: any = {
+      name,
+      email, // Save the lowercase email
+      role,
+    };
+
+    if (courseRoles && Array.isArray(courseRoles)) {
+      // Validate Course Roles against Global Role
+      if (role === 'TA') {
+        const hasInvalidRole = courseRoles.some((cr: any) => cr.role === 'COURSE_COORDINATOR' || cr.role === 'TUTOR');
+        if (hasInvalidRole) {
+          return NextResponse.json(
+            { error: "A TA cannot be assigned as a COURSE_COORDINATOR or TUTOR." },
+            { status: 400 }
+          );
+        }
+      } else if (role === 'PROFESSOR') {
+        const hasInvalidRole = courseRoles.some((cr: any) => cr.role === 'TA');
+        if (hasInvalidRole) {
+          return NextResponse.json(
+            { error: "A PROFESSOR cannot be assigned as a TA." },
+            { status: 400 }
+          );
+        }
+      }
+
+      userData.courseRoles = {
+        create: courseRoles.map((cr: any) => ({
+          courseCode: cr.courseCode,
+          role: cr.role,
+        })),
+      };
+    }
+
     const newUser = await prisma.user.create({
-      data: {
-        name,
-        email, // Save the lowercase email
-        role,
-      },
-    });
+      data: userData,
+      include: { courseRoles: true } as any,
+    }) as any;
 
     return NextResponse.json(newUser, { status: 201 });
   } catch (error) {

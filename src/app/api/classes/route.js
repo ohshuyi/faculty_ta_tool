@@ -1,8 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-
-const prisma = new PrismaClient();
 
 export async function GET(req) {
   try {
@@ -20,27 +18,34 @@ export async function GET(req) {
 
     const url = new URL(req.url);
     const fetchAll = url.searchParams.get("fetchAll") === "true";
+    const courseCode = url.searchParams.get("courseCode");
 
-    let classes;
+    const allClassRoles = session.user.courseRoles || [];
 
-    if (userRole === 'TA' && !fetchAll) {
-      classes = await prisma.class.findMany({
-        where: {
-          assignedTAs: {
-            some: {
-              id: userId,
-            },
-          },
-        },
-        include: {
-          students: true,
-        },
-      });
-    } else {
-      classes = await prisma.class.findMany({
-        include: {
-          students: true,
-        },
+    let whereClause = {};
+
+    if (courseCode) {
+      whereClause.courseCode = courseCode;
+    }
+
+    let classes = await prisma.class.findMany({
+      where: whereClause,
+      include: {
+        students: true,
+        assignedTAs: true,
+      },
+    });
+
+    // Skip filtering for global ADMIN or if fetchAll is true (though fetchAll is mostly for admins anyway)
+    if (userRole !== 'ADMIN' && !fetchAll) {
+      classes = classes.filter(cls => {
+        const specificRole = allClassRoles.find(cr => cr.courseCode === cls.courseCode);
+        const effectiveRole = specificRole ? specificRole.role : userRole;
+
+        if (effectiveRole === 'TA' || effectiveRole === 'TUTOR') {
+          return cls.assignedTAs.some(ta => ta.id === userId);
+        }
+        return true; // PROFESSOR and COURSE_COORDINATOR see all classes
       });
     }
 
@@ -54,8 +59,6 @@ export async function GET(req) {
       JSON.stringify({ message: "Failed to fetch class groups", error: error.message }),
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

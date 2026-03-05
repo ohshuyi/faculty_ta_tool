@@ -13,6 +13,7 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useSession } from "next-auth/react";
+import { useCourse } from "@/context/CourseContext";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -27,6 +28,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
   const [filteredClassGroups, setFilteredClassGroups] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const { data: session } = useSession();
+  const { activeCourseCode } = useCourse();
   const [file, setFile] = useState(null);
   const [allStudents, setAllStudents] = useState([]);
 
@@ -39,9 +41,11 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
   // Fetch professors, classes, and students when the modal is visible
   useEffect(() => {
     if (isVisible) {
+
       async function fetchProfessors() {
         try {
-          const response = await fetch("/api/professors");
+          const url = activeCourseCode ? `/api/professors?courseCode=${activeCourseCode}` : "/api/professors";
+          const response = await fetch(url);
           const data = await response.json();
           setProfessors(data);
         } catch (error) {
@@ -55,14 +59,30 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           const data = await response.json();
           console.log("API Response for Classes:", data);
 
-          setClasses(data);
+          // Filter classes by active course code for strict isolation
+          const filteredClasses = activeCourseCode
+            ? data.filter(cls => cls.courseCode === activeCourseCode)
+            : data;
+
+          setClasses(filteredClasses);
+
+          // Pre-fill logic when modal opens
+          if (activeCourseCode) {
+            form.setFieldsValue({ courseGroupType: activeCourseCode });
+            // Manually trigger handleCourseChange logic for initialization
+            setSelectedCourseCode(activeCourseCode);
+            const courseClasses = data.filter((cls) => cls.courseCode === activeCourseCode);
+            const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
+            setFilteredClassTypes(uniqueTypes);
+          }
         } catch (error) {
           console.error("Error fetching classes:", error);
         }
       }
       async function fetchAllStudents() {
         try {
-          const response = await fetch("/api/students");
+          const url = activeCourseCode ? `/api/students?courseCode=${activeCourseCode}` : "/api/students";
+          const response = await fetch(url);
           const data = await response.json();
           setAllStudents(data); // Populate the complete list
         } catch (error) {
@@ -74,13 +94,16 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       fetchProfessors();
       fetchClasses();
     } else {
-      setSelectedCourseCode(null);
-      setFilteredClassTypes([]);
-      setFilteredClassGroups([]);
-      setFilteredStudents([]);
-      form.resetFields();
+      // Reset logic when modal closes
+      if (!isVisible) {
+        setSelectedCourseCode(null);
+        setFilteredClassTypes([]);
+        setFilteredClassGroups([]);
+        setFilteredStudents([]);
+        form.resetFields();
+      }
     }
-  }, [isVisible, form]);
+  }, [isVisible, activeCourseCode, form]);
 
   console.log("Classes state:", classes);
 
@@ -165,6 +188,8 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
         : null;
 
       // 2. Set ALL form values in a single call
+      const finalCourseCode = activeCourseCode || data.courseCode;
+
       form.setFieldsValue({
         name: data.name,
         ticketDescription: data.ticketDescription,
@@ -172,7 +197,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
         priority: data.priority,
         studentId: student?.id,
         professorId: professor?.id,
-        courseGroupType: data.courseCode,
+        courseGroupType: finalCourseCode,
         classType: data.classType,
         classId: targetClass?.id,
       });
@@ -182,9 +207,9 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       let tempFilteredGroups = [];
       let tempFilteredStudents = [];
 
-      if (data.courseCode) {
-        setSelectedCourseCode(data.courseCode); // Store the selected course code
-        const courseClasses = classes.filter((cls) => cls.courseCode === data.courseCode);
+      if (finalCourseCode) {
+        setSelectedCourseCode(finalCourseCode); // Store the selected course code
+        const courseClasses = classes.filter((cls) => cls.courseCode === finalCourseCode);
         tempFilteredTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
       }
 
@@ -314,13 +339,20 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
             onChange={handleCourseChange}
             showSearch
             filterOption={filterOption}
+            disabled={!!activeCourseCode} // Disable if pre-filled
           >
-            {/* Create a unique list of course codes for the options */}
-            {[...new Set(classes.map((cls) => cls.courseCode))].map((code) => (
-              <Option key={code} value={code}>
-                {code}
+            {activeCourseCode ? (
+              <Option key={activeCourseCode} value={activeCourseCode}>
+                {activeCourseCode}
               </Option>
-            ))}
+            ) : (
+              /* Create a unique list of course codes for the options */
+              [...new Set(classes.map((cls) => cls.courseCode))].map((code) => (
+                <Option key={code} value={code}>
+                  {code}
+                </Option>
+              ))
+            )}
           </Select>
         </Form.Item>
 

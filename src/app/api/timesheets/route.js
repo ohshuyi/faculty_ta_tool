@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getAcademicYear } from "@/lib/academicUtils"
+import { getAcademicYear, getCurrentAcademicPeriod } from "@/lib/academicUtils"
 
 export async function GET(req) {
     try {
@@ -17,8 +17,13 @@ export async function GET(req) {
 
         const period = url.searchParams.get("period") || getCurrentAcademicPeriod();
         const statusFilter = url.searchParams.get("status");
+        const courseCode = url.searchParams.get("courseCode");
 
         let whereCondition = { period: period };
+
+        if (courseCode) {
+            whereCondition.courseCode = courseCode;
+        }
 
         if (user.role === "TA") {
             whereCondition.userId = user.id; // TA sees only their own timesheets

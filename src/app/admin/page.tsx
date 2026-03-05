@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Table, Select, Button, message, Input, Space, Modal, Form } from "antd";
+import { Table, Select, Button, message, Input, Space, Modal, Form, Tag, AutoComplete, Divider } from "antd";
+import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import AppLayout from "@/components/Layout";
@@ -15,14 +16,16 @@ const AdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [isUpdateModalVisible, setIsUpdateModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [form] = Form.useForm();
   const [addForm] = Form.useForm();
+  const [courseForm] = Form.useForm();
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isAddCourseModalVisible, setAddCourseModalVisible] = useState(false);
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [labs, setLabs] = useState([]);
   const [selectedRole, setSelectedRole] = useState("USER");
+  const [courseCodes, setCourseCodes] = useState<string[]>([]);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -47,17 +50,19 @@ const AdminPage = () => {
   }, [session, status, router, fetchUsers]);
 
   useEffect(() => {
-    const fetchLabs = async () => {
+    const fetchCourses = async () => {
       try {
-        const response = await fetch('/api/labs');
-        setLabs(await response.json());
+        const response = await fetch('/api/courses');
+        const data = await response.json();
+        const uniqueCourseCodes: string[] = Array.from(new Set(data.map((c: any) => c.courseCode)));
+        setCourseCodes(uniqueCourseCodes);
       } catch (e) {
-        message.error("Failed to load labs list");
+        console.error("Failed to load course list", e);
       }
     };
-    fetchLabs();
+    fetchCourses();
   }, []);
-  const handleRoleChange = async (userId, data) => {
+  const handleRoleChange = async (userId: any, data: any) => {
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: "PUT",
@@ -126,17 +131,54 @@ const AdminPage = () => {
     setIsAddModalVisible(true);
   };
 
+  const showAddCourseModal = () => {
+    setAddCourseModalVisible(true);
+  };
+
   const handleAddModalCancel = () => {
     setIsAddModalVisible(false);
     addForm.resetFields();
   };
 
-  const handleUpdateClick = (user) => {
+  const handleAddCourseCancel = () => {
+    setAddCourseModalVisible(false);
+    courseForm.resetFields();
+  };
+
+  const handleAddCourse = async (values: any) => {
+    try {
+      const response = await fetch('/api/courses', {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add course");
+      }
+
+      message.success("Course added successfully");
+      setAddCourseModalVisible(false);
+      courseForm.resetFields();
+
+      // refresh course list locally
+      if (!courseCodes.includes(values.courseCode.toUpperCase())) {
+        setCourseCodes(prev => [...prev, values.courseCode.toUpperCase()].sort());
+      }
+    } catch (error: any) {
+      console.error("Error adding course:", error);
+      message.error(error.message);
+    }
+  };
+
+  const handleUpdateClick = (user: any) => {
     setSelectedUser(user);
     setSelectedRole(user.role);
-    form.setFieldsValue({ 
+    form.setFieldsValue({
       role: user.role,
-      labId: user.labId 
+      labId: user.labId,
+      courseRoles: user.courseRoles?.map((cr: any) => ({ courseCode: cr.courseCode, role: cr.role })) || []
     });
     setIsUpdateModalVisible(true);
   };
@@ -193,14 +235,20 @@ const AdminPage = () => {
       title: "Role",
       dataIndex: "role",
       key: "role",
-      render: (role, record) => {
-        if (role === 'LAB_TECH') {
-          // Find the lab name from the state
-          const labName = labs.find(lab => lab.id === record.labId)?.name;
-          return `LAB_TECH (${labName || 'No lab assigned'})`;
-        }
-        return role; // Return the role name for all other roles
-      },
+    },
+    {
+      title: "Course Roles",
+      dataIndex: "courseRoles",
+      key: "courseRoles",
+      render: (courseRoles: any) => (
+        <Space wrap>
+          {courseRoles?.map((cr: any) => (
+            <Tag color="geekblue" key={`${cr.courseCode}-${cr.role}`}>
+              {cr.courseCode}: {cr.role}
+            </Tag>
+          ))}
+        </Space>
+      ),
     },
     {
       title: "Actions",
@@ -246,6 +294,9 @@ const AdminPage = () => {
           {/* Add the "Add User" button here */}
           <Button type="primary" onClick={showAddModal}>
             Add User
+          </Button>
+          <Button onClick={showAddCourseModal}>
+            Add Course
           </Button>
         </Space>
       </Space>
@@ -295,28 +346,85 @@ const AdminPage = () => {
             initialValue="USER"
           >
             <Select onChange={(value) => setSelectedRole(value)}>
-                <Option value="USER">USER</Option>
-                <Option value="TA">TA</Option>
-                <Option value="PROFESSOR">PROFESSOR</Option>
-                <Option value="ADMIN">ADMIN</Option>
-                <Option value="LAB_TECH">LAB_TECH</Option>
-              </Select>
+              <Option value="USER">USER</Option>
+              <Option value="TA">TA</Option>
+              <Option value="PROFESSOR">PROFESSOR</Option>
+              <Option value="ADMIN">ADMIN</Option>
+            </Select>
           </Form.Item>
-          {selectedRole === 'LAB_TECH' && (
-            <Form.Item
-              name="labId"
-              label="Assigned Lab"
-              rules={[{ required: true, message: "Please assign a lab" }]}
-            >
-              <Select placeholder="Select a lab">
-                {labs.map(lab => (
-                  <Option key={lab.id} value={lab.id}>{lab.name}</Option>
+
+          <Divider orientation="left">Course Roles (Optional)</Divider>
+          <Form.List name="courseRoles">
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...restField }) => (
+                  <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'courseCode']}
+                      rules={[{ required: true, message: 'Missing course code' }]}
+                    >
+                      <Select
+                        showSearch
+                        placeholder="Select Course Code"
+                        style={{ width: 160 }}
+                        options={courseCodes.map(c => ({ value: c, label: c }))}
+                        filterOption={(input, option) =>
+                          (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                        }
+                      />
+                    </Form.Item>
+                    <Form.Item
+                      {...restField}
+                      name={[name, 'role']}
+                      rules={[{ required: true, message: 'Missing role' }]}
+                    >
+                      <Select placeholder="Course Role" style={{ width: 180 }}>
+                        {selectedRole !== 'TA' && <Option value="COURSE_COORDINATOR">COURSE_COORDINATOR</Option>}
+                        {selectedRole !== 'TA' && <Option value="TUTOR">TUTOR</Option>}
+                        {selectedRole !== 'PROFESSOR' && <Option value="TA">TA</Option>}
+                      </Select>
+                    </Form.Item>
+                    <MinusCircleOutlined onClick={() => remove(name)} style={{ color: 'red' }} />
+                  </Space>
                 ))}
-              </Select>
-            </Form.Item>
-          )}
+                <Form.Item>
+                  <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                    Add Course Role
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
         </Form>
       </Modal>
+
+      {/* Modal for Add Course */}
+      <Modal
+        title="Add New Course"
+        open={isAddCourseModalVisible}
+        onOk={() => courseForm.submit()}
+        onCancel={handleAddCourseCancel}
+        okText="Add Course"
+        cancelText="Cancel"
+      >
+        <Form form={courseForm} layout="vertical" onFinish={handleAddCourse}>
+          <Form.Item
+            name="courseCode"
+            label="Course Code"
+            rules={[{ required: true, message: "Please enter the course code (e.g., SC2207)" }]}
+          >
+            <Input placeholder="Course Code" />
+          </Form.Item>
+          <Form.Item
+            name="name"
+            label="Course Name (Optional)"
+          >
+            <Input placeholder="Brief descriptive name" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
       {/* Modal for Update */}
       <Modal
         title="Update User Role"
@@ -344,22 +452,53 @@ const AdminPage = () => {
                 <Option value="TA">TA</Option>
                 <Option value="PROFESSOR">PROFESSOR</Option>
                 <Option value="ADMIN">ADMIN</Option>
-                <Option value="LAB_TECH">LAB_TECH</Option>
               </Select>
             </Form.Item>
-            {selectedRole === 'LAB_TECH' && (
-              <Form.Item
-                name="labId"
-                label="Assigned Lab"
-                rules={[{ required: true, message: "Please assign a lab" }]}
-              >
-                <Select placeholder="Select a lab">
-                  {labs.map(lab => (
-                    <Option key={lab.id} value={lab.id}>{lab.name}</Option>
+
+            <Divider orientation="left">Course Roles (Optional)</Divider>
+            <Form.List name="courseRoles">
+              {(fields, { add, remove }) => (
+                <>
+                  {fields.map(({ key, name, ...restField }) => (
+                    <Space key={key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'courseCode']}
+                        rules={[{ required: true, message: 'Missing course code' }]}
+                      >
+                        <Select
+                          showSearch
+                          placeholder="Select Course Code"
+                          style={{ width: 160 }}
+                          options={courseCodes.map(c => ({ value: c, label: c }))}
+                          filterOption={(input, option) =>
+                            (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                          }
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        {...restField}
+                        name={[name, 'role']}
+                        rules={[{ required: true, message: 'Missing role' }]}
+                      >
+                        <Select placeholder="Course Role" style={{ width: 180 }}>
+                          {selectedRole !== 'TA' && <Option value="COURSE_COORDINATOR">COURSE_COORDINATOR</Option>}
+                          {selectedRole !== 'TA' && <Option value="TUTOR">TUTOR</Option>}
+                          {selectedRole !== 'PROFESSOR' && <Option value="TA">TA</Option>}
+                        </Select>
+                      </Form.Item>
+                      <MinusCircleOutlined onClick={() => remove(name)} style={{ color: 'red' }} />
+                    </Space>
                   ))}
-                </Select>
-              </Form.Item>
-            )}
+                  <Form.Item>
+                    <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                      Add Course Role
+                    </Button>
+                  </Form.Item>
+                </>
+              )}
+            </Form.List>
+
           </Form>
         )}
       </Modal>
