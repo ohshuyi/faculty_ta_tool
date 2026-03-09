@@ -9,9 +9,9 @@ import { useRouter } from 'next/navigation';
 import { useCourse } from '@/context/CourseContext';
 
 const TimesheetPage: React.FC = () => {
-  // Specify the type for session data if you have custom session properties
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { activeCourseRole } = useCourse();
 
   // Redirect if not logged in after check
   useEffect(() => {
@@ -38,7 +38,6 @@ const TimesheetPage: React.FC = () => {
 
   // Ensure session.user exists and has properties before accessing them
   const userId = (session.user as any)?.id;
-  const { activeCourseRole } = useCourse();
 
   // Render different components based on role
   return (
