@@ -16,8 +16,8 @@ export async function PATCH(req, { params }) {
         const timesheet = await prisma.timesheet.findFirst({
             where: { id: timesheetId, userId: session.user.id },
             include: {
-                approvers: true, // Get approvers to check count and send emails
-                user: true,      // Get TA's name for the email
+                approvers: true, 
+                user: true,      
             },
         });
 
@@ -31,7 +31,6 @@ export async function PATCH(req, { params }) {
             return NextResponse.json({ error: "You must assign at least one approver before submitting." }, { status: 400 });
         }
 
-        // Update status to 'Submitted'
         const updatedTimesheet = await prisma.timesheet.update({
             where: { id: timesheetId },
             data: { status: "Submitted", rejectionReason: null },
@@ -50,12 +49,11 @@ export async function PATCH(req, { params }) {
         });
 
         try {
-            const baseUrl = process.env.NEXTAUTH_URL; // Your app's URL
-            const timesheetLink = `${baseUrl}/timesheet`; // Link to the timesheet page
+            const baseUrl = process.env.NEXTAUTH_URL; 
+            const timesheetLink = `${baseUrl}/timesheet`; 
             const taName = updatedTimesheet.user.name;
             const subject = `Timesheet Submitted: ${taName} - ${updatedTimesheet.courseCode}`;
 
-            // Loop through all assigned approvers and send them an email
             for (const professor of updatedTimesheet.approvers) {
                 if (professor.email) {
                     const body = `
@@ -75,7 +73,7 @@ export async function PATCH(req, { params }) {
                 }
             }
         } catch (emailError) {
-            // Log the email error, but don't fail the whole API request
+            
             console.error("Failed to send submission emails:", emailError);
         }
 

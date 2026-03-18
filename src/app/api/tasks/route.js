@@ -1,9 +1,9 @@
-// POST method to create a task
+
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // Assuming you have Prisma setup
-import { authOptions } from "@/lib/auth"; // Assuming your NextAuth options are in lib/auth.ts
+import prisma from "@/lib/prisma"; 
+import { authOptions } from "@/lib/auth"; 
 import { getServerSession } from "next-auth";
-import { v4 as uuidv4 } from "uuid"; // For generating unique filenames
+import { v4 as uuidv4 } from "uuid"; 
 import { sendEmail } from "@/lib/email";
 import {
   BlobServiceClient,
@@ -19,21 +19,19 @@ export async function POST(req) {
   try {
     const formData = await req.formData();
 
-    // Extract task details from formData
     const name = formData.get("name");
     const dueDate = formData.get("dueDate");
     const details = formData.get("details");
     const professorId = parseInt(formData.get("professorId"), 10);
     const taId = parseInt(formData.get("taId"), 10);
     const studentId = formData.get("studentId") ? parseInt(formData.get("studentId"), 10) : null;
-    const courseCode = formData.get("courseCode"); // Accept a single courseCode
+    const courseCode = formData.get("courseCode"); 
     const classId = formData.get("classId") ? parseInt(formData.get("classId"), 10) : null;
     const file = formData.get("file");
     const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
     let fileUrl = null;
 
-    // Handle file upload if applicable
     if (file) {
       const buffer = await file.arrayBuffer();
       const blobServiceClient = new BlobServiceClient(
@@ -61,27 +59,23 @@ export async function POST(req) {
       fileUrl = blockBlobClient.url;
     }
 
-    // Explicitly set the status
     const status = "open";
 
     let classIds = [];
     if (classId) {
       classIds = [classId];
     } else if (courseCode) {
-      // Find the class matching the courseCode
+      
       const classes = await prisma.class.findMany({
         where: {
-          courseCode, // Filter by courseCode
+          courseCode, 
         },
-        select: { id: true }, // Select only the `id` field
+        select: { id: true }, 
       });
 
-      // Extract an array of IDs
       classIds = classes.map(cls => cls.id);
     }
 
-
-    // Create the task and link to multiple classes
     const newTask = await prisma.task.create({
       data: {
         name,
@@ -92,7 +86,7 @@ export async function POST(req) {
         taId,
         createdAt: new Date(),
         classes: {
-          connect: classIds.map((id) => ({ id })), // Connect the task to multiple classes
+          connect: classIds.map((id) => ({ id })), 
         },
         ...(studentId && { student: { connect: { id: studentId } } }),
         ...(fileUrl && {
@@ -116,7 +110,7 @@ export async function POST(req) {
         ta: true,
         professor: true,
         files: true,
-        classes: true, // Include related classes in the response
+        classes: true, 
       },
     });
 
@@ -141,7 +135,6 @@ export async function POST(req) {
       await sendEmail(newTask.ta.email, subject, body);
     }
 
-    // Construct the response
     const responseTask = {
       id: newTask.id,
       name: newTask.name,
@@ -188,12 +181,10 @@ export async function GET(req) {
   try {
     const session = await getServerSession(authOptions);
 
-    // Ensure the user is authenticated
     if (!session) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Get the logged-in user's role and ID
     const userId = session.user.id;
 
     const user = await prisma.user.findUnique({
@@ -205,11 +196,9 @@ export async function GET(req) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Parse the `status` query parameter from the URL
     const url = new URL(req.url);
-    const statusParam = url.searchParams.get("status") || "open"; // Default to "open" if no status is provided
+    const statusParam = url.searchParams.get("status") || "open"; 
 
-    // Validate the status value
     if (statusParam !== "open" && statusParam !== "completed") {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }

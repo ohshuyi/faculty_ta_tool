@@ -64,7 +64,7 @@ export default function TicketPage() {
   };
 
   const fetchComments = async (ticketId: number) => {
-    setComments([]); // Clear comments before fetching new ones
+    setComments([]); 
     try {
       const response = await fetch(`/api/tickets/${ticketId}/comments`);
       const data = await response.json();
@@ -323,14 +323,14 @@ export default function TicketPage() {
 
       <TwoColumnsLayout
         items={tickets.map((ticket) => ({
-          key: ticket.id, // d
-          title: ticket.name, // d
+          key: ticket.id, 
+          title: ticket.name, 
           descriptions: ticket.ticketDescription,
-          category: ticket.category, // d
-          priority: ticket.priority, // d
-          professor: { id: ticket.professor.id, name: ticket.professor.name }, // d
+          category: ticket.category, 
+          priority: ticket.priority, 
+          professor: { id: ticket.professor.id, name: ticket.professor.name }, 
           student: ticket.student.id,
-          courseCode: ticket.classes[0].courseCode, // d
+          courseCode: ticket.classes[0].courseCode, 
         }))}
         renderContent={(key) => {
           const ticket = tickets.find((ticket) => ticket.id == key);

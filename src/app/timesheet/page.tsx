@@ -13,10 +13,9 @@ const TimesheetPage: React.FC = () => {
   const router = useRouter();
   const { activeCourseRole } = useCourse();
 
-  // Redirect if not logged in after check
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/'); // Redirect to login or home page
+      router.push('/'); 
     }
   }, [status, router]);
 
@@ -36,10 +35,8 @@ const TimesheetPage: React.FC = () => {
     );
   }
 
-  // Ensure session.user exists and has properties before accessing them
   const userId = (session.user as any)?.id;
 
-  // Render different components based on role
   return (
     <AppLayout>
       {(activeCourseRole === 'TA' || activeCourseRole === 'TUTOR') && userId && <TATimesheetView userId={userId} />}

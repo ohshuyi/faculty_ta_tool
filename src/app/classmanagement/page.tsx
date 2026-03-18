@@ -53,7 +53,7 @@ const ClassManagement = () => {
   const [studentToMove, setStudentToMove] = useState(null);
   const [filteredMoveGroups, setFilteredMoveGroups] = useState([]);
   const [moveTargetClassId, setMoveTargetClassId] = useState(null);
-  const [addStudentTab, setAddStudentTab] = useState("existing"); // To track the active tab
+  const [addStudentTab, setAddStudentTab] = useState("existing"); 
   const [newStudentForm] = Form.useForm();
   const [moveForm] = Form.useForm();
   const [courseCodeFilter, setCourseCodeFilter] = useState(null);
@@ -66,8 +66,6 @@ const ClassManagement = () => {
   const userRole = session?.user?.role;
   const { activeCourseCode, activeCourseRole } = useCourse();
 
-  // Determine effective role for this view.
-  // Prioritize course role, fallback to global role.
   const effectiveRole = activeCourseRole || userRole;
 
   const [potentialMatches, setPotentialMatches] = useState([]);
@@ -75,7 +73,6 @@ const ClassManagement = () => {
   const [selectedExistingStudentId, setSelectedExistingStudentId] = useState(null);
   const [newStudentData, setNewStudentData] = useState(null);
 
-  // --- Data Fetching ---
   const fetchClasses = useCallback(async () => {
     setLoading(true);
     try {
@@ -86,37 +83,29 @@ const ClassManagement = () => {
       const response = await fetch(url);
       let data = await response.json();
 
-      // Ensure data is an array before sorting
       if (!Array.isArray(data)) {
         console.warn("API returned non-array data for classes:", data);
-        data = []; // Default to an empty array to prevent sort errors
+        data = []; 
       }
 
-      // --- START: NEW SORTING LOGIC ---
-
-      // Define the desired sort order for class types
       const sortOrder = {
         Lab: 1,
         Tutorial: 2,
       };
 
       data.sort((a, b) => {
-        // Assign a sort number to each class type (defaulting to 3 for others)
+        
         const orderA = sortOrder[a.classType] || 3;
         const orderB = sortOrder[b.classType] || 3;
 
-        // 1. Primary Sort: By class type (Lab before Tutorial)
         if (orderA !== orderB) {
           return orderA - orderB;
         }
 
-        // 2. Secondary Sort: If types are the same, sort alphabetically by class group
         return a.classGroup.localeCompare(b.classGroup);
       });
 
-      // --- END: NEW SORTING LOGIC ---
-
-      setClasses(data); // Set the state with the newly sorted array
+      setClasses(data); 
     } catch (error) {
       console.error("Error fetching classes:", error);
       message.error("Failed to fetch classes.");
@@ -157,42 +146,32 @@ const ClassManagement = () => {
     if (status === "authenticated") {
       loadData();
     } else if (status === "unauthenticated") {
-      // Handle unauthenticated state, e.g., redirect to login
-      setLoading(false); // Stop loading if unauthenticated
+      
+      setLoading(false); 
     }
   }, [fetchClasses, fetchAllStudents, fetchTAs, status, activeCourseCode]);
 
   useEffect(() => {
-    // If no class is selected, do nothing.
+    
     if (!selectedClass) return;
 
-    // After the main 'classes' list is re-fetched, find the updated version
-    // of the class we are currently viewing.
     const updatedClassInList = classes.find(c => c.id === selectedClass.id);
 
-    // If we found it, update our 'selectedClass' state to match.
-    // This will trigger a re-render of the modal with the fresh student list.
     if (updatedClassInList) {
       setSelectedClass(updatedClassInList);
     }
 
-    // This effect should only run when the main `classes` array changes.
-    // We disable the lint warning because we intentionally don't want to
-    // include `selectedClass` as a dependency, which would cause a loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classes]);
 
   useEffect(() => {
     let newFilteredClasses = [...classes];
 
-    // Apply course code filter
     if (courseCodeFilter) {
       newFilteredClasses = newFilteredClasses.filter(
         (cls) => cls.courseCode === courseCodeFilter
       );
     }
 
-    // Apply class type filter
     if (classTypeFilter) {
       newFilteredClasses = newFilteredClasses.filter(
         (cls) => cls.classType === classTypeFilter
@@ -202,7 +181,6 @@ const ClassManagement = () => {
     setFilteredClasses(newFilteredClasses);
   }, [classes, courseCodeFilter, classTypeFilter]);
 
-  // --- Event Handlers ---
   const handleAddStudent = async () => {
     if (!selectedClass) return;
 
@@ -253,19 +231,18 @@ const ClassManagement = () => {
         okText: 'Yes, Add Another',
         cancelText: 'No, Close',
         onOk() {
-          // Reset for adding another
+          
           newStudentForm.resetFields();
           setNewStudentData(null);
-          // Keep the modal open
+          
         },
         onCancel() {
-          // Close the modal and reset everything
+          
           handleAddModalCancel();
         },
       });
     }
   };
-
 
   const createNewStudent = async (studentData) => {
     try {
@@ -280,9 +257,9 @@ const ClassManagement = () => {
       }
       message.success("New student created and added successfully!");
       await fetchClasses();
-      await fetchAllStudents(); // Refresh student list
+      await fetchAllStudents(); 
     } catch (error) {
-      throw error; // Re-throw to be caught by handleAddStudent
+      throw error; 
     }
   };
 
@@ -320,17 +297,16 @@ const ClassManagement = () => {
                   }
                 });
               } catch (error) {
-                // Error is handled in createNewStudent
+                
               }
             },
             onCancel: () => {
               handleAddModalCancel();
             }
           });
-          return; // Stop execution
+          return; 
         }
 
-        // If not in class, proceed with original move logic
         const studentToMove = studentToProcess;
         const currentClassOfStudent = studentToMove.classes[0];
 
@@ -356,16 +332,16 @@ const ClassManagement = () => {
         }
 
       } else {
-        // User chose to CREATE NEW despite matches
+        
         studentNameProcessed = newStudentData.name;
         await createNewStudent(newStudentData);
         success = true;
       }
     } catch (error) {
-      // Errors are handled in their respective blocks
+      
     } finally {
       if (success) {
-        handleConfirmModalCancel(); // Close confirm modal only on success
+        handleConfirmModalCancel(); 
       }
     }
 
@@ -422,24 +398,23 @@ const ClassManagement = () => {
         }),
       });
       message.success(`${studentToMove.name} moved successfully!`);
-      const studentNameMoved = studentToMove.name; // Get name before resetting
+      const studentNameMoved = studentToMove.name; 
       await fetchClasses();
 
-      // --- NEW: Show Confirmation Dialog ---
       Modal.confirm({
         title: `${studentNameMoved} moved successfully!`,
         content: 'Do you want to move another student from this class?',
         okText: 'Yes, Move Another',
         cancelText: 'No, Close',
         onOk() {
-          // Reset for moving another (from the current class view)
-          handleMoveModalCancel(); // Close the 'Move' modal first
-          // Keep the 'View Roster' modal open (isViewModalVisible is already true)
+          
+          handleMoveModalCancel(); 
+          
         },
         onCancel() {
-          // Close both modals
+          
           handleMoveModalCancel();
-          setIsViewModalVisible(false); // Close the roster view as well
+          setIsViewModalVisible(false); 
         },
       });
     } catch (error) {
@@ -447,7 +422,6 @@ const ClassManagement = () => {
     }
   };
 
-  // --- File Upload Handlers ---
   const handleFileChange = (e) => setFile(e.target.files[0]);
 
   const handleClearFile = () => {
@@ -482,13 +456,12 @@ const ClassManagement = () => {
   };
 
   const handleAddModalCancel = () => {
-    setIsAddModalVisible(false);    // Hide the modal
-    newStudentForm.resetFields();   // Clear the 'Create New Student' form fields
-    setStudentToAdd(null);          // Clear the selection from the 'Add Existing' tab
-    setAddStudentTab('existing');   // Reset the tabs to the default view
+    setIsAddModalVisible(false);    
+    newStudentForm.resetFields();   
+    setStudentToAdd(null);          
+    setAddStudentTab('existing');   
   };
 
-  // --- Modal Control ---
   const showViewStudentModal = (cls) => {
     setSelectedClass(cls);
     setIsViewModalVisible(true);
@@ -497,16 +470,12 @@ const ClassManagement = () => {
   const showMoveModal = (student) => {
     if (!selectedClass) return;
 
-    // 1. Find all classes that have the SAME TYPE as the student's current class,
-    //    but exclude the current class itself.
     const potentialGroups = classes.filter(
       (cls) => cls.classType === selectedClass.classType && cls.id !== selectedClass.id
     );
 
-    // 2. Pre-load the state with this filtered list for the dropdown.
     setFilteredMoveGroups(potentialGroups);
 
-    // 3. Set the student to move and open the modal.
     setStudentToMove(student);
     setIsMoveModalVisible(true);
   };
@@ -530,7 +499,7 @@ const ClassManagement = () => {
       }
 
       message.success("Class deleted successfully!");
-      fetchClasses(); // Refresh the table after deletion
+      fetchClasses(); 
     } catch (error) {
       console.error("Error deleting class:", error);
       message.error("An error occurred while deleting the class.");
@@ -542,7 +511,7 @@ const ClassManagement = () => {
       const res = await fetch(`/api/tas/${taId}/classes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classIds: [] }), // Empty array to unassign all
+        body: JSON.stringify({ classIds: [] }), 
       });
 
       if (!res.ok) {
@@ -550,7 +519,7 @@ const ClassManagement = () => {
       }
 
       message.success("All classes unassigned successfully!");
-      fetchTAs(); // Refresh the TA list
+      fetchTAs(); 
     } catch (error) {
       console.error("Error unassigning classes:", error);
       message.error("Failed to unassign classes.");
@@ -570,7 +539,6 @@ const ClassManagement = () => {
     return [...new Set(classes.map((cls) => cls.courseCode))];
   }, [classes]);
 
-  // Create a unique list of class types for the filter dropdown
   const classTypeOptions = useMemo(() => {
     return [...new Set(classes.map((cls) => cls.classType))];
   }, [classes]);
@@ -714,7 +682,7 @@ const ClassManagement = () => {
           </Card>
         )}
 
-        {/* Currently, PROFESSOR, ADMIN, and COURSE_COORDINATOR handle TA assignments */}
+        {}
         {(effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR') && (
           <Card title="Assign TAs/Tutors" style={{ marginBottom: 24 }}>
             <div style={{ marginBottom: 16 }}>
@@ -780,26 +748,26 @@ const ClassManagement = () => {
           onCancel={() => {
             setIsAssignTAsModalVisible(false);
             setSelectedTaIdForEdit(null);
-            fetchTAs(); // Refresh list on close
+            fetchTAs(); 
           }}
           initialTaId={selectedTaIdForEdit}
         />
 
-        {/* Modal to VIEW and MANAGE students */}
+        {}
         {selectedClass && (
           <Modal
             width={600}
             title={`Manage Roster: ${selectedClass.courseCode} - ${selectedClass.classGroup}`}
             open={isViewModalVisible}
             onCancel={() => setIsViewModalVisible(false)}
-            // The "Add Student" button is removed from the footer
+            
             footer={[
               <Button key="close" onClick={() => setIsViewModalVisible(false)}>
                 Done
               </Button>,
             ]}
           >
-            {/* The search bar remains here */}
+            {}
             <Input
               placeholder="Search students in this class"
               onChange={(e) => setStudentSearchQuery(e.target.value)}
@@ -807,7 +775,7 @@ const ClassManagement = () => {
               allowClear
             />
 
-            {/* The "Add Student" button is now placed here, below the search bar */}
+            {}
             {(effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR') && (
               <Button
                 type="primary"
@@ -845,16 +813,16 @@ const ClassManagement = () => {
           </Modal>
         )}
 
-        {/* Modal to ADD a student */}
+        {}
         <Modal
           title={`Add New Student to ${selectedClass?.courseCode} - ${selectedClass?.classGroup}`}
           open={isAddModalVisible}
-          onOk={handleAddStudent} // Trigger the check logic
+          onOk={handleAddStudent} 
           onCancel={handleAddModalCancel}
           okText="Check & Add Student"
-        // Consider adding loading state feedback
+        
         >
-          {/* Only the Create New Student Form */}
+          {}
           <Form form={newStudentForm} layout="vertical">
             <Form.Item name="name" label="Student Name" rules={[{ required: true }]}>
               <Input placeholder="Enter student's full name" onChange={(e) => {
@@ -872,7 +840,7 @@ const ClassManagement = () => {
           </Form>
         </Modal>
 
-        {/* --- NEW Confirmation Modal --- */}
+        {}
         <Modal
           title="Potential Duplicate Found"
           open={isConfirmModalVisible}
@@ -903,7 +871,7 @@ const ClassManagement = () => {
           <p style={{ marginTop: '10px' }}>If none match, select &quot;Create New Student Anyway&quot; by leaving the list unselected.</p>
         </Modal>
 
-        {/* Modal to MOVE a student */}
+        {}
         <Modal
           title={`Move ${studentToMove?.name}`}
           open={isMoveModalVisible}

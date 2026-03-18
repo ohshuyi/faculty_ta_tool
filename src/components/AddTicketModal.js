@@ -59,17 +59,15 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           const data = await response.json();
           console.log("API Response for Classes:", data);
 
-          // Filter classes by active course code for strict isolation
           const filteredClasses = activeCourseCode
             ? data.filter(cls => cls.courseCode === activeCourseCode)
             : data;
 
           setClasses(filteredClasses);
 
-          // Pre-fill logic when modal opens
           if (activeCourseCode) {
             form.setFieldsValue({ courseGroupType: activeCourseCode });
-            // Manually trigger handleCourseChange logic for initialization
+            
             setSelectedCourseCode(activeCourseCode);
             const courseClasses = data.filter((cls) => cls.courseCode === activeCourseCode);
             const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
@@ -84,7 +82,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           const url = activeCourseCode ? `/api/students?courseCode=${activeCourseCode}` : "/api/students";
           const response = await fetch(url);
           const data = await response.json();
-          setAllStudents(data); // Populate the complete list
+          setAllStudents(data); 
         } catch (error) {
           console.error("Error fetching all students:", error);
         }
@@ -94,7 +92,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       fetchProfessors();
       fetchClasses();
     } else {
-      // Reset logic when modal closes
+      
       if (!isVisible) {
         setSelectedCourseCode(null);
         setFilteredClassTypes([]);
@@ -108,14 +106,12 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
   console.log("Classes state:", classes);
 
   const handleCourseChange = (courseCode) => {
-    setSelectedCourseCode(courseCode); // Store the selected course code
+    setSelectedCourseCode(courseCode); 
 
-    // Find unique class types for the selected course
     const courseClasses = classes.filter((cls) => cls.courseCode === courseCode);
     const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
     setFilteredClassTypes(uniqueTypes);
 
-    // Clear all three dependent fields
     setFilteredClassGroups([]);
     setFilteredStudents([]);
     form.setFieldsValue({
@@ -125,34 +121,29 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
     });
   };
 
-  // 2. NEW: Handles when a user selects a Class Type
   const handleClassTypeChange = (classType) => {
-    // Filter class groups based on BOTH course code and class type
+    
     const groupsForType = classes.filter(
       (cls) => cls.courseCode === selectedCourseCode && cls.classType === classType
     );
     setFilteredClassGroups(groupsForType);
 
-    // Clear the two dependent fields
     setFilteredStudents([]);
     form.setFieldsValue({
       classId: undefined,
       studentId: undefined,
     });
   };
-  // Handles when a user selects a Class Group
+  
   const handleClassGroupChange = (classId) => {
-    // Find the full class object from the selected ID
+    
     const selectedClass = classes.find((cls) => cls.id === classId);
 
-    // Set the students from that class
     setFilteredStudents(selectedClass ? selectedClass.students : []);
 
-    // Clear the dependent student field
     form.setFieldsValue({ studentId: undefined });
   };
 
-  // Handle file selection
   const handleFileChange = ({ fileList }) => {
     setFile(fileList[0]);
   };
@@ -169,7 +160,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       const response = await fetch('/api/generate-details', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: aiDescription, type: 'ticket' }), // Send type: 'ticket'
+        body: JSON.stringify({ description: aiDescription, type: 'ticket' }), 
       });
 
       const data = await response.json();
@@ -177,7 +168,6 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
         throw new Error(data.error || "AI generation failed.");
       }
 
-      // Find IDs based on names returned by AI
       const student = data.studentName ? allStudents.find(s => s.name.toLowerCase() === data.studentName.toLowerCase()) : null;
       const professor = data.professorName ? professors.find(p => p.name.toLowerCase() === data.professorName.toLowerCase()) : null;
       const targetClass = data.courseCode && data.classGroup && data.classType
@@ -187,7 +177,6 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           c.classType === data.classType)
         : null;
 
-      // 2. Set ALL form values in a single call
       const finalCourseCode = activeCourseCode || data.courseCode;
 
       form.setFieldsValue({
@@ -202,13 +191,12 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
         classId: targetClass?.id,
       });
 
-      // 3. Manually update the states that control the dropdown options and enabled status
       let tempFilteredTypes = [];
       let tempFilteredGroups = [];
       let tempFilteredStudents = [];
 
       if (finalCourseCode) {
-        setSelectedCourseCode(finalCourseCode); // Store the selected course code
+        setSelectedCourseCode(finalCourseCode); 
         const courseClasses = classes.filter((cls) => cls.courseCode === finalCourseCode);
         tempFilteredTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
       }
@@ -223,7 +211,6 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
         tempFilteredStudents = targetClass.students || [];
       }
 
-      // Update the states AFTER calculating them
       setFilteredClassTypes(tempFilteredTypes);
       setFilteredClassGroups(tempFilteredGroups);
       setFilteredStudents(tempFilteredStudents);
@@ -236,13 +223,12 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
     }
   };
 
-  // Handle form submission
   const onFinish = async (values) => {
     setLoading(true);
 
     try {
       const formData = new FormData();
-      formData.append("name", values.name); // Adding name to form data
+      formData.append("name", values.name); 
       formData.append("ticketDescription", values.ticketDescription);
       formData.append("courseGroupType", values.courseGroupType);
       formData.append("classType", values.classType);
@@ -283,9 +269,9 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
       title="Add New Ticket"
       onCancel={onClose}
       footer={null}
-      width={800} // Adjust modal width if necessary
+      width={800} 
     >
-      {/* --- NEW AI SECTION --- */}
+      {}
       <Card title="Describe Ticket with AI" style={{ marginBottom: 24 }}>
         <TextArea
           rows={3}
@@ -305,7 +291,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
 
       <Divider>Or Fill Manually</Divider>
       <Form layout="vertical" onFinish={onFinish} form={form}>
-        {/* New Name Field */}
+        {}
         <Form.Item
           label="Ticket Name"
           name="name"
@@ -339,15 +325,14 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
             onChange={handleCourseChange}
             showSearch
             filterOption={filterOption}
-            disabled={!!activeCourseCode} // Disable if pre-filled
+            disabled={!!activeCourseCode} 
           >
             {activeCourseCode ? (
               <Option key={activeCourseCode} value={activeCourseCode}>
                 {activeCourseCode}
               </Option>
             ) : (
-              /* Create a unique list of course codes for the options */
-              [...new Set(classes.map((cls) => cls.courseCode))].map((code) => (
+                            [...new Set(classes.map((cls) => cls.courseCode))].map((code) => (
                 <Option key={code} value={code}>
                   {code}
                 </Option>
@@ -384,7 +369,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           <Select
             placeholder="Search or select a class group"
             onChange={handleClassGroupChange}
-            // Disable until a course code is selected
+            
             disabled={filteredClassGroups.length === 0}
             showSearch
             filterOption={filterOption}
@@ -419,7 +404,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
         >
           <Select
             placeholder="Search or select a student"
-            // Disable until a class group is selected
+            
             disabled={filteredStudents.length === 0}
             showSearch
             filterOption={filterOption}
@@ -463,7 +448,7 @@ const AddTicketModal = ({ isVisible, onClose, onTicketAdded }) => {
           </Select>
         </Form.Item>
 
-        {/* File Upload Field */}
+        {}
         <Form.Item
           label="Medical Certificate (Optional)"
           style={{ width: "100%" }}

@@ -10,9 +10,8 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Source and destination class IDs are required." }, { status: 400 });
     }
 
-    // Perform the disconnect and connect in a single transaction
     await prisma.$transaction([
-      // Disconnect from the old class
+      
       prisma.class.update({
         where: { id: fromClassId },
         data: {
@@ -21,7 +20,7 @@ export async function POST(req, { params }) {
           },
         },
       }),
-      // Connect to the new class
+      
       prisma.class.update({
         where: { id: toClassId },
         data: {

@@ -1,7 +1,6 @@
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// GET method to fetch users with the TA role
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -27,7 +26,7 @@ export async function GET(req: Request) {
           role: { in: ['TA', 'TUTOR'] }
         }
       };
-      // Once we filter by specific courseRoles, we remove the global OR
+      
       delete where.OR;
     }
 

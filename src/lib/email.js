@@ -33,7 +33,7 @@ export async function sendEmail(recipientAddress, subject, htmlContent) {
       const poller = await emailClient.beginSend(message);
       await poller.pollUntilDone();
       console.log(`Email sent successfully to ${recipientAddress}`);
-      return; // Success, exit function
+      return; 
     } catch (error) {
       attempt++;
       console.error(`Email send attempt ${attempt} failed:`, error.message);
@@ -41,7 +41,7 @@ export async function sendEmail(recipientAddress, subject, htmlContent) {
       if (attempt >= maxRetries) {
         console.error("Max retries reached. Sending error report to admin.");
         try {
-          // Attempt to notify admin about the failure
+          
           if (adminCcAddress) {
             const adminMessage = {
               senderAddress,
@@ -66,7 +66,7 @@ export async function sendEmail(recipientAddress, subject, htmlContent) {
           console.error("Failed to send admin notification:", adminError);
         }
       } else {
-        // Wait before retrying (exponential backoff: 1s, 2s, 4s, 8s...)
+        
         const delay = 1000 * Math.pow(2, attempt - 1);
         console.log(`Waiting ${delay}ms before retry...`);
         await wait(delay);

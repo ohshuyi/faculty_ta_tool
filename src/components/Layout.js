@@ -10,7 +10,7 @@ import { useCourse } from "@/context/CourseContext";
 const { Header, Content, Footer } = Layout;
 
 const AppLayout = ({ children }) => {
-  const { data: session } = useSession(); // Fetch session data
+  const { data: session } = useSession(); 
   const { activeCourseCode, setActiveCourseCode, availableCourses, activeCourseRole } = useCourse();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const pathname = usePathname();
@@ -22,8 +22,7 @@ const AppLayout = ({ children }) => {
 
   const handleLogout = async () => {
     setIsModalVisible(false);
-    // test
-    // Debugging
+
     console.log("Signing out...");
 
     await signOut({ callbackUrl: "/" })
@@ -31,12 +30,10 @@ const AppLayout = ({ children }) => {
       .catch((err) => console.error("Error signing out:", err));
   };
 
-
   const handleCancel = () => {
     setIsModalVisible(false);
   };
 
-  // Define menu items for different roles
   const commonItems = [
     { label: <Link href="/dashboard">Dashboard</Link>, key: "dashboard" },
     { label: <Link href="/task">Task</Link>, key: "task" },
@@ -65,9 +62,9 @@ const AppLayout = ({ children }) => {
   if (userRole === "ADMIN") {
     menuItems = [...adminItems, ...logoutItemArr];
   } else {
-    // Modify common items based on course role if needed
+    
     let items = [...commonItems];
-    // Removed restriction hides classmanagement for TAs/Tutors, as requested by the user
+    
     menuItems = [...items, ...logoutItemArr];
   }
 
@@ -109,7 +106,7 @@ const AppLayout = ({ children }) => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          {/* <Image src="/ntu.png" width={160} height={10} alt="NT U" /> */}
+          {}
           {!isAdminPage && (
             <Select
               value={availableCourses.length === 0 ? 'none' : (activeCourseCode || undefined)}
@@ -144,7 +141,7 @@ const AppLayout = ({ children }) => {
         Created for NTU - TA Faculty Tool
       </Footer>
 
-      {/* Logout Confirmation Modal */}
+      {}
       <Modal
         title="Confirm Logout"
         visible={isModalVisible}

@@ -1,6 +1,6 @@
-// pages/api/professors.ts or app/api/professors/route.ts
+
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // Adjust the path to your prisma client
+import prisma from "@/lib/prisma"; 
 
 export async function GET(req: Request) {
   try {
@@ -20,7 +20,6 @@ export async function GET(req: Request) {
       ]
     };
 
-    // If courseCode is provided, we filter down to users who have a role in that specific course
     if (courseCode) {
       where.courseRoles = {
         some: {
@@ -28,7 +27,7 @@ export async function GET(req: Request) {
           role: "COURSE_COORDINATOR"
         }
       };
-      // Once we filter by courseRoles.some, we don't need the global role OR as it might pull from other courses
+      
       delete where.OR;
     }
 

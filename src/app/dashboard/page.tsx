@@ -98,7 +98,6 @@ const Dashboard = () => {
     {}
   );
 
-  // Common chart options for Doughnut to make it look nice
   const doughnutOptions = {
     maintainAspectRatio: false,
     plugins: {
@@ -137,7 +136,7 @@ const Dashboard = () => {
         data: [
           ticketAnalytics.completedTickets || 0,
           ticketAnalytics.pendingTickets || 0,
-          0, // Tickets don't have overdue, so we supply 0 to keep colors matching
+          0, 
         ],
         backgroundColor: ['#52c41a', '#faad14', '#f5222d'],
         borderWidth: 1,
@@ -195,7 +194,7 @@ const Dashboard = () => {
       label: year,
       data: programLabels.map(prog => stackedData[prog][year] || 0),
       backgroundColor: yearColors[year],
-    })).filter(ds => ds.data.some(count => count > 0)) // Only show years that have data
+    })).filter(ds => ds.data.some(count => count > 0)) 
   };
 
   const stackedBarOptions = {
@@ -216,7 +215,7 @@ const Dashboard = () => {
   return (
     <AppLayout>
       <div style={{ padding: '24px' }}>
-        {/* Welcome & Quick Actions Row */}
+        {}
         <Row justify="space-between" align="middle" style={{ marginBottom: '24px' }}>
           <Col>
             <Title level={3} style={{ margin: 0 }}>
@@ -244,7 +243,7 @@ const Dashboard = () => {
           </Col>
         </Row>
 
-        {/* Top-Level KPI Summary Row */}
+        {}
         <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
           <Col xs={24} sm={12} md={4}>
             <Card>
@@ -286,10 +285,10 @@ const Dashboard = () => {
           </Col>
         </Row>
 
-        {/* Row 1: Key Doughnut Charts */}
+        {}
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
-            {/* Status Breakdown */}
+            {}
             <Card title="Status Breakdown" style={{ marginBottom: '16px' }}>
               <div style={{ height: '330px', display: 'flex', flexDirection: 'column' }}>
                 <Row gutter={16} style={{ flex: 1, marginBottom: '16px' }}>
@@ -325,7 +324,7 @@ const Dashboard = () => {
           </Col>
 
           <Col xs={24} lg={12}>
-            {/* Students by Program */}
+            {}
             <Card title="Students by Program" style={{ marginBottom: '16px' }}>
               <div style={{ height: '330px' }}>
                 <Bar data={studentProgramBarData} options={stackedBarOptions} />
@@ -334,10 +333,10 @@ const Dashboard = () => {
           </Col>
         </Row>
 
-        {/* Row 2: Secondary Bar Charts */}
+        {}
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
-            {/* Tasks by Class Group */}
+            {}
             <Card title="Tasks by Class Group" style={{ marginBottom: '16px' }}>
               <div style={{ height: '300px' }}>
                 <Bar data={taskBarData} options={{ maintainAspectRatio: false }} />
@@ -345,7 +344,7 @@ const Dashboard = () => {
             </Card>
           </Col>
           <Col xs={24} lg={12}>
-            {/* Tickets by Category */}
+            {}
             <Card title="Tickets by Category" style={{ marginBottom: '16px' }}>
               <div style={{ height: '300px' }}>
                 <Bar data={ticketCategoryData} options={{ maintainAspectRatio: false }} />
@@ -354,10 +353,10 @@ const Dashboard = () => {
           </Col>
         </Row>
 
-        {/* Row 3: Full-width Charts */}
+        {}
         <Row gutter={[16, 16]}>
           <Col span={24}>
-            {/* Timesheet Hours Chart (New) */}
+            {}
             <Card title={userRole === 'TA' || userRole === 'TUTOR' ? "My Hours per Week" : "Total Hours per TA"} style={{ marginBottom: '16px' }}>
               <div style={{ height: '300px' }}>
                 <Bar data={timesheetBarData} options={{ maintainAspectRatio: false }} />
@@ -368,7 +367,7 @@ const Dashboard = () => {
 
         <Row gutter={[16, 16]}>
           <Col span={24}>
-            {/* Students per Class Group (Vertical Bar Chart) */}
+            {}
             <Card title="Students per Class Group" style={{ marginBottom: '16px' }}>
               <div style={{ height: '400px' }}>
                 <Bar data={studentBarData} options={{ maintainAspectRatio: false }} />

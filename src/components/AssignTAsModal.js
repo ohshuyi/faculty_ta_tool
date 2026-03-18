@@ -10,19 +10,19 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
   const [tas, setTAs] = useState([]);
   const [allClasses, setAllClasses] = useState([]);
   const [selectedTa, setSelectedTa] = useState(null);
-  const [targetKeys, setTargetKeys] = useState([]); // Keys of assigned classes
+  const [targetKeys, setTargetKeys] = useState([]); 
   const [loading, setLoading] = useState(false);
   const [isAssignmentModalVisible, setIsAssignmentModalVisible] = useState(false);
 
   useEffect(() => {
     if (visible) {
-      // Fetch TAs
+      
       const tasUrl = activeCourseCode ? `/api/tas?courseCode=${activeCourseCode}` : '/api/tas';
       fetch(tasUrl)
         .then(res => res.json())
         .then(data => {
           setTAs(data);
-          // If initialTaId is provided, auto-select and open modal
+          
           if (initialTaId) {
             const ta = data.find(t => t.id === initialTaId);
             if (ta) {
@@ -33,14 +33,13 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
         })
         .catch(() => message.error('Failed to fetch TAs'));
 
-      // Fetch all Classes for the Transfer component
       const classesUrl = activeCourseCode ? `/api/management/classes?courseCode=${activeCourseCode}` : '/api/management/classes';
       fetch(classesUrl)
         .then(res => res.json())
         .then(data => {
-          // Format classes for Transfer component
+          
           const formattedClasses = data.map(cls => ({
-            key: cls.id.toString(), // Transfer expects string keys
+            key: cls.id.toString(), 
             title: `${cls.courseCode} - ${cls.classGroup} (${cls.classType})`,
             description: `${cls.courseCode} - ${cls.classGroup} (${cls.classType})`,
           }));
@@ -48,7 +47,7 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
         })
         .catch(() => message.error('Failed to fetch classes'));
     } else {
-      // Reset state when modal closes
+      
       setSelectedTa(null);
       setIsAssignmentModalVisible(false);
     }
@@ -56,11 +55,11 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
 
   useEffect(() => {
     if (selectedTa && isAssignmentModalVisible) {
-      // Fetch assigned classes for the selected TA
+      
       fetch(`/api/tas/${selectedTa}/classes`)
         .then(res => res.json())
         .then(data => {
-          setTargetKeys(data.map(cls => cls.id.toString())); // Transfer expects string keys
+          setTargetKeys(data.map(cls => cls.id.toString())); 
         })
         .catch(() => message.error('Failed to fetch assigned classes'));
     } else if (!selectedTa) {
@@ -95,7 +94,7 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
       if (res.ok) {
         message.success('Classes assigned successfully!');
         setIsAssignmentModalVisible(false);
-        onCancel(); // Close the initial modal as well
+        onCancel(); 
       } else {
         throw new Error('Failed to assign classes');
       }
@@ -110,7 +109,7 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
     setIsAssignmentModalVisible(false);
     setSelectedTa(null);
     setTargetKeys([]);
-    // If we opened in "direct edit" mode, closing this modal should close the whole thing
+    
     if (initialTaId) {
       onCancel();
     }
@@ -126,7 +125,7 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
     <>
       <Modal
         title="Select TA to Assign Classes"
-        visible={visible && !initialTaId} // Hide this modal if we are in direct edit mode
+        visible={visible && !initialTaId} 
         onCancel={onCancel}
         closable={false}
         footer={[
@@ -201,6 +200,5 @@ const AssignTAsModal = ({ visible, onCancel, initialTaId }) => {
     </>
   );
 };
-
 
 export default AssignTAsModal;

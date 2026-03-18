@@ -9,10 +9,9 @@ export async function PUT(
 
   try {
     const body = await req.json();
-    // 1. Get 'role' and 'courseRoles' from the request body
+    
     const { role, courseRoles } = body;
 
-    // 2. Add valid roles
     const validRoles = ["USER", "TA", "PROFESSOR", "ADMIN"];
     if (!validRoles.includes(role)) {
       return NextResponse.json(
@@ -29,16 +28,13 @@ export async function PUT(
       );
     }
 
-    // 3. Build the data for the update
     const dataToUpdate: any = {
       role: role,
     };
 
-    // 4. Update the user in the database with the new data
-    // We must also handle courseRoles if provided
     let updatedUser;
     if (courseRoles && Array.isArray(courseRoles)) {
-      // Validate Course Roles against Global Role
+      
       if (role === 'TA') {
         const hasInvalidRole = courseRoles.some((cr: any) => cr.role === 'COURSE_COORDINATOR' || cr.role === 'TUTOR');
         if (hasInvalidRole) {
@@ -62,7 +58,7 @@ export async function PUT(
         data: {
           ...dataToUpdate,
           courseRoles: {
-            deleteMany: {}, // First remove all existing
+            deleteMany: {}, 
             create: courseRoles.map((cr: any) => ({
               courseCode: cr.courseCode,
               role: cr.role,
@@ -79,7 +75,6 @@ export async function PUT(
       }) as any;
     }
 
-    // Return success response
     return NextResponse.json({
       message: "User role updated successfully",
       user: updatedUser,
@@ -87,7 +82,6 @@ export async function PUT(
   } catch (error) {
     console.error("Error updating user role:", error);
 
-    // Handle errors such as user not found
     if (error.code === "P2025") {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -105,7 +99,7 @@ export async function DELETE(
   const { userid } = params;
 
   try {
-    // Convert the user ID to an integer
+    
     const userIdInt = parseInt(userid, 10);
 
     if (isNaN(userIdInt)) {
@@ -115,12 +109,10 @@ export async function DELETE(
       );
     }
 
-    // Delete the user from the database
     const deletedUser = await prisma.user.delete({
       where: { id: userIdInt },
     });
 
-    // Return success response
     return NextResponse.json({
       message: "User deleted successfully",
       user: deletedUser,
@@ -128,7 +120,6 @@ export async function DELETE(
   } catch (error) {
     console.error("Error deleting user:", error);
 
-    // Handle specific errors
     if (error.code === "P2025") {
       return NextResponse.json(
         { error: "User not found" },
@@ -136,7 +127,6 @@ export async function DELETE(
       );
     }
 
-    // Handle general errors
     return NextResponse.json(
       { error: "An error occurred while deleting the user" },
       { status: 500 }

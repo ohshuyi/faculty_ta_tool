@@ -11,30 +11,29 @@ const { Option } = Select;
 const { Search } = Input;
 
 const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton = true, type }) => {
-  const [grouping, setGrouping] = useState("All"); // Default grouping is "All"
+  const [grouping, setGrouping] = useState("All"); 
   const [groupedItems, setGroupedItems] = useState({});
   const [selectedKey, setSelectedKey] = useState(items[0]?.key || null);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isGroupingModalVisible, setIsGroupingModalVisible] = useState(false); // Modal state for grouping options
-  const [searchAndFilteredItems, setSearchAndFilteredItems] = useState(items); // Items after search and filtering
+  const [isGroupingModalVisible, setIsGroupingModalVisible] = useState(false); 
+  const [searchAndFilteredItems, setSearchAndFilteredItems] = useState(items); 
 
-  // Group items dynamically based on search/filters and selected grouping
   useEffect(() => {
     const groupBy = searchAndFilteredItems.reduce((acc, item) => {
       let groupKey;
 
       if (grouping === "All") {
-        groupKey = "All Tickets"; // Show all tickets under one group
+        groupKey = "All Tickets"; 
       } else if (grouping === "professor") {
-        groupKey = item.professor.name || "Uncategorized"; // Group by professor name
+        groupKey = item.professor.name || "Uncategorized"; 
       } else if (grouping === "category") {
-        groupKey = item.category || "Uncategorized"; // Group by category
+        groupKey = item.category || "Uncategorized"; 
       } else if (grouping === "ta") {
-        groupKey = item.tas.name || "Uncategorized"; // Assuming TA is directly available in the item
+        groupKey = item.tas.name || "Uncategorized"; 
       } else if (grouping === "courseCode") {
-        groupKey = item.courseCode || "Uncategorized"; // Group by course code
+        groupKey = item.courseCode || "Uncategorized"; 
       } else {
-        groupKey = item[grouping] || "Uncategorized"; // Group by direct key (e.g., priority)
+        groupKey = item[grouping] || "Uncategorized"; 
       }
 
       if (!acc[groupKey]) acc[groupKey] = [];
@@ -45,7 +44,6 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
     setGroupedItems(groupBy);
   }, [searchAndFilteredItems, grouping]);
 
-  // Handle search
   const onSearch = (value) => {
     const filtered = items.filter((item) => item.title.toLowerCase().includes(value.toLowerCase()));
     if (filtered.length === 0) {
@@ -59,7 +57,6 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
     setSearchAndFilteredItems(items);
   };
 
-  // Handle advanced search for tasks
   const handleAdvancedSearchTask = (filters) => {
     const { teachingAssistant, courseCode } = filters;
     const filtered = items.filter((item) => {
@@ -76,7 +73,6 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
     setSelectedKey(filtered[0]?.key || null);
   };
 
-  // Handle advanced search for tickets
   const handleAdvancedSearchTicket = (filters) => {
     const { priority, courseCode, professor, category } = filters;
     const filtered = items.filter((item) => {
@@ -101,9 +97,8 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
         width={450}
         style={{ background: "#fff", padding: "16px", overflow: "auto" }}
 
-        // --- Add these responsive props ---
-        breakpoint="md" // The screen width at which the sidebar will collapse (md = 768px)
-        collapsedWidth="0" // Hides the sidebar completely and shows a trigger button
+        breakpoint="md" 
+        collapsedWidth="0" 
       >
         <div className="flex gap-2 mb-4">
           <Search placeholder="Search" onSearch={onSearch} />
@@ -149,7 +144,7 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
         </Collapse>
       </Sider>
 
-      {/* This part remains the same and will correctly expand to full-width on mobile */}
+      {}
       <Layout style={{ padding: "24px", overflow: "auto" }}>
         <Content
           style={{ padding: 24, background: "#f0f2f5", borderRadius: 8 }}
@@ -162,10 +157,10 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
         </Content>
       </Layout>
 
-      {/* Grouping Selection Modal */}
+      {}
       <Modal
         title="Select Grouping Criteria"
-        open={isGroupingModalVisible} // Use 'open' instead of deprecated 'visible'
+        open={isGroupingModalVisible} 
         onOk={() => setIsGroupingModalVisible(false)}
         onCancel={() => setIsGroupingModalVisible(false)}
       >
@@ -197,18 +192,18 @@ const TwoColumnsLayout = ({ items, renderContent, onAdd, userRole, showAddButton
         </Select>
       </Modal>
 
-      {/* Advanced Search Modals */}
+      {}
       {type === "task" ? (
         <AdvancedSearchModalTask
           onReset={handleResetSearch}
-          open={isModalVisible} // Use 'open' instead of deprecated 'visible'
+          open={isModalVisible} 
           onClose={() => setIsModalVisible(false)}
           onSearch={handleAdvancedSearchTask}
         />
       ) : (
         <AdvancedSearchModalTicket
           onReset={handleResetSearch}
-          open={isModalVisible} // Use 'open' instead of deprecated 'visible'
+          open={isModalVisible} 
           onClose={() => setIsModalVisible(false)}
           onSearch={handleAdvancedSearchTicket}
         />

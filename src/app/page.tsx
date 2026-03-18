@@ -1,16 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation"; // Import useRouter for navigation
+import { useRouter } from "next/navigation"; 
 
 export default function Home() {
   const [data, setData] = useState(null);
-  const router = useRouter(); // Initialize the router
+  const router = useRouter(); 
 
   useEffect(() => {
-    // Redirect to /home immediately
     router.push("/home");
 
-  }, [router]); // Include router in dependency array to avoid warnings
+  }, [router]); 
 
   return (
     <div>

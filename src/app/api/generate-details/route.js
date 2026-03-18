@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-// import { OpenAIClient, AzureKeyCredential } from "@azure/openai"; // Azure SDK commented out
+
 import OpenAI from "openai"
 
 const createOptimizedPrompt = (description) => {
@@ -46,11 +46,10 @@ JSON OUTPUT:
 `;
 };
 
-
 export async function POST(req) {
     let type = 'unknown'
     try {
-        // 1. Get the description AND the type ('task' or 'ticket')
+        
         const body = await req.json();
         const { description } = body;
         type = body.type;
@@ -65,7 +64,6 @@ export async function POST(req) {
             defaultHeaders: { "api-key": process.env.AZURE_OPENAI_API_KEY },
         });
 
-        // 2. Define the tool schemas for BOTH task and ticket
         const taskDetailsTool = {
             type: "function",
             function: {
@@ -116,7 +114,6 @@ export async function POST(req) {
             },
         };
 
-        // 3. Select the correct tool based on the request type
         const selectedTool = type === 'ticket' ? ticketDetailsTool : taskDetailsTool;
 
         const messages = [

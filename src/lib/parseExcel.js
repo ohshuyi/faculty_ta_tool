@@ -1,17 +1,17 @@
-// app/api/classes/upload/route.js
+
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
 export const config = {
   api: {
-    bodyParser: false, // Disable default body parsing
+    bodyParser: false, 
   },
 };
 
 export async function POST(req) {
   try {
-    // Get the file from the form data
+    
     const formData = await req.formData();
     const file = formData.get("file");
 
@@ -19,14 +19,11 @@ export async function POST(req) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Convert the file to a buffer
     const buffer = Buffer.from(await file.arrayBuffer());
 
-    // Read the buffer using `xlsx`
     const workbook = XLSX.read(buffer, { type: "buffer" });
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
 
-    // Convert the worksheet to JSON
     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
     const classesData = jsonData.slice(1).map((row) => ({
       courseCode: row[0],
@@ -36,7 +33,6 @@ export async function POST(req) {
       students: row.slice(4).map((student) => ({ name: student })),
     }));
 
-    // Save data to the database
     for (const cls of classesData) {
       await prisma.class.create({
         data: {

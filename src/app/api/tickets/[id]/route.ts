@@ -4,56 +4,6 @@ import { sendEmail } from "@/lib/email";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-// DELETE method to delete a ticket by its ticketNumber
-// export async function DELETE(
-//   req: Request,
-//   { params }: { params: { ticketNumber: string } }
-// ) {
-//   const { ticketNumber } = params;
-
-//   try {
-//     // Fetch the ticket first to get the id
-//     const ticket = await prisma.ticket.findUnique({
-//       where: { ticketNumber },
-//     });
-
-//     if (!ticket) {
-//       return NextResponse.json(
-//         { error: "Ticket not found" },
-//         { status: 404 }
-//       );
-//     }
-
-//     // Delete the associated comments first by ticketId
-//     await prisma.comment.deleteMany({
-//       where: { ticketId: ticket.id },
-//     });
-
-//     // Delete the associated files first by ticketId
-//     await prisma.file.deleteMany({
-//       where: { ticketId: ticket.id },
-//     });
-
-//     // Now delete the ticket
-//     await prisma.ticket.delete({
-//       where: { id: ticket.id },
-//     });
-
-//     return NextResponse.json(
-//       { message: "Ticket deleted successfully" },
-//       { status: 200 }
-//     );
-//   } catch (error) {
-//     console.error("Error deleting ticket:", error);
-//     return NextResponse.json(
-//       { error: "Failed to delete ticket" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
-
-// PATCH method to update the status of a ticket
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
@@ -62,7 +12,7 @@ export async function PATCH(
   const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
   try {
-    // Find the ticket first
+    
     const ticket = await prisma.ticket.findUnique({
       where: { id: Number(id) },
     });
@@ -80,7 +30,6 @@ export async function PATCH(
     const session = await getServerSession(authOptions);
     const authorName = session?.user?.name || "System";
 
-    // Update the status
     const updatedTicket = await prisma.ticket.update({
       where: { id: Number(id) },
       data: {
@@ -112,12 +61,10 @@ export async function PATCH(
       </html>
     `;
 
-    // Send email to the professor
     if (updatedTicket.professor?.email) {
       await sendEmail(updatedTicket.professor.email, subject, emailBody);
     }
 
-    // Send email to the TA
     if (updatedTicket.ta?.email) {
       await sendEmail(updatedTicket.ta.email, subject, emailBody);
     }

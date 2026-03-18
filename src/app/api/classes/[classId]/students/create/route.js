@@ -6,12 +6,10 @@ export async function POST(req, { params }) {
     const classId = parseInt(params.classId, 10);
     const { name, studentCode, prog } = await req.json();
 
-    // Validate required fields
     if (!name || !studentCode || !prog) {
       return NextResponse.json({ error: "Name, Student Code, and Program are required." }, { status: 400 });
     }
 
-    // Prevent creating a student with a duplicate student code
     const existingStudent = await prisma.student.findUnique({
       where: { studentCode },
     });
@@ -19,11 +17,10 @@ export async function POST(req, { params }) {
     if (existingStudent) {
       return NextResponse.json(
         { error: "A student with this code already exists." },
-        { status: 409 } // 409 Conflict
+        { status: 409 } 
       );
     }
 
-    // Use a nested write to create the student and connect them to the class
     await prisma.class.update({
       where: { id: classId },
       data: {

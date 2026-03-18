@@ -66,9 +66,9 @@ const AdvancedSearchModalTask = ({ visible, onClose, onSearch, onReset }) => {
   };
 
   const handleReset = () => {
-    form.resetFields(); // Clear all form fields
-    onReset(); // Trigger reset for the search list
-    onClose(); // Close the modal
+    form.resetFields(); 
+    onReset(); 
+    onClose(); 
   };
 
   return (
@@ -120,24 +120,7 @@ const AdvancedSearchModalTask = ({ visible, onClose, onSearch, onReset }) => {
             <Option value="Lab">Lab</Option>
           </Select>
         </Form.Item>
-        {/* <Form.Item label="Course Code" name="courseCode">
-          <Select placeholder="Select a Course Code">
-            {courseCode.map((course) => (
-              <Option key={course.courseCode} value={course.courseCode}>
-                {course.courseCode}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
-        <Form.Item label="Professor" name="professor">
-          <Select placeholder="Select a Professor">
-            {professors.map((professor) => (
-              <Option key={professor.id} value={professor.id}>
-                {professor.name}
-              </Option>
-            ))}
-          </Select>
-        </Form.Item> */}
+        {}
       </Form>
     </Modal>
   );

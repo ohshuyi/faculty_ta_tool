@@ -19,7 +19,6 @@ export async function GET(req) {
     const userRole = session.user.role;
     const courseRoles = session.user.courseRoles || [];
 
-    // Admins see everything
     if (userRole === 'ADMIN') {
       const classes = await prisma.class.findMany({
         where: courseCode ? { courseCode } : {},
@@ -27,17 +26,9 @@ export async function GET(req) {
       return new Response(JSON.stringify(classes), { status: 200 });
     }
 
-    // Determine target courses based on roles
-    // We only allow management for courses where the user is PROFESSOR or COURSE_COORDINATOR
     const manageableCourses = courseRoles
       .filter(cr => cr.role === 'PROFESSOR' || cr.role === 'COURSE_COORDINATOR')
       .map(cr => cr.courseCode);
-
-    // If global PROFESSOR, they might expect to manage all their courses, 
-    // but we are sticking to "ignore global role" for specific logic.
-    // However, if they have NO course roles but are a global Professor, 
-    // we should decide if they see nothing or everything.
-    // Given the requirement "ignore global role", we rely on courseRoles.
 
     if (manageableCourses.length === 0) {
       return new Response(JSON.stringify([]), { status: 200 });

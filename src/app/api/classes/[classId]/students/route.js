@@ -6,7 +6,6 @@ export async function POST(req, { params }) {
     const toClassId = parseInt(params.classId, 10);
     const { studentId } = await req.json();
 
-    // 1. Get the class type of the destination class (e.g., "Lab")
     const targetClass = await prisma.class.findUnique({
       where: { id: toClassId },
     });
@@ -15,17 +14,14 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Destination class not found" }, { status: 404 });
     }
 
-    // 2. Find all other classes of the SAME type that the student is currently in
     const oldClassesToDisconnect = await prisma.class.findMany({
       where: {
-        classType: targetClass.classType, // Only look at classes of the same type
-        id: { not: toClassId }, // Exclude the class we're moving to
-        students: { some: { id: studentId } }, // Filter by classes the student is in
+        classType: targetClass.classType, 
+        id: { not: toClassId }, 
+        students: { some: { id: studentId } }, 
       },
     });
-    
-    // 3. Perform the "move" in a single, atomic update on the student
-    //    This disconnects them from all old groups and connects them to the new one.
+
     await prisma.student.update({
       where: { id: studentId },
       data: {

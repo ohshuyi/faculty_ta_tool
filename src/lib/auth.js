@@ -1,4 +1,4 @@
-// lib/auth.ts
+
 import NextAuth from 'next-auth';
 import AzureADProvider from 'next-auth/providers/azure-ad';
 import { PrismaClient } from '@prisma/client';
@@ -10,18 +10,18 @@ export const authOptions = {
     AzureADProvider({
       clientId: process.env.AZURE_AD_CLIENT_ID,
       clientSecret: process.env.AZURE_AD_CLIENT_SECRET,
-      //tenantId: process.env.AZURE_AD_TENANT_ID,
+      
       tenantId: "common",
     }),
   ],
   pages: {
-    signOut: '/custom-signout-page',  // Default callback URL (optional)
+    signOut: '/custom-signout-page',  
   },
   secret: process.env.NEXTAUTH_SECRET,
   authorization: {
     params: {
       scope: 'openid profile email offline_access Calendars.ReadWrite',
-      prompt: 'consent', // Force re-consent
+      prompt: 'consent', 
     },
   },
   callbacks: {
@@ -58,9 +58,8 @@ export const authOptions = {
 
     async session({ session, token }) {
 
-
       if (token?.accessToken) {
-        session.accessToken = token.accessToken; // Assign accessToken from token to session
+        session.accessToken = token.accessToken; 
       }
 
       const dbUser = await prisma.user.findUnique({
@@ -78,9 +77,9 @@ export const authOptions = {
     },
 
     async jwt({ token, user, account }) {
-      // This should happen only on initial sign-in
+      
       if (account) {
-        token.accessToken = account.access_token; // Store access token in token
+        token.accessToken = account.access_token; 
       }
 
       if (user) {

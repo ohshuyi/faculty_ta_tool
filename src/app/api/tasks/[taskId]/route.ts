@@ -1,6 +1,6 @@
-// PATCH method to update the status of a task
+
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // Ensure you have Prisma client setup
+import prisma from "@/lib/prisma"; 
 import { sendEmail } from "@/lib/email";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -13,7 +13,7 @@ export async function PATCH(
   const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
   try {
-    // Find the task first
+    
     const task = await prisma.task.findUnique({
       where: { id: parseInt(taskId) },
     });
@@ -28,7 +28,6 @@ export async function PATCH(
     const session = await getServerSession(authOptions);
     const authorName = session?.user?.name || "System";
 
-    // Update the status
     const updatedTask = await prisma.task.update({
       where: { id: parseInt(taskId) },
       data: {

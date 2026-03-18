@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // Assuming you have prisma set up
+import prisma from '@/lib/prisma'; 
 import { sendEmail } from "@/lib/email";
 
-// POST method to add a comment to a specific task
 export async function POST(req: Request, { params }: { params: { taskId: string } }) {
   try {
-    const { content, author } = await req.json(); // Extract content and author from the request body
+    const { content, author } = await req.json(); 
     const { taskId } = params;
 
     const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
-    // Check if the task exists
     const task = await prisma.task.findUnique({
       where: { id: parseInt(taskId) },
       include: {
@@ -23,7 +21,6 @@ export async function POST(req: Request, { params }: { params: { taskId: string 
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    // Create a new comment associated with the task
     const newComment = await prisma.comment.create({
       data: {
         content,
@@ -33,7 +30,6 @@ export async function POST(req: Request, { params }: { params: { taskId: string 
       },
     });
 
-    // Update the task's updatedAt timestamp
     await prisma.task.update({
       where: { id: task.id },
       data: { updatedAt: new Date() },
@@ -54,17 +50,14 @@ export async function POST(req: Request, { params }: { params: { taskId: string 
         </html>
       `;
 
-      // Notify the professor (unless they wrote the comment)
       if (task.professor.name !== author && task.professor.email) {
         await sendEmail(task.professor.email, subject, body);
       }
 
-      // Notify the TA (unless they wrote the comment)
       if (task.ta.name !== author && task.ta.email) {
         await sendEmail(task.ta.email, subject, body);
       }
     }
-
 
     return NextResponse.json(newComment, { status: 201 });
   } catch (error) {
@@ -73,15 +66,13 @@ export async function POST(req: Request, { params }: { params: { taskId: string 
   }
 }
 
-// GET method to fetch comments for a specific task
 export async function GET(req: Request, { params }: { params: { taskId: string } }) {
   try {
     const { taskId } = params;
 
-    // Fetch the comments for the task
     const comments = await prisma.comment.findMany({
       where: { taskId: parseInt(taskId) },
-      orderBy: { createdAt: 'asc' }, // Sort comments by creation date
+      orderBy: { createdAt: 'asc' }, 
     });
 
     return NextResponse.json(comments, { status: 200 });

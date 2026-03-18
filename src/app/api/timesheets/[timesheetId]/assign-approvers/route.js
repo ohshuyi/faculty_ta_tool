@@ -7,13 +7,12 @@ export async function POST(req, { params }) {
   try {
     const session = await getServerSession(authOptions);
     const timesheetId = parseInt(params.timesheetId, 10);
-    const { professorIds } = await req.json(); // Expects an array of Prof IDs
+    const { professorIds } = await req.json(); 
 
     if (!session?.user?.id || session.user.role !== 'TA') {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Verify the TA owns this timesheet
     const timesheet = await prisma.timesheet.findFirst({
       where: { id: timesheetId, userId: session.user.id },
     });
@@ -21,7 +20,6 @@ export async function POST(req, { params }) {
       return NextResponse.json({ error: "Timesheet not found or access denied." }, { status: 404 });
     }
 
-    // Use 'set' to replace the old list of approvers with the new one
     await prisma.timesheet.update({
       where: { id: timesheetId },
       data: {

@@ -24,7 +24,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [tas, setTAs] = useState([]);
-  const [classes, setClasses] = useState([]); // State for classes (course groups)
+  const [classes, setClasses] = useState([]);
   const { data: session } = useSession();
   const { activeCourseCode } = useCourse();
   const [file, setFile] = useState(null);
@@ -39,7 +39,6 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   const filterOption = (input, option) =>
     (option?.children ?? '').toLowerCase().includes(input.toLowerCase());
 
-  // Fetch TAs and Classes when the modal is visible
   useEffect(() => {
     if (isVisible) {
 
@@ -59,17 +58,15 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
           const response = await fetch("/api/classes");
           const data = await response.json();
 
-          // Filter classes by active course code for strict isolation
           const filteredClasses = activeCourseCode
             ? data.filter(cls => cls.courseCode === activeCourseCode)
             : data;
 
           setClasses(filteredClasses);
 
-          // Pre-fill logic when modal opens
           if (activeCourseCode) {
             form.setFieldsValue({ courseCode: activeCourseCode });
-            // Manually trigger handleCourseChange logic for initialization
+
             setSelectedCourseCode(activeCourseCode);
             const courseClasses = data.filter((cls) => cls.courseCode === activeCourseCode);
             const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
@@ -83,7 +80,6 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
       fetchTAs();
       fetchClasses();
     } else {
-      // Reset logic when modal closes
       if (!isVisible) {
         setSelectedCourseCode(null);
         setFilteredClassTypes([]);
@@ -94,20 +90,17 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
     }
   }, [isVisible, activeCourseCode]);
 
-  // Handle file selection
   const handleFileChange = ({ fileList }) => {
     setFile(fileList[0]);
   };
 
   const handleCourseChange = (courseCode) => {
-    setSelectedCourseCode(courseCode); // Store the selection
+    setSelectedCourseCode(courseCode);
 
-    // Find unique class types for the selected course
     const courseClasses = classes.filter((cls) => cls.courseCode === courseCode);
     const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
     setFilteredClassTypes(uniqueTypes);
 
-    // Clear all dependent fields
     setFilteredClassGroups([]);
     form.setFieldsValue({
       classType: undefined,
@@ -116,19 +109,16 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
   };
 
   const handleClassTypeChange = (classType) => {
-    // Filter class groups based on BOTH course code and class type
     const groupsForType = classes.filter(
       (cls) => cls.courseCode === selectedCourseCode && cls.classType === classType
     );
     setFilteredClassGroups(groupsForType);
 
-    // Clear the dependent class group field
     form.setFieldsValue({ classId: undefined, studentId: undefined });
     setStudents([]);
   };
 
   const handleClassGroupChange = async (classId) => {
-    // Clear dependent student field
     form.setFieldsValue({ studentId: undefined });
     try {
       const response = await fetch(`/api/students?classId=${classId}`);
@@ -159,12 +149,10 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
 
       console.log(data);
 
-      // 1. Find the target class ID from the AI-generated data
       const targetClass = data.classGroup
         ? classes.find(c => c.courseCode === data.courseCode && c.classGroup === data.classGroup)
         : null;
 
-      // 2. Set ALL form values in a single, reliable call
       const finalCourseCode = activeCourseCode || data.courseCode;
 
       form.setFieldsValue({
@@ -172,16 +160,15 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
         details: data.details,
         courseCode: finalCourseCode,
         classType: data.classType,
-        classId: targetClass?.id, // Use the ID we found
+        classId: targetClass?.id,
         dueDate: data.dueDate ? dayjs(data.dueDate, 'YYYY-MM-DD') : null,
       });
 
-      // 3. Manually update the states that populate the dropdown OPTIONS
       if (finalCourseCode) {
         const courseClasses = classes.filter((cls) => cls.courseCode === finalCourseCode);
         const uniqueTypes = [...new Set(courseClasses.map((cls) => cls.classType))];
         setFilteredClassTypes(uniqueTypes);
-        setSelectedCourseCode(finalCourseCode); // Also update the selected course code state
+        setSelectedCourseCode(finalCourseCode);
       }
       if (data.courseCode && data.classType) {
         const groupsForType = classes.filter(
@@ -198,13 +185,12 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
     }
   };
 
-  // Handle form submission
   const onFinish = async (values) => {
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append("name", values.name);
-      formData.append("courseCode", values.courseCode); // Selected course group
+      formData.append("courseCode", values.courseCode);
       formData.append("classType", values.classType);
       formData.append("classId", values.classId);
       formData.append("dueDate", values.dueDate.format("YYYY-MM-DD"));
@@ -245,7 +231,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
       title="Add New Task"
       onCancel={onClose}
       footer={null}
-      width={800} // Increase modal width if needed
+      width={800}
     >
       <Card title="Describe Task with AI" style={{ marginBottom: 24 }}>
         <TextArea
@@ -286,7 +272,7 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
             loading={classes.length === 0}
             showSearch
             filterOption={filterOption}
-            disabled={!!activeCourseCode} // Disable if pre-filled
+            disabled={!!activeCourseCode}
           >
             {activeCourseCode ? (
               <Option key={activeCourseCode} value={activeCourseCode}>
@@ -302,7 +288,6 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
           </Select>
         </Form.Item>
 
-        {/* NEW Class Type Dropdown */}
         <Form.Item
           label="Class Type"
           name="classType"
@@ -323,7 +308,6 @@ const AddTaskModal = ({ isVisible, onClose, onTaskAdded }) => {
           </Select>
         </Form.Item>
 
-        {/* UPDATED Class Group Dropdown */}
         <Form.Item
           label="Class Group"
           name="classId"

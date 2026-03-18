@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // Update with your Prisma client path
+import prisma from "@/lib/prisma"; 
 
 export async function DELETE(req, { params }) {
   const { id } = params;
@@ -9,7 +9,7 @@ export async function DELETE(req, { params }) {
   }
 
   try {
-    // Check if the class group exists
+    
     const classGroup = await prisma.class.findUnique({
       where: { id: parseInt(id, 10) },
     });
@@ -18,7 +18,6 @@ export async function DELETE(req, { params }) {
       return NextResponse.json({ error: "Class group not found." }, { status: 404 });
     }
 
-    // Delete the class group
     await prisma.class.delete({
       where: { id: parseInt(id, 10) },
     });

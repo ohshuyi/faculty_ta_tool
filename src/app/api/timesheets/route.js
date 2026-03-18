@@ -26,7 +26,7 @@ export async function GET(req) {
         }
 
         if (user.role === "TA") {
-            whereCondition.userId = user.id; // TA sees only their own timesheets
+            whereCondition.userId = user.id; 
         } else if (user.role === "PROFESSOR") {
             whereCondition.approvers = { some: { id: user.id } };
             whereCondition.status = {
@@ -39,7 +39,7 @@ export async function GET(req) {
         const timesheets = await prisma.timesheet.findMany({
             where: whereCondition,
             include: {
-                user: { select: { name: true } }, // TA Name
+                user: { select: { name: true } }, 
                 approvers: {
                     select: {
                         id: true,

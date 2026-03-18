@@ -10,7 +10,6 @@ export async function PATCH(req, { params }) {
         const professorId = session?.user?.id;
         const professorName = session?.user?.name || 'Your Professor';
 
-        // Check if the user is a professor AND has an ID
         if (session?.user?.role !== 'PROFESSOR' || !professorId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
@@ -27,8 +26,8 @@ export async function PATCH(req, { params }) {
                 approvers: { some: { id: professorId } }
             },
             include: {
-                user: true, // Include the TA's info (name, email)
-                entries: true // Include entries for the email table
+                user: true, 
+                entries: true 
             }
         });
 
@@ -54,7 +53,6 @@ export async function PATCH(req, { params }) {
             const timesheetLink = `${baseUrl}/timesheet`;
             const subject = `Timesheet Approved: ${timesheet.courseCode}`;
 
-            // Generate Entries Table
             const entriesRows = timesheet.entries.map(entry => `
                 <tr>
                     <td style="padding: 8px; border: 1px solid #ddd;">${new Date(entry.date).toLocaleDateString()}</td>
@@ -113,7 +111,7 @@ export async function PATCH(req, { params }) {
         return NextResponse.json(updatedTimesheet);
     } catch (error) {
         console.error("Error approving timesheet:", error);
-        if (error.code === 'P2025') { // Prisma code for record not found
+        if (error.code === 'P2025') { 
             return NextResponse.json({ error: "Timesheet not found" }, { status: 404 });
         }
         return NextResponse.json({ error: "Failed to approve timesheet" }, { status: 500 });

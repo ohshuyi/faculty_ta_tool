@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 
-export const dynamic = 'force-dynamic'; // Ensure this route is not cached
+export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
     try {
-        // 1. Process Tasks
         const pendingTasks = await prisma.task.findMany({
             where: {
                 status: "pending",
@@ -27,7 +26,6 @@ export async function GET(req: Request) {
             tasksProcessed++;
         }
 
-        // 2. Process Tickets
         const pendingTickets = await prisma.ticket.findMany({
             where: {
                 status: { notIn: ["completed", "closed", "resolved"] },
@@ -75,29 +73,22 @@ async function processItem(item: any, type: string, professor: any, ta: any) {
         }
     }
 
-    // Check if inactive for 2 days
     if (lastActivityAt < twoDaysAgo) {
-        // Check if we already sent a follow-up since the last activity
         if (item.lastFollowUpAt && new Date(item.lastFollowUpAt) > lastActivityAt) {
-            return; // Already followed up since the last activity
+            return;
         }
 
-        // Determine recipient
         let recipient = null;
 
-        // If we know the last actor, send to the other person
         if (lastActorName) {
             if (professor && lastActorName === professor.name) {
                 recipient = ta;
             } else if (ta && lastActorName === ta.name) {
                 recipient = professor;
             } else {
-                // Actor is neither (e.g. Student, or name mismatch). Default to TA.
                 recipient = ta;
             }
         } else {
-            // No comments, just updated/created.
-            // Default to TA as they are usually the assignee.
             recipient = ta;
         }
 
@@ -121,7 +112,6 @@ async function processItem(item: any, type: string, professor: any, ta: any) {
             console.log(`Sending follow-up email to ${recipient.email} for ${type} ${item.id}`);
             await sendEmail(recipient.email, subject, body);
 
-            // Update lastFollowUpAt
             if (type === "Task") {
                 await prisma.task.update({
                     where: { id: item.id },

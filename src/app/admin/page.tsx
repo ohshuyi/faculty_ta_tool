@@ -39,7 +39,7 @@ const AdminPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // Empty dependency array means it's created only once
+  }, []); 
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "ADMIN") {
@@ -67,7 +67,7 @@ const AdminPage = () => {
       const response = await fetch(`/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data), // Send the entire object
+        body: JSON.stringify(data), 
       });
 
       if (!response.ok) {
@@ -97,7 +97,7 @@ const AdminPage = () => {
       setFilteredUsers((prevFilteredUsers) =>
         prevFilteredUsers.filter((user) => user.id !== userId)
       );
-      setIsDeleteModalVisible(false); // Close the modal
+      setIsDeleteModalVisible(false); 
     } catch (error) {
       console.error("Error deleting user:", error);
       message.error("Failed to delete user");
@@ -118,9 +118,9 @@ const AdminPage = () => {
       }
 
       message.success("User added successfully");
-      setIsAddModalVisible(false); // Close the modal
-      addForm.resetFields(); // Reset the form
-      fetchUsers(); // Refresh the user list
+      setIsAddModalVisible(false); 
+      addForm.resetFields(); 
+      fetchUsers(); 
     } catch (error) {
       console.error("Error adding user:", error);
       message.error(error.message);
@@ -162,7 +162,6 @@ const AdminPage = () => {
       setAddCourseModalVisible(false);
       courseForm.resetFields();
 
-      // refresh course list locally
       if (!courseCodes.includes(values.courseCode.toUpperCase())) {
         setCourseCodes(prev => [...prev, values.courseCode.toUpperCase()].sort());
       }
@@ -185,7 +184,7 @@ const AdminPage = () => {
 
   const handleDeleteClick = (user) => {
     setSelectedUser(user);
-    setIsDeleteModalVisible(true); // Show the delete confirmation modal
+    setIsDeleteModalVisible(true); 
   };
 
   const handleUpdateModalOk = async () => {
@@ -200,7 +199,7 @@ const AdminPage = () => {
   };
 
   const handleDeleteModalOk = async () => {
-    await handleDelete(selectedUser.id); // Call the delete handler
+    await handleDelete(selectedUser.id); 
     setSelectedUser(null);
   };
 
@@ -291,7 +290,7 @@ const AdminPage = () => {
             enterButton
             style={{ width: 400 }}
           />
-          {/* Add the "Add User" button here */}
+          {}
           <Button type="primary" onClick={showAddModal}>
             Add User
           </Button>
@@ -300,7 +299,7 @@ const AdminPage = () => {
           </Button>
         </Space>
       </Space>
-      {/* <div className="table-side-borders-container"> */}
+      {}
       <Table
         className="table-side-borders-container"
         dataSource={filteredUsers}
@@ -309,7 +308,7 @@ const AdminPage = () => {
         scroll={{ x: 'max-content' }}
         style={{ padding: "16px" }}
       />
-      {/* </div>table-side-borders-container */}
+      {}
       <Modal
         title="Add New User"
         open={isAddModalVisible}
@@ -337,7 +336,7 @@ const AdminPage = () => {
             <Input placeholder="user@example.com" />
           </Form.Item>
 
-          {/* The Password Form.Item has been completely removed */}
+          {}
 
           <Form.Item
             name="role"
@@ -399,7 +398,7 @@ const AdminPage = () => {
         </Form>
       </Modal>
 
-      {/* Modal for Add Course */}
+      {}
       <Modal
         title="Add New Course"
         open={isAddCourseModalVisible}
@@ -425,7 +424,7 @@ const AdminPage = () => {
         </Form>
       </Modal>
 
-      {/* Modal for Update */}
+      {}
       <Modal
         title="Update User Role"
         open={isUpdateModalVisible}
@@ -502,7 +501,7 @@ const AdminPage = () => {
           </Form>
         )}
       </Modal>
-      {/* Modal for Delete */}
+      {}
       <Modal
         title="Confirm Delete"
         open={isDeleteModalVisible}

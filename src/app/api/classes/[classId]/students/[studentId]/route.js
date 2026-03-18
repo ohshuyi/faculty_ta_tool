@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-// Adds a student to a class. Idempotent.
 export async function POST(req, { params }) {
   try {
     const classId = parseInt(params.classId, 10);
@@ -32,7 +31,7 @@ export async function DELETE(req, { params }) {
       where: { id: classId },
       data: {
         students: {
-          disconnect: { id: studentId }, // Disconnect the student from this class
+          disconnect: { id: studentId }, 
         },
       },
     });

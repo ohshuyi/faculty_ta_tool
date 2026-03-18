@@ -21,33 +21,26 @@ const TATimesheetView = ({ userId }) => {
   const [allClasses, setAllClasses] = useState([]);
   const [allProfessors, setAllProfessors] = useState([]);
 
-  // State for expanded rows
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
 
-  // State for submitting/recalling
   const [submittingIds, setSubmittingIds] = useState([]);
   const [recallingIds, setRecallingIds] = useState([]);
 
-  // State for Add Course Modal
   const [isAddCourseModalVisible, setIsAddCourseModalVisible] = useState(false);
   const [selectedCourseToAdd, setSelectedCourseToAdd] = useState(null);
 
-  // State for Assign Approvers Modal
   const [isAssignModalVisible, setIsAssignModalVisible] = useState(false);
   const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [targetKeys, setTargetKeys] = useState([]);
 
-  // --- State for Add/Edit Entry Modal ---
   const [isEntryModalVisible, setIsEntryModalVisible] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
-  const [currentTimesheet, setCurrentTimesheet] = useState(null); // Keep track of which timesheet we're adding to
+  const [currentTimesheet, setCurrentTimesheet] = useState(null); 
   const [form] = Form.useForm();
 
-  // --- State for Entry Modal dropdowns ---
   const [classTypes, setClassTypes] = useState([]);
   const [classGroups, setClassGroups] = useState([]);
 
-  // --- Data Fetching ---
   const fetchTimesheets = useCallback(async (period) => {
     if (!activeCourseCode) return;
     setLoading(true);
@@ -82,13 +75,12 @@ const TATimesheetView = ({ userId }) => {
   }, [activeCourseCode]);
 
   useEffect(() => {
-    // Fetch all data on load and when Period changes
+    
     fetchTimesheets(selectedPeriod);
     fetchAllClasses();
     fetchProfessors();
   }, [selectedPeriod, fetchTimesheets, fetchAllClasses, fetchProfessors]);
 
-  // --- Memoized Options for Dropdowns ---
   const periodOptions = useMemo(() => {
     const currentPeriod = getCurrentAcademicPeriod();
     const prevPeriod = getPreviousAcademicPeriod();
@@ -130,14 +122,12 @@ const TATimesheetView = ({ userId }) => {
     });
   }, [allTimesheets]);
 
-  // Filter options for the entry modal
   const filteredClassOptions = useMemo(() => {
     if (!currentTimesheet) return [];
     const courseData = classOptions.find(opt => opt.value === currentTimesheet.courseCode);
     return courseData ? courseData.children : [];
   }, [classOptions, currentTimesheet]);
 
-  // Handle row expansion manually
   const handleExpand = (expanded, record) => {
     const keys = expanded
       ? [...expandedRowKeys, record.id]
@@ -145,17 +135,15 @@ const TATimesheetView = ({ userId }) => {
     setExpandedRowKeys(keys);
   };
 
-  // --- Handlers for Entry Modal ---
   const showAddModal = (timesheet) => {
     setCurrentTimesheet(timesheet);
     setEditingEntry(null);
     form.resetFields();
     form.setFieldsValue({ date: dayjs() });
 
-    // Populate class types for the new entry
     const courseData = classOptions.find(opt => opt.value === timesheet.courseCode);
     const types = (courseData ? courseData.children : []).map(type => ({ label: type.label, value: type.value }));
-    setClassTypes([...new Set(types.map(t => t.value))].map(val => types.find(t => t.value === val))); // Get unique type objects
+    setClassTypes([...new Set(types.map(t => t.value))].map(val => types.find(t => t.value === val))); 
     setClassGroups([]);
 
     setIsEntryModalVisible(true);
@@ -251,7 +239,6 @@ const TATimesheetView = ({ userId }) => {
     }
   };
 
-  // --- Handlers for Main Page Actions ---
   const handleAddCourse = async (courseOverride) => {
     const courseToUse = courseOverride || selectedCourseToAdd;
     if (!courseToUse) {
@@ -277,7 +264,6 @@ const TATimesheetView = ({ userId }) => {
       setIsAddCourseModalVisible(false);
       setSelectedCourseToAdd(null);
 
-      // Refresh list AND expand the new row
       await fetchTimesheets(selectedPeriod);
       setExpandedRowKeys(prev => [...prev, newTimesheet.id]);
 
@@ -342,7 +328,6 @@ const TATimesheetView = ({ userId }) => {
     }
   };
 
-  // --- Main Table Columns ---
   const timesheetColumns = [
     { title: 'Course Code', dataIndex: 'courseCode', key: 'courseCode' },
     { title: 'Period', dataIndex: 'period', key: 'period' },
@@ -436,7 +421,7 @@ const TATimesheetView = ({ userId }) => {
               onExpand: handleExpand,
               expandedRowRender: (record) => {
                 const isEditable = record.status === 'Draft' || record.status === 'Rejected';
-                // Sort entries for this row
+                
                 const sortedEntries = [...record.entries].sort((a, b) => {
                   const classCompare = (a.classDetails || '').localeCompare(b.classDetails || '');
                   if (classCompare !== 0) return classCompare;
@@ -502,7 +487,7 @@ const TATimesheetView = ({ userId }) => {
         )}
       </Card>
 
-      {/* --- "Add Course" Modal --- */}
+      {}
       <Modal
         title={`Add New Course Timesheet for ${activeCourseCode}`}
         open={isAddCourseModalVisible}
@@ -525,7 +510,7 @@ const TATimesheetView = ({ userId }) => {
         </Form>
       </Modal>
 
-      {/* --- "Assign Approvers" Modal --- */}
+      {}
       {selectedTimesheet && (
         <Modal
           title={`Assign Approvers for ${selectedTimesheet.courseCode} (${selectedTimesheet.period})`}
@@ -559,7 +544,7 @@ const TATimesheetView = ({ userId }) => {
         </Modal>
       )}
 
-      {/* --- Add/Edit Entry Modal --- */}
+      {}
       <Modal
         title={editingEntry ? 'Edit Entry' : `Log Hours for ${currentTimesheet?.courseCode}`}
         open={isEntryModalVisible}

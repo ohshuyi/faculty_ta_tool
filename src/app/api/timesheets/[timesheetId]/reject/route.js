@@ -27,7 +27,7 @@ export async function PATCH(req, { params }) {
                 approvers: { some: { id: professorId } }
             },
             include: {
-                user: true // Include the TA's info
+                user: true 
             }
         });
 
@@ -48,11 +48,10 @@ export async function PATCH(req, { params }) {
                 timesheetId: timesheetId,
                 actorName: `${session.user.name} (Professor)`,
                 action: "Rejected",
-                details: reason, // Store the rejection reason
+                details: reason, 
             }
         });
 
-        // 3. Send notification email to the TA
         if (timesheet.user && timesheet.user.email) {
             const baseUrl = process.env.NEXTAUTH_URL;
             const timesheetLink = `${baseUrl}/timesheet`;
@@ -70,7 +69,7 @@ export async function PATCH(req, { params }) {
           </body>
         </html>
       `;
-            // Run without await to not block the API response
+            
             sendEmail(timesheet.user.email, subject, body).catch(console.error);
         }
 

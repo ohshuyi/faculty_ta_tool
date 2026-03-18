@@ -1,4 +1,4 @@
-// src/app/login/page.tsx
+
 'use client';
 
 import { signIn, useSession } from 'next-auth/react';
@@ -10,7 +10,6 @@ export default function LoginPage() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  // If logged in, redirect to the dashboard
   useEffect(() => {
     if (session) {
       router.push('/dashboard');
@@ -20,7 +19,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-900 to-blue-400 flex items-center justify-center">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
-        {/* NTU Logo */}
+        {}
         <div className="flex justify-center mb-6">
           <Image
             src="/ntu.png"

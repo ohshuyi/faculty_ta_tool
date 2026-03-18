@@ -36,7 +36,6 @@ export async function GET(req) {
       },
     });
 
-    // Skip filtering for global ADMIN or if fetchAll is true (though fetchAll is mostly for admins anyway)
     if (userRole !== 'ADMIN' && !fetchAll) {
       classes = classes.filter(cls => {
         const specificRole = allClassRoles.find(cr => cr.courseCode === cls.courseCode);
@@ -45,7 +44,7 @@ export async function GET(req) {
         if (effectiveRole === 'TA' || effectiveRole === 'TUTOR') {
           return cls.assignedTAs.some(ta => ta.id === userId);
         }
-        return true; // PROFESSOR and COURSE_COORDINATOR see all classes
+        return true; 
       });
     }
 

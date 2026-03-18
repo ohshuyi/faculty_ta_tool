@@ -83,7 +83,7 @@ const HistoryPage = () => {
 
       if (response.ok) {
         message.success("Task reopened successfully.");
-        fetchCompletedTasks(); // Refresh the list
+        fetchCompletedTasks(); 
       } else {
         message.error("Failed to reopen task.");
       }
@@ -103,7 +103,7 @@ const HistoryPage = () => {
 
       if (response.ok) {
         message.success("Ticket reopened successfully.");
-        fetchCompletedTickets(); // Refresh the list
+        fetchCompletedTickets(); 
       } else {
         message.error("Failed to reopen ticket.");
       }
@@ -117,7 +117,7 @@ const HistoryPage = () => {
     <AppLayout>
       <div style={{ padding: "24px" }}>
         <Tabs defaultActiveKey="1">
-          {/* Task History */}
+          {}
           <TabPane tab="Task History" key="1">
             {loadingTasks ? (
               <Spin size="large" />
@@ -151,10 +151,10 @@ const HistoryPage = () => {
                           {task.details}
                         </Descriptions.Item>
                         <Descriptions.Item label="Professor">
-                          {task.professor?.name || "N/A"} {/* Access name */}
+                          {task.professor?.name || "N/A"} {}
                         </Descriptions.Item>
                         <Descriptions.Item label="TA">
-                          {task.ta?.name || "N/A"} {/* Access name */}
+                          {task.ta?.name || "N/A"} {}
                         </Descriptions.Item>
                         <Descriptions.Item label="Status">
                           {getStatusTag(task.status)}
@@ -197,7 +197,7 @@ const HistoryPage = () => {
             )}
           </TabPane>
 
-          {/* Ticket History */}
+          {}
           <TabPane tab="Ticket History" key="2">
             {loadingTickets ? (
               <Spin size="large" />
@@ -243,7 +243,7 @@ const HistoryPage = () => {
                           )}
                         </Descriptions.Item>
                         <Descriptions.Item label="Professor">
-                          {ticket.professor?.name || "N/A"} {/* Access name */}
+                          {ticket.professor?.name || "N/A"} {}
                         </Descriptions.Item>
                       </Descriptions>
 

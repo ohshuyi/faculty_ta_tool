@@ -66,9 +66,9 @@ const AdvancedSearchModalTask = ({ visible, onClose, onSearch, onReset }) => {
   };
 
   const handleReset = () => {
-    form.resetFields(); // Clear all form fields
-    onReset(); // Trigger reset for the search list
-    onClose(); // Close the modal
+    form.resetFields(); 
+    onReset(); 
+    onClose(); 
   };
 
   return (

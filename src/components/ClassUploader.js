@@ -8,15 +8,13 @@ const ClassUploader = ({ onUploadSuccess }) => {
     const file = info.file;
 
     try {
-      // Step 1: Read the file as binary
+      
       const data = await file.arrayBuffer();
 
-      // Step 2: Parse the Excel file
       const workbook = XLSX.read(data, { type: "array" });
-      const sheetName = workbook.SheetNames[0]; // Assuming the first sheet
+      const sheetName = workbook.SheetNames[0]; 
       const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-      // Step 3: Validate the parsed data
       if (!jsonData.length) {
         message.error("The uploaded Excel file is empty.");
         return;
@@ -28,9 +26,7 @@ const ClassUploader = ({ onUploadSuccess }) => {
         groupCode: row["Group Code"],
         groupType: row["Group Type"],
       }));
-    
 
-      // Step 4: Send the parsed data to the backend
       const response = await fetch("/api/management", {
         method: "POST",
         headers: {
@@ -57,7 +53,7 @@ const ClassUploader = ({ onUploadSuccess }) => {
 
     <Upload 
       accept=".xlsx,.xls"
-      beforeUpload={() => false} // Prevent automatic upload
+      beforeUpload={() => false} 
       onChange={handleFileUpload}
       >
       <Button icon={<UploadOutlined />}>Upload Class Excel</Button>

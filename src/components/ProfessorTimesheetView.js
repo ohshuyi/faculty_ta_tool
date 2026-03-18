@@ -177,22 +177,19 @@ const ProfessorTimesheetView = () => {
             'Approved': 3,
         };
 
-        // 2. Start with the TA filter (if any)
         const filtered = allTimesheets.filter(ts => {
-            if (!taFilter) return true; // No filter, show all
+            if (!taFilter) return true; 
             return ts.userId === taFilter;
         });
 
-        // 3. Apply the multi-level sort
         return filtered.sort((a, b) => {
-            // 1. Primary Sort: By Status
-            const statusA = statusOrder[a.status] || 99; // Get status number (99 for any unknown)
+            
+            const statusA = statusOrder[a.status] || 99; 
             const statusB = statusOrder[b.status] || 99;
             if (statusA !== statusB) {
-                return statusA - statusB; // Sort by status number
+                return statusA - statusB; 
             }
 
-            // 2. Secondary Sort: By TA Name (if status is the same)
             const nameA = a.user?.name || '';
             const nameB = b.user?.name || '';
             const nameCompare = nameA.localeCompare(nameB);
@@ -228,7 +225,7 @@ const ProfessorTimesheetView = () => {
     const rowSelection = {
         selectedRowKeys,
         onChange: (keys) => setSelectedRowKeys(keys),
-        // Optional: Prevent selecting already approved rows
+        
         getCheckboxProps: (record) => ({
             disabled: record.status === 'Approved',
         }),
@@ -238,15 +235,15 @@ const ProfessorTimesheetView = () => {
         { title: 'Course Code', dataIndex: 'courseCode', key: 'courseCode' },
         { title: 'Period', dataIndex: 'period', key: 'period' },
         {
-            title: 'Total Hours / Details', // Update column title
+            title: 'Total Hours / Details', 
             key: 'totalHoursAndDetails',
             render: (_, record) => (
                 <Space>
                     <span>{parseFloat(record.totalHours || 0).toFixed(2)} hrs</span>
-                    {record.entries?.length > 0 && ( // Only show button if there are entries
+                    {record.entries?.length > 0 && ( 
                         <Button
-                            size="small" // Make button smaller
-                            onClick={() => handleExpand(record.id)} // Use new handler
+                            size="small" 
+                            onClick={() => handleExpand(record.id)} 
                         >
                             {expandedRowKeys.includes(record.id) ? "Collapse" : "Show Details"}
                         </Button>
@@ -254,7 +251,7 @@ const ProfessorTimesheetView = () => {
                 </Space>
             )
         },
-        // { title: 'Total Hours', dataIndex: 'totalHours', key: 'totalHours', render: h => parseFloat(h).toFixed(2) },
+        
         {
             title: 'Status',
             dataIndex: 'status',
@@ -268,7 +265,7 @@ const ProfessorTimesheetView = () => {
             title: 'Action',
             key: 'action',
             render: (_, record) => {
-                // Use if/else if to handle the different statuses
+                
                 if (record.status === 'Submitted') {
                     return (
                         <Space>
@@ -285,7 +282,7 @@ const ProfessorTimesheetView = () => {
                     return (
                         <Popconfirm
                             title="Revoke approval?"
-                            description="This will change the status back to Submitted." // Updated description
+                            description="This will change the status back to Submitted." 
                             onConfirm={() => handleRevoke(record.id)}
                             okText="Yes, Revoke"
                             cancelText="Cancel"
@@ -307,7 +304,7 @@ const ProfessorTimesheetView = () => {
                         </Popconfirm>
                     );
                 }
-                // Default case (e.g., "Draft")
+                
                 return null;
             },
         },
@@ -317,7 +314,7 @@ const ProfessorTimesheetView = () => {
         <div style={{ padding: "24px" }}>
             <Card title="Approve Submitted TA Timesheets" style={{ marginBottom: 24 }}>
                 <Space wrap>
-                    {/* Academic Year Selector */}
+                    {}
                     <Select value={selectedPeriod} onChange={setSelectedPeriod} style={{ width: 220 }}>
                         {periodOptions.map(p => <Option key={p} value={p}>{p}</Option>)}
                     </Select>
@@ -373,26 +370,25 @@ const ProfessorTimesheetView = () => {
                             return (
                                 <div>
                                     <Collapse accordion ghost>
-                                        {/* 2. Use the correct variable name: [classDetailString, classData] */}
+                                        {}
                                         {Object.entries(entriesByClassDetails).map(([classDetailString, classData]) => {
 
-                                            // 3. Sort the entries within this group by week number
                                             const sortedEntries = classData.entries.sort((a, b) => {
                                                 return (a.weekNumber || 0) - (b.weekNumber || 0);
                                             });
 
                                             return (
                                                 <Collapse.Panel
-                                                    // 4. Use the correct variable for the header
+                                                    
                                                     header={`${classDetailString} (Total: ${classData.totalHours.toFixed(2)} hours)`}
-                                                    key={classDetailString} // Use the class detail string as the key
+                                                    key={classDetailString} 
                                                 >
                                                     <List
                                                         size="small"
                                                         dataSource={sortedEntries}
                                                         renderItem={item => (
                                                             <List.Item>
-                                                                {/* 5. Display fields in your requested order */}
+                                                                {}
                                                                 <Descriptions size="small" column={4}>
                                                                     <Descriptions.Item label="Date">{dayjs(item.date).format('YYYY-MM-DD')}</Descriptions.Item>
                                                                     <Descriptions.Item label="Week">{item.weekNumber || 'N/A'}</Descriptions.Item>

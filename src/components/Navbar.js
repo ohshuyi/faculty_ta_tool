@@ -47,7 +47,7 @@ const Navbar = () => {
         </Link>
       </div>
 
-      {/* Mobile Menu Button */}
+      {}
       <Button
         className="mobile-menu-button"
         type="primary"
@@ -56,7 +56,7 @@ const Navbar = () => {
         style={{ float: "right", marginTop: "15px", display: "none" }}
       />
       
-      {/* Mobile and Desktop Menu */}
+      {}
       <Menu
         theme="dark"
         mode={collapsed ? "vertical" : "horizontal"}

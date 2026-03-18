@@ -16,9 +16,9 @@ const TimesheetLogList = ({ logs }) => {
   const logsToShow = isExpanded ? logs : logs.slice(0, DEFAULT_VISIBLE_LOGS);
 
   return (
-    // 2. Removed the padding from the main div
+    
     <div style={{ paddingTop: '4px' }}>
-      {/* 3. Made the title bold */}
+      {}
       <h4 style={{ marginBottom: '8px', fontWeight: 'bold' }}>History Log</h4>
       <List
         size="small"

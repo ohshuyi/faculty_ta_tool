@@ -20,9 +20,9 @@ export async function POST(req) {
     const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
 
     const data = {
-      name: formData.get("name"), // Get the name field
+      name: formData.get("name"), 
       ticketDescription: formData.get("ticketDescription"),
-      courseCode: formData.get("courseGroupType"), // Accept a single courseCode
+      courseCode: formData.get("courseGroupType"), 
       classId: formData.get("classId") ? parseInt(formData.get("classId") as string, 10) : null,
       category: formData.get("category"),
       studentId: parseInt(formData.get("studentId") as string),
@@ -35,12 +35,12 @@ export async function POST(req) {
     if (data.classId) {
       classIds = [data.classId];
     } else if (data.courseCode) {
-      // Find the class matching the courseCode
+      
       const classes = await prisma.class.findMany({
         where: {
-          courseCode: data.courseCode as string, // Filter by courseCode
+          courseCode: data.courseCode as string, 
         },
-        select: { id: true }, // Select only the `id` field
+        select: { id: true }, 
       });
 
       if (!classes || classes.length === 0) {
@@ -50,7 +50,6 @@ export async function POST(req) {
         );
       }
 
-      // Extract an array of class IDs
       classIds = classes.map((cls) => cls.id);
     }
 
@@ -60,7 +59,6 @@ export async function POST(req) {
     if (file) {
       const buffer = await file.arrayBuffer();
 
-      // Create the BlobServiceClient using SharedKeyCredential
       const credential = new StorageSharedKeyCredential(
         AZURE_STORAGE_ACCOUNT_NAME,
         AZURE_STORAGE_ACCOUNT_KEY
@@ -73,7 +71,6 @@ export async function POST(req) {
         "blobstorageta"
       );
 
-      // Ensure the container exists or create it
       const exists = await containerClient.exists();
       if (!exists) {
         await containerClient.create();
@@ -82,29 +79,25 @@ export async function POST(req) {
       const blobName = `${uuidv4()}-${file.name}`;
       const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
-      // Upload the file buffer as a blob
       await blockBlobClient.uploadData(Buffer.from(buffer), {
         blobHTTPHeaders: { blobContentType: file.type },
       });
 
-      // Set up SAS token options (read-only, valid for 1 hour)
       const sasOptions = {
         containerName: "blobstorageta",
         blobName: blobName,
-        permissions: BlobSASPermissions.parse("r"), // Read-only permission
-        startsOn: new Date(), // Start immediately
-        expiresOn: new Date(new Date().valueOf() + 3600 * 1000), // 1-hour expiry
+        permissions: BlobSASPermissions.parse("r"), 
+        startsOn: new Date(), 
+        expiresOn: new Date(new Date().valueOf() + 3600 * 1000), 
       };
 
-      // Generate SAS Token
       const sasToken = generateBlobSASQueryParameters(sasOptions, credential).toString();
-      fileUrl = `${blockBlobClient.url}?${sasToken}`; // Combine URL and SAS token
+      fileUrl = `${blockBlobClient.url}?${sasToken}`; 
     }
 
-    // Create the ticket in Prisma
     const newTicket = await prisma.ticket.create({
       data: {
-        name: data.name, // Assign the name field
+        name: data.name, 
         ticketDescription: data.ticketDescription,
         category: data.category,
         studentId: data.studentId,
@@ -133,7 +126,7 @@ export async function POST(req) {
           },
         },
       },
-      include: { // Include relations needed for the email
+      include: { 
         professor: true,
         ta: true,
       },
@@ -181,7 +174,6 @@ export async function GET(req: Request) {
     const status = url.searchParams.get("status") || "open";
     const courseCode = url.searchParams.get("courseCode");
 
-    // Find the user by email
     const user = await prisma.user.findUnique({
       where: { email: userEmail },
       include: { courseRoles: true } as any,
@@ -191,9 +183,8 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Define the condition based on the user's role
     let whereCondition: any = {
-      status, // Include the status condition
+      status, 
     };
 
     if (courseCode) {
@@ -218,7 +209,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Fetch tickets based on the role and status
     const tickets = await prisma.ticket.findMany({
       where: whereCondition,
       include: {

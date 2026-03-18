@@ -16,7 +16,6 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: "Invalid timesheet ID" }, { status: 400 });
     }
 
-    // Find the timesheet to ensure the prof is an approver and it's 'Rejected'
     const timesheet = await prisma.timesheet.findFirst({
         where: {
             id: timesheetId,
@@ -29,12 +28,11 @@ export async function PATCH(req, { params }) {
         return NextResponse.json({ error: "Timesheet not found, not 'Rejected', or you are not an approver." }, { status: 403 });
     }
 
-    // Update the status back to "Submitted" and clear the reason
     const updatedTimesheet = await prisma.timesheet.update({
       where: { id: timesheetId },
       data: { 
         status: "Submitted",
-        rejectionReason: null // Clear the rejection reason
+        rejectionReason: null 
       },
     });
 

@@ -12,7 +12,6 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: "Invalid timesheet ID" }, { status: 400 });
     }
 
-    // Verify the TA owns this timesheet
     const timesheet = await prisma.timesheet.findUnique({
       where: { id: timesheetId },
     });
@@ -21,12 +20,10 @@ export async function PATCH(req, { params }) {
       return NextResponse.json({ error: "Timesheet not found or unauthorized" }, { status: 404 });
     }
 
-    // Allow recall only if Submitted or Approved
     if (timesheet.status !== 'Submitted' && timesheet.status !== 'Approved') {
        return NextResponse.json({ error: "Only Submitted or Approved timesheets can be recalled." }, { status: 400 });
     }
 
-    // Update status back to 'Draft'
     const updatedTimesheet = await prisma.timesheet.update({
       where: { id: timesheetId },
       data: { status: "Draft" },

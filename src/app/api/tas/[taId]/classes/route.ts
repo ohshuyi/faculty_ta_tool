@@ -40,7 +40,6 @@ export async function POST(req: Request, { params }: { params: { taId: string } 
 
     const taIdInt = parseInt(taId, 10);
 
-    // Disconnect all existing classes from the TA
     await prisma.user.update({
       where: { id: taIdInt },
       data: {
@@ -50,7 +49,6 @@ export async function POST(req: Request, { params }: { params: { taId: string } 
       },
     });
 
-    // Connect the new set of classes to the TA
     const updatedTA = await prisma.user.update({
       where: { id: taIdInt },
       data: {

@@ -23,13 +23,10 @@ export function CourseProvider({ children }: { children: ReactNode }) {
     const { data: session, status } = useSession();
     const [activeCourseCode, setActiveCourseCode] = useState<string | null>(null);
 
-    // Sort courses alphabetically for predictable UI ordering
-    // @ts-ignore
     const availableCourses: UserCourseRole[] = Array.isArray(session?.user?.courseRoles)
         ? [...session.user.courseRoles].sort((a, b) => a.courseCode.localeCompare(b.courseCode))
         : [];
 
-    // Automatically select the first course if no active course is selected yet
     useEffect(() => {
         if (status === "authenticated" && availableCourses.length > 0 && !activeCourseCode) {
             setActiveCourseCode(availableCourses[0].courseCode);

@@ -11,13 +11,11 @@ export async function GET(req) {
       return NextResponse.json({ error: "Name query and class type are required." }, { status: 400 });
     }
 
-    // Find students whose name contains the query (case-insensitive)
-    // AND who are currently in at least one class of the specified type.
     const matchingStudents = await prisma.student.findMany({
       where: {
         name: {
           contains: nameQuery,
-          mode: 'insensitive', // Case-insensitive search
+          mode: 'insensitive', 
         },
         classes: {
           some: {
@@ -29,8 +27,8 @@ export async function GET(req) {
         },
       },
       include: {
-        classes: { // Include classes to show which group they are currently in
-          where: { classType: classType } // Only include classes of the relevant type
+        classes: { 
+          where: { classType: classType } 
         }
       }
     });

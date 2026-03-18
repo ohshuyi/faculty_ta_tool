@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react"; // Import useMemo
+import React, { useState, useEffect, useMemo } from "react"; 
 import { Collapse, List, Avatar, Select } from "antd";
 
 const { Panel } = Collapse;
@@ -15,7 +15,6 @@ const ticketsData = [
 const CustomDynamicGroupList = () => {
   const [grouping, setGrouping] = useState("priority");
 
-  // 1. Calculate groupedData with useMemo instead of useEffect
   const groupedData = useMemo(() => {
     return ticketsData.reduce((acc, ticket) => {
       const key = ticket[grouping] || "Uncategorized";
@@ -25,14 +24,12 @@ const CustomDynamicGroupList = () => {
       acc[key].push(ticket);
       return acc;
     }, {});
-  }, [grouping]); // Only re-calculates when 'grouping' changes
+  }, [grouping]); 
 
-  // 2. Control the active (open) panels with state for a better UX
   const [activeKeys, setActiveKeys] = useState([]);
   useEffect(() => {
     setActiveKeys(Object.keys(groupedData));
   }, [groupedData]);
-
 
   return (
     <div style={{ padding: "16px" }}>

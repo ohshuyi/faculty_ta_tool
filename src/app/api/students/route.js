@@ -1,4 +1,4 @@
-// app/api/students/route.js
+
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -20,7 +20,7 @@ export async function GET(req) {
         }
       };
     } else {
-      // Fallback to legacy filtering if no courseCode is provided
+      
       if (classType) {
         whereCondition.classes = {
           some: {
@@ -73,13 +73,12 @@ export async function POST(req) {
         );
       }
 
-      // Check if the student already exists
       let existingStudent = await prisma.student.findUnique({
         where: { studentCode },
       });
 
       if (!existingStudent) {
-        // If the student does not exist, create a new student
+        
         existingStudent = await prisma.student.create({
           data: {
             name,
@@ -95,12 +94,11 @@ export async function POST(req) {
         });
       }
 
-      // Ensure the student is linked to the course
       await prisma.class.update({
         where: { id: classId },
         data: {
           students: {
-            connect: { id: existingStudent.id }, // Connect existing student to the course
+            connect: { id: existingStudent.id }, 
           },
         },
       });

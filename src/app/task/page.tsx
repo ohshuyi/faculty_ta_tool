@@ -13,16 +13,15 @@ import {
   message,
   Divider,
 } from "antd";
-import { FileOutlined } from "@ant-design/icons"; // For file icons
+import { FileOutlined } from "@ant-design/icons"; 
 import { useSession } from "next-auth/react";
 import AppLayout from "@/components/Layout";
 import TwoColumnsLayout from "@/components/TwoColumnsLayout";
-import AddTaskModal from "@/components/AddTaskModal"; // Modal for adding tasks
-import TextArea from "antd/es/input/TextArea"; // Ant Design TextArea for comments
-import { Task } from "@/lib/types"; // Assuming Task type is defined
+import AddTaskModal from "@/components/AddTaskModal"; 
+import TextArea from "antd/es/input/TextArea"; 
+import { Task } from "@/lib/types"; 
 import { useCourse } from "@/context/CourseContext";
 
-// Function to get the status tag (for the task)
 const getStatusTag = (status: string) => {
   return (
     <Tag color={status === "completed" ? "green" : "blue"}>
@@ -31,7 +30,6 @@ const getStatusTag = (status: string) => {
   );
 };
 
-// Main TaskPage component
 export default function TaskPage() {
   const { data: session, status } = useSession();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -55,7 +53,7 @@ export default function TaskPage() {
 
       if (data.length > 0) {
         setTasks(data);
-        setSelectedTask(data[0]); // Default to the first task
+        setSelectedTask(data[0]); 
       } else {
         setTasks([]);
         setSelectedTask(null);
@@ -67,20 +65,18 @@ export default function TaskPage() {
       setLoading(false);
     }
   };
-  // test
 
   const fetchComments = async (taskId: number) => {
     try {
       const response = await fetch(`/api/tasks/${taskId}/comments`);
       const data = await response.json();
 
-      setComments(data); // Set the state with the fetched comments
+      setComments(data); 
     } catch (error) {
       console.error("Error fetching comments:", error);
     }
   };
 
-  // Handle adding a comment
   const handleCommentSubmit = async () => {
     if (!newComment || !selectedTask) {
       message.warning("Please enter a comment and ensure a task is selected.");
@@ -95,7 +91,7 @@ export default function TaskPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          author: session?.user?.name, // Ensure session is available
+          author: session?.user?.name, 
           content: newComment,
         }),
       });
@@ -130,7 +126,7 @@ export default function TaskPage() {
       if (response.ok) {
         message.success("Task marked as completed");
         setIsCloseModalVisible(false);
-        fetchTasks("open"); // Re-fetch the open tasks list
+        fetchTasks("open"); 
       } else {
         message.error("Failed to close the task");
       }
@@ -138,16 +134,14 @@ export default function TaskPage() {
       console.error("Error closing the task:", error);
       message.error("An error occurred. Please try again.");
     } finally {
-      setClosingTask(false); // Stop loading in any case
+      setClosingTask(false); 
     }
   };
 
-  // Show modal to add new task
   const showModal = () => {
     setIsModalVisible(true);
   };
 
-  // Close modal
   const closeModal = () => {
     setIsModalVisible(false);
   };
@@ -160,7 +154,6 @@ export default function TaskPage() {
     }
   }, [status, activeCourseCode]);
 
-  // Fetch comments when selectedTask changes
   useEffect(() => {
     if (selectedTask?.id) {
       fetchComments(selectedTask.id);
@@ -214,7 +207,7 @@ export default function TaskPage() {
         </Descriptions>
 
         <Divider />
-        {/* Attached Files */}
+        {}
         {task.files?.length > 0 && (
           <>
             <h3>Attached Files</h3>
@@ -233,7 +226,7 @@ export default function TaskPage() {
           </>
         )}
         <Divider />
-        {/* Comments Section */}
+        {}
         <h3>Comments</h3>
         <List
           dataSource={comments}
@@ -254,7 +247,7 @@ export default function TaskPage() {
           )}
         />
         <Divider />
-        {/* Add Comment */}
+        {}
         <h3>Add a Comment</h3>
         <Form onFinish={handleCommentSubmit}>
           <Form.Item>
@@ -272,7 +265,7 @@ export default function TaskPage() {
           </Form.Item>
         </Form>
 
-        {/* Modal to confirm closing the task */}
+        {}
         <Modal
           title="Confirm Close Task"
           open={isCloseModalVisible}

@@ -15,7 +15,6 @@ export async function POST(req) {
       return NextResponse.json({ error: "Course code and period are required." }, { status: 400 });
     }
 
-    // Check if a timesheet already exists for this combination
     const existingTimesheet = await prisma.timesheet.findUnique({
       where: {
         userId_period_courseCode: {
@@ -30,7 +29,6 @@ export async function POST(req) {
       return NextResponse.json({ error: "A timesheet for this course and period already exists." }, { status: 409 });
     }
 
-    // Create the new, empty timesheet
     const newTimesheet = await prisma.timesheet.create({
       data: {
         userId: session.user.id,
