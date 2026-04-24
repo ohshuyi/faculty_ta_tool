@@ -6,30 +6,39 @@ export async function POST(req, { params }) {
     const studentId = parseInt(params.studentId, 10);
     const { fromClassId, toClassId } = await req.json();
 
-    if (!fromClassId || !toClassId) {
-      return NextResponse.json({ error: "Source and destination class IDs are required." }, { status: 400 });
+    if (!toClassId) {
+      return NextResponse.json({ error: "Destination class ID is required." }, { status: 400 });
     }
 
-    await prisma.$transaction([
-      
-      prisma.class.update({
-        where: { id: fromClassId },
-        data: {
-          students: {
-            disconnect: { id: studentId },
+    if (fromClassId) {
+      await prisma.$transaction([
+        prisma.class.update({
+          where: { id: fromClassId },
+          data: {
+            students: {
+              disconnect: { id: studentId },
+            },
           },
-        },
-      }),
-      
-      prisma.class.update({
+        }),
+        prisma.class.update({
+          where: { id: toClassId },
+          data: {
+            students: {
+              connect: { id: studentId },
+            },
+          },
+        }),
+      ]);
+    } else {
+      await prisma.class.update({
         where: { id: toClassId },
         data: {
           students: {
             connect: { id: studentId },
           },
         },
-      }),
-    ]);
+      });
+    }
 
     return NextResponse.json({ message: "Student moved successfully." }, { status: 200 });
   } catch (error) {

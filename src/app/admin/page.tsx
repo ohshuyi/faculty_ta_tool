@@ -39,7 +39,7 @@ const AdminPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []); 
+  }, []);
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role !== "ADMIN") {
@@ -67,7 +67,7 @@ const AdminPage = () => {
       const response = await fetch(`/api/users/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data), 
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
@@ -97,7 +97,7 @@ const AdminPage = () => {
       setFilteredUsers((prevFilteredUsers) =>
         prevFilteredUsers.filter((user) => user.id !== userId)
       );
-      setIsDeleteModalVisible(false); 
+      setIsDeleteModalVisible(false);
     } catch (error) {
       console.error("Error deleting user:", error);
       message.error("Failed to delete user");
@@ -118,9 +118,9 @@ const AdminPage = () => {
       }
 
       message.success("User added successfully");
-      setIsAddModalVisible(false); 
-      addForm.resetFields(); 
-      fetchUsers(); 
+      setIsAddModalVisible(false);
+      addForm.resetFields();
+      fetchUsers();
     } catch (error) {
       console.error("Error adding user:", error);
       message.error(error.message);
@@ -184,7 +184,7 @@ const AdminPage = () => {
 
   const handleDeleteClick = (user) => {
     setSelectedUser(user);
-    setIsDeleteModalVisible(true); 
+    setIsDeleteModalVisible(true);
   };
 
   const handleUpdateModalOk = async () => {
@@ -199,7 +199,7 @@ const AdminPage = () => {
   };
 
   const handleDeleteModalOk = async () => {
-    await handleDelete(selectedUser.id); 
+    await handleDelete(selectedUser.id);
     setSelectedUser(null);
   };
 
@@ -262,7 +262,7 @@ const AdminPage = () => {
             Update
           </Button>
           <Button
-            type="danger"
+            danger
             onClick={() => handleDeleteClick(record)}
             style={{ color: "white", backgroundColor: "red" }}
           >
@@ -290,7 +290,7 @@ const AdminPage = () => {
             enterButton
             style={{ width: 400 }}
           />
-          {}
+          { }
           <Button type="primary" onClick={showAddModal}>
             Add User
           </Button>
@@ -299,7 +299,7 @@ const AdminPage = () => {
           </Button>
         </Space>
       </Space>
-      {}
+      { }
       <Table
         className="table-side-borders-container"
         dataSource={filteredUsers}
@@ -308,7 +308,7 @@ const AdminPage = () => {
         scroll={{ x: 'max-content' }}
         style={{ padding: "16px" }}
       />
-      {}
+      { }
       <Modal
         title="Add New User"
         open={isAddModalVisible}
@@ -336,7 +336,7 @@ const AdminPage = () => {
             <Input placeholder="user@example.com" />
           </Form.Item>
 
-          {}
+          { }
 
           <Form.Item
             name="role"
@@ -398,7 +398,7 @@ const AdminPage = () => {
         </Form>
       </Modal>
 
-      {}
+      { }
       <Modal
         title="Add New Course"
         open={isAddCourseModalVisible}
@@ -424,7 +424,7 @@ const AdminPage = () => {
         </Form>
       </Modal>
 
-      {}
+      { }
       <Modal
         title="Update User Role"
         open={isUpdateModalVisible}
@@ -501,7 +501,7 @@ const AdminPage = () => {
           </Form>
         )}
       </Modal>
-      {}
+      { }
       <Modal
         title="Confirm Delete"
         open={isDeleteModalVisible}

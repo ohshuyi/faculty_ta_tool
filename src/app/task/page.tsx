@@ -13,13 +13,13 @@ import {
   message,
   Divider,
 } from "antd";
-import { FileOutlined } from "@ant-design/icons"; 
+import { FileOutlined } from "@ant-design/icons";
 import { useSession } from "next-auth/react";
 import AppLayout from "@/components/Layout";
 import TwoColumnsLayout from "@/components/TwoColumnsLayout";
-import AddTaskModal from "@/components/AddTaskModal"; 
-import TextArea from "antd/es/input/TextArea"; 
-import { Task } from "@/lib/types"; 
+import AddTaskModal from "@/components/AddTaskModal";
+import TextArea from "antd/es/input/TextArea";
+import { Task } from "@/lib/types";
 import { useCourse } from "@/context/CourseContext";
 
 const getStatusTag = (status: string) => {
@@ -53,7 +53,7 @@ export default function TaskPage() {
 
       if (data.length > 0) {
         setTasks(data);
-        setSelectedTask(data[0]); 
+        setSelectedTask(data[0]);
       } else {
         setTasks([]);
         setSelectedTask(null);
@@ -71,7 +71,7 @@ export default function TaskPage() {
       const response = await fetch(`/api/tasks/${taskId}/comments`);
       const data = await response.json();
 
-      setComments(data); 
+      setComments(data);
     } catch (error) {
       console.error("Error fetching comments:", error);
     }
@@ -91,7 +91,7 @@ export default function TaskPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          author: session?.user?.name, 
+          author: session?.user?.name,
           content: newComment,
         }),
       });
@@ -126,7 +126,7 @@ export default function TaskPage() {
       if (response.ok) {
         message.success("Task marked as completed");
         setIsCloseModalVisible(false);
-        fetchTasks("open"); 
+        fetchTasks("open");
       } else {
         message.error("Failed to close the task");
       }
@@ -134,7 +134,7 @@ export default function TaskPage() {
       console.error("Error closing the task:", error);
       message.error("An error occurred. Please try again.");
     } finally {
-      setClosingTask(false); 
+      setClosingTask(false);
     }
   };
 
@@ -198,6 +198,9 @@ export default function TaskPage() {
             {task.professor.name}
           </Descriptions.Item>
           <Descriptions.Item label="TA">{task.ta.name}</Descriptions.Item>
+          <Descriptions.Item label="Student">
+            {task.student ? `${task.student.name} (${task.student.studentCode})` : "N/A"}
+          </Descriptions.Item>
           <Descriptions.Item label="Status">
             {getStatusTag(task.status)}
           </Descriptions.Item>
@@ -207,7 +210,7 @@ export default function TaskPage() {
         </Descriptions>
 
         <Divider />
-        {}
+        { }
         {task.files?.length > 0 && (
           <>
             <h3>Attached Files</h3>
@@ -226,7 +229,7 @@ export default function TaskPage() {
           </>
         )}
         <Divider />
-        {}
+        { }
         <h3>Comments</h3>
         <List
           dataSource={comments}
@@ -247,7 +250,7 @@ export default function TaskPage() {
           )}
         />
         <Divider />
-        {}
+        { }
         <h3>Add a Comment</h3>
         <Form onFinish={handleCommentSubmit}>
           <Form.Item>
@@ -265,7 +268,7 @@ export default function TaskPage() {
           </Form.Item>
         </Form>
 
-        {}
+        { }
         <Modal
           title="Confirm Close Task"
           open={isCloseModalVisible}

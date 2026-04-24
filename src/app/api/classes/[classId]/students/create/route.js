@@ -12,12 +12,13 @@ export async function POST(req, { params }) {
 
     const existingStudent = await prisma.student.findUnique({
       where: { studentCode },
+      include: { classes: true },
     });
 
     if (existingStudent) {
       return NextResponse.json(
-        { error: "A student with this code already exists." },
-        { status: 409 } 
+        { error: "DUPLICATE_STUDENT_CODE", existingStudent },
+        { status: 409 }
       );
     }
 

@@ -1,9 +1,9 @@
 
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; 
-import { authOptions } from "@/lib/auth"; 
+import prisma from "@/lib/prisma";
+import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
-import { v4 as uuidv4 } from "uuid"; 
+import { v4 as uuidv4 } from "uuid";
 import { sendEmail } from "@/lib/email";
 import {
   BlobServiceClient,
@@ -25,7 +25,7 @@ export async function POST(req) {
     const professorId = parseInt(formData.get("professorId"), 10);
     const taId = parseInt(formData.get("taId"), 10);
     const studentId = formData.get("studentId") ? parseInt(formData.get("studentId"), 10) : null;
-    const courseCode = formData.get("courseCode"); 
+    const courseCode = formData.get("courseCode");
     const classId = formData.get("classId") ? parseInt(formData.get("classId"), 10) : null;
     const file = formData.get("file");
     const baseUrl = "https://faculty-ta-v2.azurewebsites.net"
@@ -65,12 +65,12 @@ export async function POST(req) {
     if (classId) {
       classIds = [classId];
     } else if (courseCode) {
-      
+
       const classes = await prisma.class.findMany({
         where: {
-          courseCode, 
+          courseCode,
         },
-        select: { id: true }, 
+        select: { id: true },
       });
 
       classIds = classes.map(cls => cls.id);
@@ -86,9 +86,9 @@ export async function POST(req) {
         taId,
         createdAt: new Date(),
         classes: {
-          connect: classIds.map((id) => ({ id })), 
+          connect: classIds.map((id) => ({ id })),
         },
-        ...(studentId && { student: { connect: { id: studentId } } }),
+        ...(studentId && { studentId }),
         ...(fileUrl && {
           files: {
             create: [
@@ -110,7 +110,7 @@ export async function POST(req) {
         ta: true,
         professor: true,
         files: true,
-        classes: true, 
+        classes: true,
       },
     });
 
@@ -197,7 +197,7 @@ export async function GET(req) {
     }
 
     const url = new URL(req.url);
-    const statusParam = url.searchParams.get("status") || "open"; 
+    const statusParam = url.searchParams.get("status") || "open";
 
     if (statusParam !== "open" && statusParam !== "completed") {
       return NextResponse.json({ error: "Invalid status" }, { status: 400 });

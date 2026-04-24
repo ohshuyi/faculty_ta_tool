@@ -53,7 +53,7 @@ const ClassManagement = () => {
   const [studentToMove, setStudentToMove] = useState(null);
   const [filteredMoveGroups, setFilteredMoveGroups] = useState([]);
   const [moveTargetClassId, setMoveTargetClassId] = useState(null);
-  const [addStudentTab, setAddStudentTab] = useState("existing"); 
+  const [addStudentTab, setAddStudentTab] = useState("existing");
   const [newStudentForm] = Form.useForm();
   const [moveForm] = Form.useForm();
   const [courseCodeFilter, setCourseCodeFilter] = useState(null);
@@ -85,7 +85,7 @@ const ClassManagement = () => {
 
       if (!Array.isArray(data)) {
         console.warn("API returned non-array data for classes:", data);
-        data = []; 
+        data = [];
       }
 
       const sortOrder = {
@@ -94,7 +94,7 @@ const ClassManagement = () => {
       };
 
       data.sort((a, b) => {
-        
+
         const orderA = sortOrder[a.classType] || 3;
         const orderB = sortOrder[b.classType] || 3;
 
@@ -105,7 +105,7 @@ const ClassManagement = () => {
         return a.classGroup.localeCompare(b.classGroup);
       });
 
-      setClasses(data); 
+      setClasses(data);
     } catch (error) {
       console.error("Error fetching classes:", error);
       message.error("Failed to fetch classes.");
@@ -146,13 +146,13 @@ const ClassManagement = () => {
     if (status === "authenticated") {
       loadData();
     } else if (status === "unauthenticated") {
-      
-      setLoading(false); 
+
+      setLoading(false);
     }
   }, [fetchClasses, fetchAllStudents, fetchTAs, status, activeCourseCode]);
 
   useEffect(() => {
-    
+
     if (!selectedClass) return;
 
     const updatedClassInList = classes.find(c => c.id === selectedClass.id);
@@ -209,9 +209,11 @@ const ClassManagement = () => {
         // Do not mark as success yet, wait for confirmation modal
       } else {
         // No similar names found: Proceed directly to create
-        await createNewStudent(values);
-        success = true; // Mark as successful
-        studentNameAdded = values.name;
+        const result = await createNewStudent(values);
+        if (result) {
+          success = true; // Mark as successful
+          studentNameAdded = values.name;
+        }
       }
     } catch (error) {
       // Catch errors from API calls (like duplicate check or create)
@@ -231,13 +233,13 @@ const ClassManagement = () => {
         okText: 'Yes, Add Another',
         cancelText: 'No, Close',
         onOk() {
-          
+
           newStudentForm.resetFields();
           setNewStudentData(null);
-          
+
         },
         onCancel() {
-          
+
           handleAddModalCancel();
         },
       });
@@ -253,13 +255,50 @@ const ClassManagement = () => {
       });
       if (!response.ok) {
         const errorData = await response.json();
+
+        if (errorData.error === "DUPLICATE_STUDENT_CODE") {
+          const isAlreadyInClass = errorData.existingStudent.classes?.some((c: any) => c.id === selectedClass.id);
+          if (isAlreadyInClass) {
+            message.warning(`Student "${errorData.existingStudent.name}" (${errorData.existingStudent.studentCode}) is already in this class.`);
+            return false;
+          }
+
+          const currentClassOfStudent = errorData.existingStudent.classes?.[0];
+          Modal.confirm({
+            title: 'Student Code Already Exists!',
+            content: `The student code "${errorData.existingStudent.studentCode}" is already in use by "${errorData.existingStudent.name}". Do you want to move/link this existing student to this class instead? Note: You cannot create a new student with a code that already exists.`,
+            okText: 'Yes, Move Student',
+            cancelText: 'Cancel',
+            onOk: async () => {
+              try {
+                await fetch(`/api/students/${errorData.existingStudent.id}/move`, {
+                  method: 'POST',
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    fromClassId: currentClassOfStudent ? currentClassOfStudent.id : null,
+                    toClassId: selectedClass.id,
+                  }),
+                });
+                message.success(`${errorData.existingStudent.name} moved successfully!`);
+                await fetchClasses();
+                await fetchAllStudents();
+                handleAddModalCancel();
+                handleConfirmModalCancel();
+              } catch (err) {
+                message.error("Failed to link student.");
+              }
+            }
+          });
+          return false;
+        }
+
         throw new Error(errorData.error || "Failed to create student.");
       }
       message.success("New student created and added successfully!");
-      await fetchClasses();
-      await fetchAllStudents(); 
-    } catch (error) {
-      throw error; 
+      return true;
+    } catch (error: any) {
+      message.error(error.message || "Operation failed.");
+      return false;
     }
   };
 
@@ -281,30 +320,32 @@ const ClassManagement = () => {
             cancelText: 'No, Cancel',
             onOk: async () => {
               try {
-                await createNewStudent(newStudentData);
-                Modal.confirm({
-                  title: `"${newStudentData.name}" created successfully!`,
-                  content: 'Do you want to add another student?',
-                  okText: 'Yes, Add Another',
-                  cancelText: 'No, Close',
-                  onOk: () => {
-                    newStudentForm.resetFields();
-                    setNewStudentData(null);
-                    setIsAddModalVisible(true);
-                  },
-                  onCancel: () => {
-                    handleAddModalCancel();
-                  }
-                });
+                const result = await createNewStudent(newStudentData);
+                if (result) {
+                  Modal.confirm({
+                    title: `"${newStudentData.name}" created successfully!`,
+                    content: 'Do you want to add another student?',
+                    okText: 'Yes, Add Another',
+                    cancelText: 'No, Close',
+                    onOk: () => {
+                      newStudentForm.resetFields();
+                      setNewStudentData(null);
+                      setIsAddModalVisible(true);
+                    },
+                    onCancel: () => {
+                      handleAddModalCancel();
+                    }
+                  });
+                }
               } catch (error) {
-                
+
               }
             },
             onCancel: () => {
               handleAddModalCancel();
             }
           });
-          return; 
+          return;
         }
 
         const studentToMove = studentToProcess;
@@ -332,16 +373,18 @@ const ClassManagement = () => {
         }
 
       } else {
-        
+
         studentNameProcessed = newStudentData.name;
-        await createNewStudent(newStudentData);
-        success = true;
+        const result = await createNewStudent(newStudentData);
+        if (result) {
+          success = true;
+        }
       }
     } catch (error) {
-      
+
     } finally {
       if (success) {
-        handleConfirmModalCancel(); 
+        handleConfirmModalCancel();
       }
     }
 
@@ -398,7 +441,7 @@ const ClassManagement = () => {
         }),
       });
       message.success(`${studentToMove.name} moved successfully!`);
-      const studentNameMoved = studentToMove.name; 
+      const studentNameMoved = studentToMove.name;
       await fetchClasses();
 
       Modal.confirm({
@@ -407,14 +450,14 @@ const ClassManagement = () => {
         okText: 'Yes, Move Another',
         cancelText: 'No, Close',
         onOk() {
-          
-          handleMoveModalCancel(); 
-          
+
+          handleMoveModalCancel();
+
         },
         onCancel() {
-          
+
           handleMoveModalCancel();
-          setIsViewModalVisible(false); 
+          setIsViewModalVisible(false);
         },
       });
     } catch (error) {
@@ -456,10 +499,10 @@ const ClassManagement = () => {
   };
 
   const handleAddModalCancel = () => {
-    setIsAddModalVisible(false);    
-    newStudentForm.resetFields();   
-    setStudentToAdd(null);          
-    setAddStudentTab('existing');   
+    setIsAddModalVisible(false);
+    newStudentForm.resetFields();
+    setStudentToAdd(null);
+    setAddStudentTab('existing');
   };
 
   const showViewStudentModal = (cls) => {
@@ -499,7 +542,7 @@ const ClassManagement = () => {
       }
 
       message.success("Class deleted successfully!");
-      fetchClasses(); 
+      fetchClasses();
     } catch (error) {
       console.error("Error deleting class:", error);
       message.error("An error occurred while deleting the class.");
@@ -511,7 +554,7 @@ const ClassManagement = () => {
       const res = await fetch(`/api/tas/${taId}/classes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classIds: [] }), 
+        body: JSON.stringify({ classIds: [] }),
       });
 
       if (!res.ok) {
@@ -519,7 +562,7 @@ const ClassManagement = () => {
       }
 
       message.success("All classes unassigned successfully!");
-      fetchTAs(); 
+      fetchTAs();
     } catch (error) {
       console.error("Error unassigning classes:", error);
       message.error("Failed to unassign classes.");
@@ -682,7 +725,7 @@ const ClassManagement = () => {
           </Card>
         )}
 
-        {}
+        { }
         {(effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR') && (
           <Card title="Assign TAs/Tutors" style={{ marginBottom: 24 }}>
             <div style={{ marginBottom: 16 }}>
@@ -748,26 +791,26 @@ const ClassManagement = () => {
           onCancel={() => {
             setIsAssignTAsModalVisible(false);
             setSelectedTaIdForEdit(null);
-            fetchTAs(); 
+            fetchTAs();
           }}
           initialTaId={selectedTaIdForEdit}
         />
 
-        {}
+        { }
         {selectedClass && (
           <Modal
             width={600}
             title={`Manage Roster: ${selectedClass.courseCode} - ${selectedClass.classGroup}`}
             open={isViewModalVisible}
             onCancel={() => setIsViewModalVisible(false)}
-            
+
             footer={[
               <Button key="close" onClick={() => setIsViewModalVisible(false)}>
                 Done
               </Button>,
             ]}
           >
-            {}
+            { }
             <Input
               placeholder="Search students in this class"
               onChange={(e) => setStudentSearchQuery(e.target.value)}
@@ -775,7 +818,7 @@ const ClassManagement = () => {
               allowClear
             />
 
-            {}
+            { }
             {(effectiveRole === 'PROFESSOR' || effectiveRole === 'ADMIN' || effectiveRole === 'COURSE_COORDINATOR') && (
               <Button
                 type="primary"
@@ -813,16 +856,16 @@ const ClassManagement = () => {
           </Modal>
         )}
 
-        {}
+        { }
         <Modal
           title={`Add New Student to ${selectedClass?.courseCode} - ${selectedClass?.classGroup}`}
           open={isAddModalVisible}
-          onOk={handleAddStudent} 
+          onOk={handleAddStudent}
           onCancel={handleAddModalCancel}
           okText="Check & Add Student"
-        
+
         >
-          {}
+          { }
           <Form form={newStudentForm} layout="vertical">
             <Form.Item name="name" label="Student Name" rules={[{ required: true }]}>
               <Input placeholder="Enter student's full name" onChange={(e) => {
@@ -840,7 +883,7 @@ const ClassManagement = () => {
           </Form>
         </Modal>
 
-        {}
+        { }
         <Modal
           title="Potential Duplicate Found"
           open={isConfirmModalVisible}
@@ -871,7 +914,7 @@ const ClassManagement = () => {
           <p style={{ marginTop: '10px' }}>If none match, select &quot;Create New Student Anyway&quot; by leaving the list unselected.</p>
         </Modal>
 
-        {}
+        { }
         <Modal
           title={`Move ${studentToMove?.name}`}
           open={isMoveModalVisible}
